@@ -967,7 +967,7 @@ pub const LogLevel = enum(c_int) {
     ERROR = 4,
     CONT = 5, // continue previous log
 };
-pub const LogCallback = *const fn (level: LogLevel, text: CStr, user_data: ?*anyopaque) callconv(.C) void;
+pub const LogCallback = *const fn (level: LogLevel, text: CStr, user_data: ?*anyopaque) callconv(.c) void;
 
 pub fn logSet(cb: ?LogCallback, user_data: ?*anyopaque) void {
     c.llama_log_set(@ptrCast(cb), user_data);

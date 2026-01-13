@@ -9,6 +9,15 @@
         "llama.cpp/",
         "llama.cpp/common",
     },
-    .dependencies = .{},
+    .dependencies = .{
+        .hf_hub_zig = .{
+            .url = "https://github.com/bkataru/hf-hub-zig/archive/refs/heads/main.tar.gz",
+            .hash = "hf_hub_zig-0.1.0-QN2u5DwTBgAahfDPwbGqL0N2IRrZvHU3o8ul3qoCGorj",
+        },
+        .zenmap = .{
+            .url = "https://github.com/bkataru/zenmap/archive/refs/heads/main.tar.gz",
+            .hash = "zenmap-0.1.0-gCHGZMa7AAAPHZyEcMWkl4HH6eF8qFRCGRTWLkHU5bOu",
+        },
+    },
     .fingerprint = 0x2177db0a3e9a0c2a,
 }

@@ -6,7 +6,7 @@ const TokenType = llama.TokenType;
 const LogLevel = llama.LogLevel;
 const SeqId = llama.SeqId;
 
-pub fn scopedLog(level: LogLevel, text_: [*:0]const u8, user_data: ?*anyopaque) callconv(.C) void {
+pub fn scopedLog(level: LogLevel, text_: [*:0]const u8, user_data: ?*anyopaque) callconv(.c) void {
     _ = user_data;
     const sl = std.log.scoped(.llama_cpp);
     var text: []const u8 = std.mem.span(text_);
@@ -22,15 +22,17 @@ pub fn scopedLog(level: LogLevel, text_: [*:0]const u8, user_data: ?*anyopaque) 
 
 pub const Tokenizer = struct {
     data: std.ArrayList(Token),
+    allocator: std.mem.Allocator,
 
     pub fn init(alloc: std.mem.Allocator) Tokenizer {
         return .{
-            .data = std.ArrayList(llama.Token).init(alloc),
+            .data = .empty,
+            .allocator = alloc,
         };
     }
 
     pub fn deinit(self: *@This()) void {
-        self.data.deinit();
+        self.data.deinit(self.allocator);
     }
 
     pub fn clearRetainingCapacity(self: *@This()) void {
@@ -39,10 +41,10 @@ pub const Tokenizer = struct {
 
     /// tokenize more text
     pub fn tokenize(self: *@This(), vocab: *const llama.Vocab, text: []const u8, add_bos: bool, special: bool) !void {
-        try self.data.ensureUnusedCapacity(text.len / 3 + 8); // assume that token on average is ~3 chars long
+        try self.data.ensureUnusedCapacity(self.allocator, text.len / 3 + 8); // assume that token on average is ~3 chars long
         var size = vocab.tokenize(text, self.data.unusedCapacitySlice(), add_bos, special);
         if (size < 0) {
-            try self.data.ensureUnusedCapacity(@intCast(-size));
+            try self.data.ensureUnusedCapacity(self.allocator, @intCast(-size));
             size = vocab.tokenize(text, self.data.unusedCapacitySlice(), add_bos, special);
             if (size < 0) @panic("unexpected tokenization error"); // TODO: switch to unreachable once sure it works
         }
@@ -61,15 +63,17 @@ pub fn tokenGetText(model: *llama.Model, token: llama.Token) []const u8 {
 
 pub const Detokenizer = struct {
     data: std.ArrayList(u8),
+    allocator: std.mem.Allocator,
 
     pub fn init(alloc: std.mem.Allocator) Detokenizer {
         return .{
-            .data = std.ArrayList(u8).init(alloc),
+            .data = .empty,
+            .allocator = alloc,
         };
     }
 
     pub fn deinit(self: *@This()) void {
-        self.data.deinit();
+        self.data.deinit(self.allocator);
     }
 
     pub fn clearRetainingCapacity(self: *@This()) void {
@@ -78,10 +82,10 @@ pub const Detokenizer = struct {
 
     /// de-tokenize another token. Doesn't display special tokens.
     pub fn detokenize(self: *@This(), vocab: *const llama.Vocab, token: llama.Token) ![]const u8 {
-        try self.data.ensureUnusedCapacity(16);
+        try self.data.ensureUnusedCapacity(self.allocator, 16);
         var size = vocab.tokenToPiece(token, self.data.unusedCapacitySlice());
         if (size < 0) {
-            try self.data.ensureUnusedCapacity(@intCast(-size));
+            try self.data.ensureUnusedCapacity(self.allocator, @intCast(-size));
             size = vocab.tokenToPiece(token, self.data.unusedCapacitySlice());
             if (size < 0) @panic("unexpected tokenization error"); // TODO: switch to unreachable once sure it works
         }
@@ -106,7 +110,7 @@ pub const Detokenizer = struct {
             .LLAMA_TOKEN_ATTR_SINGLE_WORD,
             => {
                 const len = self.data.items.len;
-                try self.data.appendSlice(tokenGetText(model, token));
+                try self.data.appendSlice(self.allocator, tokenGetText(model, token));
                 return self.data.items[len..];
             },
         }
@@ -200,12 +204,14 @@ pub const TemplatedPrompt = struct {
 
     params: Params,
     text: std.ArrayList(u8), // assemble promt in text form here
+    allocator: std.mem.Allocator,
     // two additional buffers for temp storage during processing. one kept for input second for writing, then swapped
     buffers: [2]std.ArrayListUnmanaged(u8),
 
     pub fn init(allocator: std.mem.Allocator, params: Params) Self {
         return .{
-            .text = std.ArrayList(u8).init(allocator),
+            .text = .empty,
+            .allocator = allocator,
             .params = params,
             .buffers = [2]std.ArrayListUnmanaged(u8){ .{}, .{} },
         };
@@ -214,11 +220,11 @@ pub const TemplatedPrompt = struct {
     pub fn deinit(self: *Self) void {
         self.buffers[0].deinit(self.alloc());
         self.buffers[1].deinit(self.alloc());
-        self.text.deinit();
+        self.text.deinit(self.alloc());
     }
 
     pub fn alloc(self: *Self) std.mem.Allocator {
-        return self.text.allocator;
+        return self.allocator;
     }
 
     /// Replace needle with replacement as many times as possible. Result is writen to one of the temp buffers
@@ -261,7 +267,7 @@ pub const TemplatedPrompt = struct {
             text = try self.replace(text, r[0], r[1]);
         }
         if (ends_with_generation) text = trimBack(text);
-        try self.text.appendSlice(text);
+        try self.text.appendSlice(self.alloc(), text);
     }
 
     pub fn addMany(self: *Self, items: []const Message) !void {
