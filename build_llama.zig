@@ -1,7 +1,7 @@
 const std = @import("std");
 const Builder = std.Build;
 const Target = std.Build.ResolvedTarget;
-const Mode = std.builtin.Mode;
+const OptimizeMode = std.builtin.OptimizeMode;
 const CompileStep = std.Build.Step.Compile;
 const LazyPath = std.Build.LazyPath;
 const Module = std.Build.Module;
@@ -35,7 +35,7 @@ pub const Backends = struct {
 
 pub const Options = struct {
     target: Target,
-    optimize: Mode,
+    optimize: OptimizeMode,
     backends: Backends = .{},
     shared: bool, // static or shared lib
     build_number: usize = 0, // number that will be writen in build info
@@ -77,11 +77,17 @@ pub const Context = struct {
             \\
         , .{ op.build_number, commit_hash.stdout[0 .. commit_hash.stdout.len - 1], zig_version, op.target.result.zigTriple(b.allocator) catch unreachable, @tagName(op.optimize) });
 
+        const build_info_module = b.createModule(.{
+            .root_source_file = b.addWriteFiles().add(build_info_path, build_info),
+            .target = op.target,
+            .optimize = op.optimize,
+        });
+
         return .{
             .b = b,
             .options = op,
             .path_prefix = path_prefix,
-            .build_info = b.addObject(.{ .name = "llama-build-info", .target = op.target, .optimize = op.optimize, .root_source_file = b.addWriteFiles().add(build_info_path, build_info) }),
+            .build_info = b.addObject(.{ .name = "llama-build-info", .root_module = build_info_module }),
         };
     }
 
@@ -95,17 +101,20 @@ pub const Context = struct {
     /// build single library containing everything
     pub fn library(ctx: *Context) *CompileStep {
         if (ctx.lib) |l| return l;
-        const lib_opt: Builder.SharedLibraryOptions = .{ .name = "llama.cpp", .target = ctx.options.target, .optimize = ctx.options.optimize };
-        const lib = if (ctx.options.shared) blk: {
-            const lib = ctx.b.addSharedLibrary(lib_opt);
+        const lib_module = ctx.b.createModule(.{
+            .target = ctx.options.target,
+            .optimize = ctx.options.optimize,
+        });
+        const linkage: std.builtin.LinkMode = if (ctx.options.shared) .dynamic else .static;
+        const lib = ctx.b.addLibrary(.{ .name = "llama.cpp", .root_module = lib_module, .linkage = linkage });
+        if (ctx.options.shared) {
             lib.root_module.addCMacro("LLAMA_SHARED", "");
             lib.root_module.addCMacro("LLAMA_BUILD", "");
             if (ctx.options.target.result.os.tag == .windows) {
                 std.log.warn("For shared linking to work, requires header llama.h modification:\n\'#    if defined(_WIN32) && (!defined(__MINGW32__) || defined(ZIG))'", .{});
                 lib.root_module.addCMacro("ZIG", "");
             }
-            break :blk lib;
-        } else ctx.b.addStaticLibrary(Builder.StaticLibraryOptions{ .name = "llama.cpp", .target = ctx.options.target, .optimize = ctx.options.optimize });
+        }
         ctx.options.backends.addDefines(lib);
         ctx.addAll(lib);
         if (ctx.options.target.result.abi != .msvc)
@@ -161,8 +170,8 @@ pub const Context = struct {
             compile.root_module.addCMacro("GGML_ATTRIBUTE_FORMAT(...)", "");
         }
 
-        var sources = std.ArrayList(LazyPath).init(ctx.b.allocator);
-        sources.appendSlice(&.{
+        var sources: std.ArrayList(LazyPath) = .empty;
+        sources.appendSlice(ctx.b.allocator, &.{
             ctx.path(&.{ "ggml", "src", "ggml-alloc.c" }),
             ctx.path(&.{ "ggml", "src", "ggml-backend-reg.cpp" }),
             ctx.path(&.{ "ggml", "src", "ggml-backend.cpp" }),
@@ -176,7 +185,7 @@ pub const Context = struct {
         if (ctx.options.backends.cpu) {
             compile.addIncludePath(ctx.path(&.{ "ggml", "src", "ggml-cpu" }));
             compile.linkLibCpp();
-            sources.appendSlice(&.{
+            sources.appendSlice(ctx.b.allocator, &.{
                 ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu.c" }),
                 ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu.cpp" }),
                 ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu-aarch64.cpp" }),
@@ -199,10 +208,14 @@ pub const Context = struct {
                 compile.root_module.addCMacro("GGML_METAL_USE_BF16", "");
             }
             // Create a separate Metal library
-            const metal_lib = ctx.b.addStaticLibrary(.{
-                .name = "ggml-metal",
+            const metal_module = ctx.b.createModule(.{
                 .target = ctx.options.target,
                 .optimize = ctx.options.optimize,
+            });
+            const metal_lib = ctx.b.addLibrary(.{
+                .name = "ggml-metal",
+                .root_module = metal_module,
+                .linkage = .static,
             });
             metal_lib.addIncludePath(ctx.path(&.{ "ggml", "include" }));
             metal_lib.addIncludePath(ctx.path(&.{ "ggml", "src" }));
@@ -298,7 +311,11 @@ pub const Context = struct {
         };
 
         for (examples) |ex| {
-            const exe = b.addExecutable(.{ .name = ex, .target = ctx.options.target, .optimize = ctx.options.optimize });
+            const exe_module = b.createModule(.{
+                .target = ctx.options.target,
+                .optimize = ctx.options.optimize,
+            });
+            const exe = b.addExecutable(.{ .name = ex, .root_module = exe_module });
             exe.addIncludePath(ctx.path(&.{"include"}));
             exe.addIncludePath(ctx.path(&.{"common"}));
             exe.addIncludePath(ctx.path(&.{ "ggml", "include" }));

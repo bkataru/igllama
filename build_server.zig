@@ -1,7 +1,7 @@
 const std = @import("std");
 const Builder = std.Build;
 const Target = std.Build.ResolvedTarget;
-const Mode = std.builtin.Mode;
+const OptimizeMode = std.builtin.OptimizeMode;
 const CompileStep = std.Build.Step.Compile;
 const LazyPath = std.Build.LazyPath;
 
