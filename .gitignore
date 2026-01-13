@@ -58,3 +58,25 @@ zig-out
 /docgen_tmp/
 
 models
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Model registry and cache
+igllama-registry.json
+igllama-servers.json
+
+# Test outputs and temporary files
+test_output/
+*.test
+
