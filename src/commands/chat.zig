@@ -22,6 +22,13 @@ fn readLine(file: std.fs.File, buffer: []u8) !?[]u8 {
     return buffer[0..index];
 }
 
+/// Check if stdin is a TTY (interactive terminal)
+fn isStdinTty() bool {
+    const stdin_file = std.fs.File.stdin();
+    // On Windows and Unix, use std.fs.File.isTty() which handles both
+    return stdin_file.isTty();
+}
+
 /// Chat message role
 const Role = enum {
     system,
@@ -448,6 +455,15 @@ pub fn run(args: []const []const u8) !void {
     var max_tokens: usize = 2048;
     var system_prompt: []const u8 = "You are a helpful assistant.";
     var template: []const u8 = "chatml";
+    var context_size: ?u32 = null; // Override context size (null = use model default)
+    var seed: u32 = 0; // 0 = random seed
+    var quiet_mode: bool = false; // Suppress model loading logs
+    var temperature: f32 = 0.7; // Sampling temperature
+    var top_p: f32 = 0.9; // Top-p (nucleus) sampling
+    var top_k: i32 = 40; // Top-k sampling
+    var repeat_penalty: f32 = 1.1; // Repetition penalty
+    var single_prompt: ?[]const u8 = null; // Single-turn mode prompt
+    var json_output: bool = false; // JSON output mode
 
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
@@ -479,6 +495,45 @@ pub fn run(args: []const []const u8) !void {
                 template = args[i + 1];
                 i += 1;
             }
+        } else if (std.mem.eql(u8, arg, "--context-size") or std.mem.eql(u8, arg, "-c")) {
+            if (i + 1 < args.len) {
+                context_size = std.fmt.parseInt(u32, args[i + 1], 10) catch null;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--seed")) {
+            if (i + 1 < args.len) {
+                seed = std.fmt.parseInt(u32, args[i + 1], 10) catch 0;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--temp") or std.mem.eql(u8, arg, "--temperature")) {
+            if (i + 1 < args.len) {
+                temperature = std.fmt.parseFloat(f32, args[i + 1]) catch 0.7;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--top-p")) {
+            if (i + 1 < args.len) {
+                top_p = std.fmt.parseFloat(f32, args[i + 1]) catch 0.9;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--top-k")) {
+            if (i + 1 < args.len) {
+                top_k = std.fmt.parseInt(i32, args[i + 1], 10) catch 40;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--repeat-penalty")) {
+            if (i + 1 < args.len) {
+                repeat_penalty = std.fmt.parseFloat(f32, args[i + 1]) catch 1.1;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--quiet") or std.mem.eql(u8, arg, "-q")) {
+            quiet_mode = true;
+        } else if (std.mem.eql(u8, arg, "--prompt") or std.mem.eql(u8, arg, "-p")) {
+            if (i + 1 < args.len) {
+                single_prompt = args[i + 1];
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--json")) {
+            json_output = true;
         } else if (!std.mem.startsWith(u8, arg, "-")) {
             const path_z = try allocator.allocSentinel(u8, arg.len, 0);
             @memcpy(path_z, arg);
@@ -491,10 +546,20 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("Usage: igllama chat <model.gguf> [options]\n", .{});
         try stderr.print("\nOptions:\n", .{});
         try stderr.print("  -m, --model <path>       Model file path\n", .{});
-        try stderr.print("  -s, --system <prompt>    System prompt (default: helpful assistant)\n", .{});
-        try stderr.print("  -t, --template <name>    Chat template: chatml, llama3, mistral, gemma, phi3, qwen (default: chatml)\n", .{});
+        try stderr.print("  -c, --context-size <n>   Context size (default: model's training size)\n", .{});
         try stderr.print("  -n, --max-tokens <n>     Max tokens per response (default: 2048)\n", .{});
+        try stderr.print("  -s, --system <prompt>    System prompt (default: helpful assistant)\n", .{});
+        try stderr.print("  -t, --template <name>    Chat template: chatml, llama3, mistral, gemma, phi3, qwen\n", .{});
         try stderr.print("  -ngl, --gpu-layers <n>   GPU layers to offload (default: 0)\n", .{});
+        try stderr.print("  -q, --quiet              Suppress model loading logs\n", .{});
+        try stderr.print("  -p, --prompt <text>      Single-turn mode: generate response and exit\n", .{});
+        try stderr.print("  --json                   Output response as JSON (for scripting)\n", .{});
+        try stderr.print("\nSampling options:\n", .{});
+        try stderr.print("  --temp <f>               Temperature (default: 0.7, 0=greedy)\n", .{});
+        try stderr.print("  --top-p <f>              Top-p nucleus sampling (default: 0.9)\n", .{});
+        try stderr.print("  --top-k <n>              Top-k sampling (default: 40)\n", .{});
+        try stderr.print("  --repeat-penalty <f>     Repetition penalty (default: 1.1)\n", .{});
+        try stderr.print("  --seed <n>               Random seed (default: 0=random)\n", .{});
         try stderr.print("\nCommands during chat:\n", .{});
         try stderr.print("  /quit, /exit             Exit chat\n", .{});
         try stderr.print("  /clear                   Clear conversation history\n", .{});
@@ -502,13 +567,17 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("  /save <file>             Save conversation to file\n", .{});
         try stderr.print("  /load <file>             Load conversation from file\n", .{});
         try stderr.print("  /history                 Show conversation history\n", .{});
+        try stderr.print("  /tokens                  Show token count of last exchange\n", .{});
+        try stderr.print("  /stats                   Show generation statistics\n", .{});
         return error.InvalidArguments;
     }
 
     defer if (model_path) |p| allocator.free(p);
 
-    try stdout.print("Loading model: {s}\n", .{model_path.?});
-    try stdout.flush();
+    if (!quiet_mode) {
+        try stdout.print("Loading model: {s}\n", .{model_path.?});
+        try stdout.flush();
+    }
 
     // Initialize llama backend
     llama.Backend.init();
@@ -531,8 +600,18 @@ pub fn run(args: []const []const u8) !void {
 
     // Setup context
     var cparams = llama.Context.defaultParams();
-    const n_ctx_train = model.nCtxTrain();
-    cparams.n_ctx = @intCast(n_ctx_train);
+    const n_ctx_train: u32 = @intCast(model.nCtxTrain());
+
+    // Use custom context size or model default
+    const effective_ctx_size: u32 = if (context_size) |ctx_sz| blk: {
+        if (ctx_sz > n_ctx_train) {
+            try stderr.print("Warning: context-size {d} exceeds model's training size {d}, using {d}\n", .{ ctx_sz, n_ctx_train, n_ctx_train });
+            break :blk n_ctx_train;
+        }
+        break :blk ctx_sz;
+    } else n_ctx_train;
+
+    cparams.n_ctx = effective_ctx_size;
 
     const cpu_threads = try std.Thread.getCpuCount();
     cparams.n_threads = @intCast(@min(cpu_threads, 4));
@@ -549,39 +628,80 @@ pub fn run(args: []const []const u8) !void {
     var session = ChatSession.init(allocator, system_prompt);
     defer session.deinit();
 
-    try stdout.print("\n{s} v{s} - Interactive Chat\n", .{ config.app_name, config.version });
-    try stdout.print("Model: {s}\n", .{model_path.?});
-    try stdout.print("Template: {s}\n", .{template});
-    try stdout.print("Type /quit to exit, /clear to reset history\n\n", .{});
+    // Statistics tracking
+    var last_prompt_tokens: usize = 0;
+    var last_response_tokens: usize = 0;
+    var total_prompt_tokens: usize = 0;
+    var total_response_tokens: usize = 0;
+    var last_generation_time_ns: i128 = 0;
+
+    // Determine run mode: interactive, single-prompt, or piped
+    const is_tty = isStdinTty();
+    const is_interactive = is_tty and single_prompt == null;
+
+    if (is_interactive and !quiet_mode) {
+        try stdout.print("\n{s} v{s} - Interactive Chat\n", .{ config.app_name, config.version });
+        try stdout.print("Model: {s}\n", .{model_path.?});
+        try stdout.print("Template: {s} | Context: {d} tokens\n", .{ template, effective_ctx_size });
+        if (temperature == 0) {
+            try stdout.print("Sampling: greedy\n", .{});
+        } else {
+            try stdout.print("Sampling: temp={d:.2}, top_p={d:.2}, top_k={d}\n", .{ temperature, top_p, top_k });
+        }
+        try stdout.print("Type /quit to exit, /help for commands\n\n", .{});
+    }
     try stdout.flush();
 
     // Read input buffer
     var input_buffer: [4096]u8 = undefined;
     const stdin_file = std.fs.File.stdin();
 
+    // For piped input, read all of stdin at once
+    var piped_input: ?[]u8 = null;
+    defer if (piped_input) |p| allocator.free(p);
+
+    if (!is_tty and single_prompt == null) {
+        // Read all input from piped stdin
+        piped_input = stdin_file.readToEndAlloc(allocator, 1024 * 1024) catch null; // 1MB max
+    }
+
     // Main chat loop
+    var first_iteration = true;
     while (true) {
-        // Print prompt
-        try stdout.print("You: ", .{});
-        try stdout.flush();
+        var user_input: []const u8 = undefined;
 
-        // Read user input - read line from stdin
-        const line = readLine(stdin_file, &input_buffer) catch |err| {
-            try stderr.print("\nError reading input: {}\n", .{err});
-            break;
-        };
+        // Get input based on mode
+        if (single_prompt) |prompt| {
+            // Single-turn mode: use the provided prompt
+            if (!first_iteration) break; // Only run once
+            user_input = prompt;
+        } else if (piped_input) |input| {
+            // Piped mode: use all piped input
+            if (!first_iteration) break; // Only run once
+            user_input = std.mem.trim(u8, input, &[_]u8{ '\r', '\n', ' ', '\t' });
+        } else {
+            // Interactive mode: read from terminal
+            try stdout.print("You: ", .{});
+            try stdout.flush();
 
-        if (line == null) {
-            try stdout.print("\n", .{});
-            break;
+            const line = readLine(stdin_file, &input_buffer) catch |err| {
+                try stderr.print("\nError reading input: {}\n", .{err});
+                break;
+            };
+
+            if (line == null) {
+                try stdout.print("\n", .{});
+                break;
+            }
+
+            user_input = std.mem.trim(u8, line.?, &[_]u8{ '\r', '\n', ' ', '\t' });
         }
-
-        var user_input = std.mem.trim(u8, line.?, &[_]u8{ '\r', '\n', ' ', '\t' });
+        first_iteration = false;
 
         if (user_input.len == 0) continue;
 
-        // Handle commands
-        if (std.mem.startsWith(u8, user_input, "/")) {
+        // Handle commands (only in interactive mode)
+        if (is_interactive and std.mem.startsWith(u8, user_input, "/")) {
             if (std.mem.eql(u8, user_input, "/quit") or std.mem.eql(u8, user_input, "/exit")) {
                 try stdout.print("Goodbye!\n", .{});
                 break;
@@ -634,9 +754,42 @@ pub fn run(args: []const []const u8) !void {
                 try stdout.print("--- End ({d} messages) ---\n\n", .{session.messageCount()});
                 try stdout.flush();
                 continue;
+            } else if (std.mem.eql(u8, user_input, "/tokens")) {
+                try stdout.print("\n--- Token Count ---\n", .{});
+                try stdout.print("Last prompt:    {d} tokens\n", .{last_prompt_tokens});
+                try stdout.print("Last response:  {d} tokens\n", .{last_response_tokens});
+                try stdout.print("Total prompt:   {d} tokens\n", .{total_prompt_tokens});
+                try stdout.print("Total response: {d} tokens\n", .{total_response_tokens});
+                try stdout.print("Context used:   {d}/{d} tokens\n\n", .{ total_prompt_tokens + total_response_tokens, effective_ctx_size });
+                continue;
+            } else if (std.mem.eql(u8, user_input, "/stats")) {
+                try stdout.print("\n--- Generation Statistics ---\n", .{});
+                try stdout.print("Last prompt tokens:    {d}\n", .{last_prompt_tokens});
+                try stdout.print("Last response tokens:  {d}\n", .{last_response_tokens});
+                if (last_generation_time_ns > 0 and last_response_tokens > 0) {
+                    const time_sec: f64 = @as(f64, @floatFromInt(last_generation_time_ns)) / 1_000_000_000.0;
+                    const tokens_per_sec: f64 = @as(f64, @floatFromInt(last_response_tokens)) / time_sec;
+                    try stdout.print("Last generation time:  {d:.2}s\n", .{time_sec});
+                    try stdout.print("Tokens per second:     {d:.2}\n", .{tokens_per_sec});
+                }
+                try stdout.print("Total tokens:          {d} ({d} prompt + {d} response)\n", .{ total_prompt_tokens + total_response_tokens, total_prompt_tokens, total_response_tokens });
+                try stdout.print("Context usage:         {d}/{d} ({d:.1}%)\n\n", .{ total_prompt_tokens + total_response_tokens, effective_ctx_size, @as(f64, @floatFromInt(total_prompt_tokens + total_response_tokens)) / @as(f64, @floatFromInt(effective_ctx_size)) * 100.0 });
+                continue;
+            } else if (std.mem.eql(u8, user_input, "/help")) {
+                try stdout.print("\nCommands:\n", .{});
+                try stdout.print("  /quit, /exit   Exit chat\n", .{});
+                try stdout.print("  /clear         Clear conversation history\n", .{});
+                try stdout.print("  /system <p>    Change system prompt\n", .{});
+                try stdout.print("  /save <file>   Save conversation to file\n", .{});
+                try stdout.print("  /load <file>   Load conversation from file\n", .{});
+                try stdout.print("  /history       Show conversation history\n", .{});
+                try stdout.print("  /tokens        Show token counts\n", .{});
+                try stdout.print("  /stats         Show generation statistics\n", .{});
+                try stdout.print("  /help          Show this help\n\n", .{});
+                continue;
             } else {
                 try stdout.print("Unknown command: {s}\n", .{user_input});
-                try stdout.print("Available: /quit, /clear, /system, /save, /load, /history\n\n", .{});
+                try stdout.print("Type /help for available commands\n\n", .{});
                 continue;
             }
         }
@@ -664,8 +817,12 @@ pub fn run(args: []const []const u8) !void {
         defer tokenizer.deinit();
         try tokenizer.tokenize(vocab, formatted_prompt, false, true);
 
+        // Track prompt tokens
+        last_prompt_tokens = tokenizer.getTokens().len;
+        total_prompt_tokens += last_prompt_tokens;
+
         // Check context length
-        const ctx_limit: usize = @intCast(n_ctx_train);
+        const ctx_limit: usize = @intCast(effective_ctx_size);
         if (tokenizer.getTokens().len > ctx_limit - max_tokens) {
             try stderr.print("Warning: Conversation too long, clearing old messages\n", .{});
             // Keep only the last few messages
@@ -676,21 +833,48 @@ pub fn run(args: []const []const u8) !void {
             continue;
         }
 
-        // Setup sampler
+        // Setup sampler chain with configured parameters
         var sampler = llama.Sampler.initChain(.{ .no_perf = false });
         defer sampler.deinit();
-        sampler.add(llama.Sampler.initGreedy());
+
+        // Build sampling chain based on parameters
+        if (temperature == 0) {
+            // Greedy sampling (deterministic)
+            sampler.add(llama.Sampler.initGreedy());
+        } else {
+            // Add repetition penalty if > 1.0
+            if (repeat_penalty > 1.0) {
+                sampler.add(llama.Sampler.initPenalties(64, repeat_penalty, 0.0, 0.0));
+            }
+            // Top-K sampling
+            if (top_k > 0) {
+                sampler.add(llama.Sampler.initTopK(top_k));
+            }
+            // Top-P (nucleus) sampling
+            if (top_p < 1.0) {
+                sampler.add(llama.Sampler.initTopP(top_p, 1));
+            }
+            // Temperature
+            sampler.add(llama.Sampler.initTemp(temperature));
+            // Distribution sampling with seed
+            sampler.add(llama.Sampler.initDist(seed));
+        }
 
         var detokenizer = llama.Detokenizer.init(allocator);
         defer detokenizer.deinit();
 
-        // Print assistant prefix
-        try stdout.print("Assistant: ", .{});
-        try stdout.flush();
+        // Print assistant prefix (only in interactive mode, not JSON)
+        if (is_interactive and !json_output) {
+            try stdout.print("Assistant: ", .{});
+            try stdout.flush();
+        }
 
-        // Generate response
+        // Generate response with timing
         var response_buffer: std.ArrayList(u8) = .empty;
         defer response_buffer.deinit(allocator);
+
+        const start_time = std.time.nanoTimestamp();
+        var generated_tokens: usize = 0;
 
         var batch = llama.Batch.initOne(tokenizer.getTokens());
         var batch_token: [1]llama.Token = undefined;
@@ -702,18 +886,56 @@ pub fn run(args: []const []const u8) !void {
 
             batch_token[0] = token;
             batch = llama.Batch.initOne(batch_token[0..]);
+            generated_tokens += 1;
 
             // Get token text
             const token_text = try detokenizer.detokenize(vocab, token);
             try response_buffer.appendSlice(allocator, token_text);
 
-            // Print token
-            try stdout.print("{s}", .{token_text});
-            try stdout.flush();
+            // Stream output (only in non-JSON mode)
+            if (!json_output) {
+                try stdout.print("{s}", .{token_text});
+                try stdout.flush();
+            }
             detokenizer.clearRetainingCapacity();
         }
 
-        try stdout.print("\n\n", .{});
+        const end_time = std.time.nanoTimestamp();
+        last_generation_time_ns = end_time - start_time;
+        last_response_tokens = generated_tokens;
+        total_response_tokens += generated_tokens;
+
+        // Output based on mode
+        if (json_output) {
+            // JSON output mode
+            const time_sec: f64 = @as(f64, @floatFromInt(last_generation_time_ns)) / 1_000_000_000.0;
+            const tokens_per_sec: f64 = if (time_sec > 0) @as(f64, @floatFromInt(generated_tokens)) / time_sec else 0;
+
+            try stdout.print("{{\n", .{});
+            try stdout.print("  \"response\": \"", .{});
+            // Escape JSON string
+            for (response_buffer.items) |c| {
+                switch (c) {
+                    '"' => try stdout.print("\\\"", .{}),
+                    '\\' => try stdout.print("\\\\", .{}),
+                    '\n' => try stdout.print("\\n", .{}),
+                    '\r' => try stdout.print("\\r", .{}),
+                    '\t' => try stdout.print("\\t", .{}),
+                    else => try stdout.print("{c}", .{c}),
+                }
+            }
+            try stdout.print("\",\n", .{});
+            try stdout.print("  \"prompt_tokens\": {d},\n", .{last_prompt_tokens});
+            try stdout.print("  \"response_tokens\": {d},\n", .{generated_tokens});
+            try stdout.print("  \"generation_time_sec\": {d:.3},\n", .{time_sec});
+            try stdout.print("  \"tokens_per_sec\": {d:.2}\n", .{tokens_per_sec});
+            try stdout.print("}}\n", .{});
+        } else if (is_interactive) {
+            try stdout.print("\n\n", .{});
+        } else {
+            // Non-interactive text mode: just newline
+            try stdout.print("\n", .{});
+        }
         try stdout.flush();
 
         // Add assistant response to history
