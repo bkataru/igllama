@@ -258,6 +258,64 @@ pub const Context = struct {
             compile.step.dependOn(&default_lib_install.step);
         }
 
+        if (ctx.options.backends.vulkan) {
+            compile.addIncludePath(ctx.path(&.{ "ggml", "src", "ggml-vulkan" }));
+            compile.linkLibCpp();
+            compile.root_module.addCMacro("GGML_VULKAN", "");
+
+            // Build vulkan-shaders-gen tool (runs on host)
+            const shaders_gen_module = ctx.b.createModule(.{
+                .target = ctx.b.graph.host,
+                .optimize = .ReleaseFast,
+            });
+            const shaders_gen = ctx.b.addExecutable(.{
+                .name = "vulkan-shaders-gen",
+                .root_module = shaders_gen_module,
+            });
+            shaders_gen.addCSourceFile(.{
+                .file = ctx.path(&.{ "ggml", "src", "ggml-vulkan", "vulkan-shaders", "vulkan-shaders-gen.cpp" }),
+                .flags = &.{ "-std=c++17", "-fexceptions" },
+            });
+            shaders_gen.linkLibCpp();
+            if (ctx.options.target.result.os.tag == .windows) {
+                // Windows-specific for shader gen
+            }
+
+            // Run shader generator to produce ggml-vulkan-shaders.hpp and .cpp
+            const input_dir = ctx.b.pathJoin(&.{ ctx.path_prefix, "ggml", "src", "ggml-vulkan", "vulkan-shaders" });
+            const output_dir = ctx.b.pathJoin(&.{ ctx.b.install_path, "vulkan-shaders-spv" });
+            const target_hpp = ctx.b.pathJoin(&.{ ctx.b.install_path, "vulkan-shaders", "ggml-vulkan-shaders.hpp" });
+            const target_cpp = ctx.b.pathJoin(&.{ ctx.b.install_path, "vulkan-shaders", "ggml-vulkan-shaders.cpp" });
+
+            const run_shaders_gen = ctx.b.addRunArtifact(shaders_gen);
+            run_shaders_gen.addArgs(&.{
+                "--glslc",      "glslc", // Requires Vulkan SDK in PATH
+                "--input-dir",  input_dir,
+                "--output-dir", output_dir,
+                "--target-hpp", target_hpp,
+                "--target-cpp", target_cpp,
+                "--no-clean",
+            });
+
+            // Add generated source files
+            compile.addIncludePath(.{ .cwd_relative = ctx.b.pathJoin(&.{ ctx.b.install_path, "vulkan-shaders" }) });
+            compile.addCSourceFile(.{
+                .file = .{ .cwd_relative = target_cpp },
+                .flags = ctx.flags(),
+            });
+            compile.step.dependOn(&run_shaders_gen.step);
+
+            // Compile ggml-vulkan.cpp
+            sources.append(ctx.b.allocator, ctx.path(&.{ "ggml", "src", "ggml-vulkan", "ggml-vulkan.cpp" })) catch unreachable;
+
+            // Link Vulkan library
+            if (ctx.options.target.result.os.tag == .windows) {
+                compile.linkSystemLibrary("vulkan-1");
+            } else {
+                compile.linkSystemLibrary("vulkan");
+            }
+        }
+
         for (sources.items) |src| compile.addCSourceFile(.{ .file = src, .flags = ctx.flags() });
     }
 

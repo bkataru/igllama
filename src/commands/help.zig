@@ -21,6 +21,7 @@ pub fn run(_: []const []const u8) !void {
         \\  rm <repo_id>                     Remove a downloaded model
         \\  serve <subcommand>               Manage llama-server lifecycle
         \\  help                             Show this help message
+        \\  version                          Show version information
         \\
         \\Serve Subcommands:
         \\  serve start -m <model>           Start llama-server
@@ -28,6 +29,10 @@ pub fn run(_: []const []const u8) !void {
         \\  serve status                     Show server status
         \\  serve chat -p "prompt"           Send chat message to server
         \\  serve logs                       View server logs
+        \\
+        \\Global Options:
+        \\  -h, --help                       Show this help message
+        \\  -v, --version                    Show version information
         \\
         \\Examples:
         \\  igllama pull bartowski/Llama-3-8B-Instruct-GGUF

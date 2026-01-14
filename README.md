@@ -11,6 +11,8 @@ A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.
 - **Ollama-like CLI** - Familiar commands: `pull`, `run`, `list`, `show`, `rm`
 - **HuggingFace Integration** - Download models directly from HuggingFace Hub
 - **GGUF Support** - Inspect and run GGUF model files
+- **GPU Acceleration** - Metal, Vulkan, and CUDA backend support
+- **HTTP API Server** - Built-in llama-server for OpenAI-compatible API
 - **Pure Zig** - No Python or system dependencies required
 - **Cross-platform** - Windows, Linux, macOS support
 
@@ -85,6 +87,7 @@ igllama rm TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF
 | Command | Description |
 |---------|-------------|
 | `igllama help` | Show usage information |
+| `igllama version` | Show version information |
 | `igllama pull <repo_id>` | Download model from HuggingFace |
 | `igllama list` | List all cached models |
 | `igllama run <model> -p <prompt>` | Run inference on a model |
@@ -127,6 +130,11 @@ zig build test
 | Option | Description |
 |--------|-------------|
 | `-Doptimize=ReleaseFast` | Optimized release build |
+| `-Dserver=true` | Build llama-server HTTP API server |
+| `-Dmetal=true` | Enable Metal GPU backend (macOS) |
+| `-Dvulkan=true` | Enable Vulkan GPU backend |
+| `-Dcuda=true` | Enable CUDA GPU backend (experimental) |
+| `-Dmetal_bf16=true` | Use BF16 for Metal (M2+ recommended) |
 | `-Dcpp_samples` | Include llama.cpp C++ samples |
 | `-Dllama_ref=<ref>` | Use specific llama.cpp version (branch/tag/commit) |
 | `-Dllama_url=<url>` | Custom llama.cpp git URL |
@@ -185,16 +193,52 @@ igllama/
 
 | Backend | Status | Notes |
 |---------|--------|-------|
-| CPU | Supported | Default backend |
-| CUDA | Planned | GPU acceleration |
-| Metal | Planned | Apple Silicon |
-| Vulkan | Planned | Cross-platform GPU |
+| CPU | Supported | Default backend, no additional dependencies |
+| Metal | Supported | macOS with Xcode required |
+| Vulkan | Experimental | Requires Vulkan SDK |
+| CUDA | Experimental | Requires NVIDIA CUDA toolkit |
+
+### GPU Acceleration
+
+Enable GPU backends at build time:
+
+```bash
+# macOS with Metal (Apple Silicon / Intel with AMD GPU)
+zig build -Doptimize=ReleaseFast -Dmetal=true
+
+# Metal with BF16 support (Apple Silicon M2+)
+zig build -Doptimize=ReleaseFast -Dmetal=true -Dmetal_bf16=true
+
+# Vulkan (requires Vulkan SDK + glslc in PATH)
+zig build -Doptimize=ReleaseFast -Dvulkan=true
+
+# CUDA (requires nvcc, experimental)
+zig build -Doptimize=ReleaseFast -Dcuda=true
+```
+
+At runtime, use `--gpu-layers` to offload layers to GPU:
+
+```bash
+# Offload 35 layers to GPU
+igllama run model.gguf -p "Hello" --gpu-layers 35
+
+# Offload all layers to GPU (-1)
+igllama run model.gguf -p "Hello" --gpu-layers -1
+```
+
+#### GPU Backend Requirements
+
+| Backend | Requirements |
+|---------|--------------|
+| Metal | macOS 11+, Xcode Command Line Tools |
+| Vulkan | Vulkan SDK, glslc compiler in PATH |
+| CUDA | NVIDIA GPU, CUDA Toolkit 11.0+ |
 
 ## Roadmap
 
 - [x] `serve` command - Run llama-server for API access
 - [x] Custom llama.cpp version selection (`-Dllama_ref`)
-- [ ] GPU backend support (CUDA, Metal, Vulkan)
+- [x] GPU backend support (Metal, Vulkan, CUDA)
 - [ ] Model quantization tools
 - [ ] Chat templates and conversation history
 
