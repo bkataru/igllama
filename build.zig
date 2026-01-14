@@ -1,5 +1,6 @@
 const std = @import("std");
 const llama = @import("build_llama.zig");
+const server = @import("build_server.zig");
 const Target = std.Build.ResolvedTarget;
 const ArrayList = std.ArrayList;
 const CompileStep = std.Build.Step.Compile;
@@ -175,6 +176,20 @@ pub fn build(b: *std.Build) !void {
         if (b.args) |args| run_cli.addArgs(args);
         run_cli.step.dependOn(b.default_step);
         b.step("run", "Run igllama CLI").dependOn(&run_cli.step);
+    }
+
+    // Build llama-server (optional)
+    const build_server_opt = b.option(bool, "server", "Build llama-server HTTP API server") orelse false;
+    if (build_server_opt) {
+        const server_exe = server.buildServer(b, &llama_zig.llama, target, optimize, .{}) catch |err| {
+            std.log.err("Failed to build server: {}", .{err});
+            return;
+        };
+        b.installArtifact(server_exe);
+
+        const run_server = server.createRunStep(b, server_exe);
+        run_server.step.dependOn(b.default_step);
+        b.step("run-server", "Run llama-server").dependOn(&run_server.step);
     }
 
     { // tests
