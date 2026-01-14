@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to upload to (e.g., v0.1.0)'
+        required: true
+        type: string
+
+env:
+  ZIG_VERSION: "0.15.2"
+
+jobs:
+  build-release:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Tier 1 - Primary Targets
+          - target: x86_64-linux-gnu
+            ext: tar.gz
+          - target: x86_64-linux-musl
+            ext: tar.gz
+          - target: aarch64-linux-gnu
+            ext: tar.gz
+          - target: aarch64-linux-musl
+            ext: tar.gz
+          - target: x86_64-windows
+            ext: zip
+          - target: x86_64-macos
+            ext: tar.gz
+          - target: aarch64-macos
+            ext: tar.gz
+          # Tier 2 - Extended Reach
+          - target: aarch64-windows
+            ext: zip
+          - target: x86_64-freebsd
+            ext: tar.gz
+          - target: aarch64-freebsd
+            ext: tar.gz
+          - target: x86_64-netbsd
+            ext: tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Build Release
+        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare Archive Directory
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          ARCHIVE_NAME="igllama-${VERSION}-${{ matrix.target }}"
+          mkdir -p "${ARCHIVE_NAME}"
+          
+          # Copy binary (handle Windows .exe)
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            cp zig-out/bin/igllama.exe "${ARCHIVE_NAME}/"
+          else
+            cp zig-out/bin/igllama "${ARCHIVE_NAME}/"
+          fi
+          
+          # Copy docs
+          cp LICENSE README.md "${ARCHIVE_NAME}/"
+          
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+
+      - name: Create Archive (tar.gz)
+        if: matrix.ext == 'tar.gz'
+        run: |
+          tar -czvf "${ARCHIVE_NAME}.${{ matrix.ext }}" "${ARCHIVE_NAME}"
+
+      - name: Create Archive (zip)
+        if: matrix.ext == 'zip'
+        run: |
+          zip -r "${ARCHIVE_NAME}.${{ matrix.ext }}" "${ARCHIVE_NAME}"
+
+      - name: Upload to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          gh release upload "${VERSION}" "${ARCHIVE_NAME}.${{ matrix.ext }}" --clobber
+
+  # Create checksums after all builds complete
+  checksums:
+    name: Generate Checksums
+    runs-on: ubuntu-latest
+    needs: build-release
+    steps:
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Release Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          gh release download "${VERSION}" --repo ${{ github.repository }} --dir assets
+
+      - name: Generate SHA256 Checksums
+        run: |
+          cd assets
+          sha256sum * > checksums-sha256.txt
+          cat checksums-sha256.txt
+
+      - name: Upload Checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          gh release upload "${VERSION}" assets/checksums-sha256.txt --clobber --repo ${{ github.repository }}
