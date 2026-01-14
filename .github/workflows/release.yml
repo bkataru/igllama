@@ -59,7 +59,7 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
 
       - name: Build Release
-        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
+        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }} -Dserver=true
 
       - name: Determine Version
         id: version
@@ -76,11 +76,13 @@ jobs:
           ARCHIVE_NAME="igllama-${VERSION}-${{ matrix.target }}"
           mkdir -p "${ARCHIVE_NAME}"
           
-          # Copy binary (handle Windows .exe)
+          # Copy binaries (handle Windows .exe)
           if [[ "${{ matrix.target }}" == *windows* ]]; then
             cp zig-out/bin/igllama.exe "${ARCHIVE_NAME}/"
+            cp zig-out/bin/llama-server.exe "${ARCHIVE_NAME}/"
           else
             cp zig-out/bin/igllama "${ARCHIVE_NAME}/"
+            cp zig-out/bin/llama-server "${ARCHIVE_NAME}/"
           fi
           
           # Copy docs
