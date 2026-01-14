@@ -28,7 +28,6 @@ pub const Token = c.llama_token;
 pub const SeqId = c.llama_seq_id;
 
 pub const VocabType = c.enum_llama_vocab_type;
-pub const VocabPreType = c.llama_vocab_pre_type;
 pub const RopeType = c.enum_llama_rope_type;
 pub const TokenType = c.llama_vocab_type;
 pub const TokenAttr = c.llama_token_attr;
@@ -624,6 +623,17 @@ pub const Context = opaque {
     }
 
     //
+    // Memory management (new API)
+    //
+
+    /// Get the memory abstraction layer for this context
+    /// This is the preferred way to manage KV cache in multi-turn conversations
+    pub inline fn getMemory(self: *@This()) ?*Memory {
+        const mem = c.llama_get_memory(self.cPtr());
+        return if (mem != null) @ptrCast(mem) else null;
+    }
+
+    //
     // State / sessions
     //
 
@@ -816,6 +826,73 @@ pub const Context = opaque {
 // NOTE: KvCacheView and KvCacheViewCell have been removed from llama.cpp API
 // The KV cache is now managed internally with the new memory abstraction layer.
 // For debugging purposes, use llama_perf_context_print() instead.
+
+/// Memory abstraction layer for KV cache management
+/// This is the new API for managing conversation context in multi-turn chat
+pub const Memory = opaque {
+    /// Clear the memory
+    /// @param data If true, also clear the data (not just the metadata)
+    pub inline fn clear(self: *Memory, data: bool) void {
+        c.llama_memory_clear(@ptrCast(self), data);
+    }
+
+    /// Remove tokens from a sequence in the range [p0, p1)
+    /// @param seq_id The sequence ID
+    /// @param p0 Start position (inclusive), -1 for beginning
+    /// @param p1 End position (exclusive), -1 for end
+    /// @return true if successful
+    pub inline fn seqRm(self: *Memory, seq_id: SeqId, p0: Pos, p1: Pos) bool {
+        return c.llama_memory_seq_rm(@ptrCast(self), seq_id, p0, p1);
+    }
+
+    /// Copy tokens from one sequence to another
+    /// @param seq_id_src Source sequence ID
+    /// @param seq_id_dst Destination sequence ID
+    /// @param p0 Start position, -1 for beginning
+    /// @param p1 End position, -1 for end
+    pub inline fn seqCp(self: *Memory, seq_id_src: SeqId, seq_id_dst: SeqId, p0: Pos, p1: Pos) void {
+        c.llama_memory_seq_cp(@ptrCast(self), seq_id_src, seq_id_dst, p0, p1);
+    }
+
+    /// Keep only the specified sequence, removing all others
+    pub inline fn seqKeep(self: *Memory, seq_id: SeqId) void {
+        c.llama_memory_seq_keep(@ptrCast(self), seq_id);
+    }
+
+    /// Add a relative position delta to tokens in a sequence
+    /// This is used for context shifting - removing old tokens and adjusting positions
+    /// @param seq_id The sequence ID
+    /// @param p0 Start position, -1 for beginning
+    /// @param p1 End position, -1 for end
+    /// @param delta The position offset to add (can be negative for shifting left)
+    pub inline fn seqAdd(self: *Memory, seq_id: SeqId, p0: Pos, p1: Pos, delta: Pos) void {
+        c.llama_memory_seq_add(@ptrCast(self), seq_id, p0, p1, delta);
+    }
+
+    /// Divide positions in a sequence by a factor
+    /// If the KV cache is RoPEd, the KV data is updated accordingly
+    pub inline fn seqDiv(self: *Memory, seq_id: SeqId, p0: Pos, p1: Pos, d: c_int) void {
+        c.llama_memory_seq_div(@ptrCast(self), seq_id, p0, p1, d);
+    }
+
+    /// Get the minimum position in the memory for a sequence
+    /// Returns -1 if the sequence is empty
+    pub inline fn seqPosMin(self: *Memory, seq_id: SeqId) Pos {
+        return c.llama_memory_seq_pos_min(@ptrCast(self), seq_id);
+    }
+
+    /// Get the maximum position in the memory for a sequence
+    /// All positions in [pos_min, pos_max] are guaranteed to be present
+    /// Returns -1 if the sequence is empty
+    pub inline fn seqPosMax(self: *Memory, seq_id: SeqId) Pos {
+        return c.llama_memory_seq_pos_max(@ptrCast(self), seq_id);
+    }
+
+    /// Check if the memory supports shifting (context window sliding)
+    pub inline fn canShift(self: *Memory) bool {
+        return c.llama_memory_can_shift(@ptrCast(self));
+    }
+};
 
 // functions
 

@@ -170,6 +170,127 @@ fn formatChatML(allocator: std.mem.Allocator, messages: []const ChatMessage) ![]
     return result.toOwnedSlice(allocator);
 }
 
+/// Parse embeddings request - supports both single string and array of strings
+fn parseEmbeddingsRequest(allocator: std.mem.Allocator, body: []const u8) !struct {
+    inputs: std.ArrayList([]const u8),
+} {
+    var inputs: std.ArrayList([]const u8) = .empty;
+    errdefer inputs.deinit(allocator);
+
+    // Find "input" field
+    if (std.mem.indexOf(u8, body, "\"input\"")) |input_start| {
+        var pos = input_start + 7;
+        // Skip to colon
+        while (pos < body.len and body[pos] != ':') : (pos += 1) {}
+        pos += 1;
+        // Skip whitespace
+        while (pos < body.len and (body[pos] == ' ' or body[pos] == '\n' or body[pos] == '\r' or body[pos] == '\t')) : (pos += 1) {}
+
+        if (pos >= body.len) return .{ .inputs = inputs };
+
+        if (body[pos] == '"') {
+            // Single string input
+            if (parseJsonString(body, pos)) |result| {
+                try inputs.append(allocator, result.value);
+            }
+        } else if (body[pos] == '[') {
+            // Array of strings
+            pos += 1;
+            while (pos < body.len) {
+                // Skip whitespace and commas
+                while (pos < body.len and (body[pos] == ' ' or body[pos] == '\n' or body[pos] == '\r' or body[pos] == '\t' or body[pos] == ',')) : (pos += 1) {}
+
+                if (pos >= body.len or body[pos] == ']') break;
+
+                if (body[pos] == '"') {
+                    if (parseJsonString(body, pos)) |result| {
+                        try inputs.append(allocator, result.value);
+                        pos = result.end;
+                    } else {
+                        pos += 1;
+                    }
+                } else {
+                    pos += 1;
+                }
+            }
+        }
+    }
+
+    return .{ .inputs = inputs };
+}
+
+/// Generate embeddings for a list of input texts
+fn handleEmbeddings(
+    state: *ServerState,
+    inputs: []const []const u8,
+) !struct {
+    embeddings: std.ArrayList(std.ArrayList(f32)),
+    total_tokens: usize,
+} {
+    const allocator = state.allocator;
+
+    var embeddings: std.ArrayList(std.ArrayList(f32)) = .empty;
+    errdefer {
+        for (embeddings.items) |*e| e.deinit(allocator);
+        embeddings.deinit(allocator);
+    }
+
+    var total_tokens: usize = 0;
+
+    // Create context with embeddings enabled
+    var cparams = llama.Context.defaultParams();
+    cparams.n_ctx = state.context_size;
+    cparams.embeddings = true; // Enable embeddings extraction
+    const cpu_threads = std.Thread.getCpuCount() catch 4;
+    cparams.n_threads = @intCast(@min(cpu_threads, 4));
+    cparams.n_threads_batch = @intCast(cpu_threads / 2);
+    cparams.no_perf = true;
+
+    const ctx = llama.Context.initWithModel(state.model, cparams) catch {
+        return error.ContextCreationFailed;
+    };
+    defer ctx.deinit();
+
+    // Get embedding dimension
+    const n_embd = state.model.nEmbd();
+
+    // Process each input
+    for (inputs) |input| {
+        // Tokenize
+        var tokenizer = llama.Tokenizer.init(allocator);
+        defer tokenizer.deinit();
+        try tokenizer.tokenize(state.vocab, input, true, true);
+
+        const tokens = tokenizer.getTokens();
+        total_tokens += tokens.len;
+
+        // Clear KV cache for this input (use new Memory API)
+        if (ctx.getMemory()) |memory| {
+            memory.clear(true);
+        }
+
+        // Create batch and decode
+        var batch = llama.Batch.initOne(tokens);
+        batch.decode(ctx) catch {
+            return error.DecodeFailed;
+        };
+
+        // Extract embeddings - use the last token position
+        // llama_get_embeddings returns the pooled embedding for the sequence
+        const embd_ptr = ctx.llama_get_embeddings();
+
+        // Copy embeddings to result
+        var embd_vec: std.ArrayList(f32) = .empty;
+        try embd_vec.appendSlice(allocator, embd_ptr[0..@intCast(n_embd)]);
+        try embeddings.append(allocator, embd_vec);
+    }
+
+    return .{
+        .embeddings = embeddings,
+        .total_tokens = total_tokens,
+    };
+}
+
 /// Generate completion and write SSE events to connection
 fn handleStreamingCompletion(
     state: *ServerState,
@@ -516,6 +637,83 @@ fn handleRequest(state: *ServerState, conn: *std.net.Server.Connection) void {
 
             sendResponse(conn, "200 OK", "application/json", response_json);
         }
+    } else if (std.mem.eql(u8, path, "/v1/embeddings")) {
+        if (!std.mem.eql(u8, method, "POST")) {
+            sendResponse(conn, "405 Method Not Allowed", "application/json", "{\"error\":\"Method not allowed\"}");
+            return;
+        }
+
+        // Find request body
+        const body_start = std.mem.indexOf(u8, request, "\r\n\r\n") orelse return;
+        const body = request[body_start + 4 ..];
+
+        // Parse request
+        var parsed = parseEmbeddingsRequest(state.allocator, body) catch {
+            sendResponse(conn, "400 Bad Request", "application/json", "{\"error\":\"Invalid request body\"}");
+            return;
+        };
+        defer parsed.inputs.deinit(state.allocator);
+
+        if (parsed.inputs.items.len == 0) {
+            sendResponse(conn, "400 Bad Request", "application/json", "{\"error\":\"No input provided\"}");
+            return;
+        }
+
+        // Generate embeddings
+        var result = handleEmbeddings(state, parsed.inputs.items) catch {
+            sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Embedding generation failed\"}");
+            return;
+        };
+        defer {
+            for (result.embeddings.items) |*e| e.deinit(state.allocator);
+            result.embeddings.deinit(state.allocator);
+        }
+
+        // Build response JSON
+        var response: std.ArrayList(u8) = .empty;
+        defer response.deinit(state.allocator);
+
+        response.appendSlice(state.allocator, "{\"object\":\"list\",\"data\":[") catch {
+            sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Response building failed\"}");
+            return;
+        };
+
+        for (result.embeddings.items, 0..) |embd, idx| {
+            if (idx > 0) {
+                response.appendSlice(state.allocator, ",") catch {};
+            }
+
+            // Start embedding object
+            var obj_buf: [128]u8 = undefined;
+            const obj_start = std.fmt.bufPrint(&obj_buf, "{{\"object\":\"embedding\",\"index\":{d},\"embedding\":[", .{idx}) catch continue;
+            response.appendSlice(state.allocator, obj_start) catch continue;
+
+            // Add embedding values
+            for (embd.items, 0..) |val, i| {
+                if (i > 0) {
+                    response.appendSlice(state.allocator, ",") catch {};
+                }
+                var val_buf: [32]u8 = undefined;
+                const val_str = std.fmt.bufPrint(&val_buf, "{d:.6}", .{val}) catch continue;
+                response.appendSlice(state.allocator, val_str) catch {};
+            }
+
+            response.appendSlice(state.allocator, "]}") catch {};
+        }
+
+        // Close array and add usage
+        var usage_buf: [128]u8 = undefined;
+        const usage = std.fmt.bufPrint(&usage_buf, "],\"model\":\"{s}\",\"usage\":{{\"prompt_tokens\":{d},\"total_tokens\":{d}}}}}", .{
+            state.model_name,
+            result.total_tokens,
+            result.total_tokens,
+        }) catch {
+            sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Response building failed\"}");
+            return;
+        };
+        response.appendSlice(state.allocator, usage) catch {};
+
+        sendResponse(conn, "200 OK", "application/json", response.items);
     } else {
         sendResponse(conn, "404 Not Found", "application/json", "{\"error\":\"Not found\"}");
     }

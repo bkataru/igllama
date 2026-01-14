@@ -80,3 +80,10 @@ igllama-servers.json
 test_output/
 *.test
 
+# GGUF model files
+*.gguf
+*.gguf.part
+
+# Session documentation
+session-*.md
+

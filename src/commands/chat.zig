@@ -3,6 +3,7 @@ const llama = @import("llama");
 const config = @import("../config.zig");
 const gguf = @import("../gguf.zig");
 const grammar_utils = @import("../grammar.zig");
+const history = @import("../history.zig");
 
 /// Read a line from a file until newline or EOF
 fn readLine(file: std.fs.File, buffer: []u8) !?[]u8 {
@@ -392,12 +393,20 @@ const ChatSession = struct {
     system_prompt: []const u8,
     system_prompt_owned: bool = false,
 
+    // Incremental KV cache support
+    prev_formatted_len: usize = 0, // Length of previously formatted prompt (for delta computation)
+    n_past: i32 = 0, // Number of tokens already in KV cache
+    context_warning_shown: bool = false, // Whether we've warned about context filling up
+
     pub fn init(allocator: std.mem.Allocator, system_prompt: []const u8) ChatSession {
         return .{
             .allocator = allocator,
             .messages = .empty,
             .system_prompt = system_prompt,
             .system_prompt_owned = false,
+            .prev_formatted_len = 0,
+            .n_past = 0,
+            .context_warning_shown = false,
         };
     }
 
@@ -409,6 +418,23 @@ const ChatSession = struct {
         if (self.system_prompt_owned) {
             self.allocator.free(@constCast(self.system_prompt));
         }
+    }
+
+    /// Reset KV cache state (call when clearing conversation)
+    pub fn resetKvState(self: *ChatSession) void {
+        self.prev_formatted_len = 0;
+        self.n_past = 0;
+        self.context_warning_shown = false;
+    }
+
+    /// Update n_past after generation (add the generated tokens to count)
+    pub fn updateNPast(self: *ChatSession, new_tokens: i32) void {
+        self.n_past += new_tokens;
+    }
+
+    /// Check if this is the first turn (no tokens in KV cache yet)
+    pub fn isFirstTurn(self: *ChatSession) bool {
+        return self.n_past == 0;
     }
 
     pub fn addMessage(self: *ChatSession, role: Role, content: []const u8) !void {
@@ -977,6 +1003,47 @@ const ChatSession = struct {
 
         return result.toOwnedSlice(allocator);
     }
+
+    /// Format with template and return incremental result
+    /// Returns a struct containing the full prompt and the incremental delta
+    pub const IncrementalFormat = struct {
+        full_prompt: []const u8,
+        delta_start: usize, // Byte offset where new content starts
+    };
+
+    /// Format conversation and compute delta for incremental KV cache updates
+    /// On first turn, returns full prompt. On subsequent turns, returns only new tokens.
+    pub fn formatWithDelta(self: *ChatSession, allocator: std.mem.Allocator, template_type: ChatTemplate) !IncrementalFormat {
+        const formatted_prompt = switch (template_type) {
+            .llama3 => try self.formatLlama3(allocator),
+            .llama2 => try self.formatLlama2(allocator),
+            .mistral => try self.formatMistral(allocator),
+            .gemma => try self.formatGemma(allocator),
+            .phi3 => try self.formatPhi3(allocator),
+            .qwen => try self.formatQwen(allocator),
+            .vicuna => try self.formatVicuna(allocator),
+            .alpaca => try self.formatAlpaca(allocator),
+            .deepseek => try self.formatDeepSeek(allocator),
+            .command_r => try self.formatCommandR(allocator),
+            .zephyr => try self.formatZephyr(allocator),
+            .openchat => try self.formatOpenChat(allocator),
+            .chatml, .auto => try self.formatChatML(allocator),
+        };
+
+        // Calculate where new content starts
+        // On first turn or after reset, delta_start is 0 (process everything)
+        // On subsequent turns, delta_start is where the previous prompt ended
+        const delta_start = if (self.n_past == 0) 0 else self.prev_formatted_len;
+
+        // Update prev_formatted_len for next turn
+        // Note: We'll update this after generation completes, not here
+        // This allows us to retry if generation fails
+
+        return .{
+            .full_prompt = formatted_prompt,
+            .delta_start = delta_start,
+        };
+    }
 };
 
 pub fn run(args: []const []const u8) !void {
@@ -1011,6 +1078,8 @@ pub fn run(args: []const []const u8) !void {
     var json_output: bool = false; // JSON output mode
     var grammar_string: ?[]const u8 = null; // Grammar string (GBNF format)
     var grammar_file: ?[]const u8 = null; // Path to grammar file
+    var auto_save: bool = true; // Auto-save sessions (default: enabled)
+    var resume_session: ?[]const u8 = null; // Session file to resume
 
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
@@ -1133,6 +1202,16 @@ pub fn run(args: []const []const u8) !void {
                 try stderr.print("Error: {s} requires a value\n", .{arg});
                 return error.InvalidArguments;
             }
+        } else if (std.mem.eql(u8, arg, "--no-save")) {
+            auto_save = false;
+        } else if (std.mem.eql(u8, arg, "--resume") or std.mem.eql(u8, arg, "-r")) {
+            if (i + 1 < args.len) {
+                resume_session = args[i + 1];
+                i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
+            }
         } else if (!std.mem.startsWith(u8, arg, "-")) {
             const path_z = try allocator.allocSentinel(u8, arg.len, 0);
             @memcpy(path_z, arg);
@@ -1164,6 +1243,9 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("  --top-k <n>              Top-k sampling (default: 40)\n", .{});
         try stderr.print("  --repeat-penalty <f>     Repetition penalty (default: 1.1)\n", .{});
         try stderr.print("  --seed <n>               Random seed (default: 0=random)\n", .{});
+        try stderr.print("\nSession options:\n", .{});
+        try stderr.print("  --no-save                Disable auto-save (sessions saved by default)\n", .{});
+        try stderr.print("  -r, --resume <session>   Resume a previous session\n", .{});
         try stderr.print("\nCommands during chat:\n", .{});
         try stderr.print("  /quit, /exit             Exit chat\n", .{});
         try stderr.print("  /clear                   Clear conversation history\n", .{});
@@ -1173,6 +1255,7 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("  /history                 Show conversation history\n", .{});
         try stderr.print("  /tokens                  Show token count of last exchange\n", .{});
         try stderr.print("  /stats                   Show generation statistics\n", .{});
+        try stderr.print("  /sessions                List saved sessions\n", .{});
         return error.InvalidArguments;
     }
 
@@ -1285,6 +1368,45 @@ pub fn run(args: []const []const u8) !void {
     // Initialize chat session
     var session = ChatSession.init(allocator, system_prompt);
     defer session.deinit();
+
+    // Initialize session manager for auto-save (if not in single-prompt mode)
+    var session_manager: ?history.SessionManager = null;
+    defer if (session_manager) |*sm| sm.deinit();
+
+    var current_session_name: ?[]const u8 = null;
+    defer if (current_session_name) |name| allocator.free(name);
+
+    const session_created_at: i64 = std.time.timestamp();
+
+    // Disable auto-save in single-prompt mode or piped input
+    const effective_auto_save = auto_save and single_prompt == null;
+
+    if (effective_auto_save) {
+        if (history.SessionManager.init(allocator)) |sm| {
+            session_manager = sm;
+
+            // If resuming a session, try to load it
+            if (resume_session) |session_to_resume| {
+                if (session_manager) |*mgr| {
+                    const session_path = mgr.getSessionPath(session_to_resume) catch null;
+                    if (session_path) |path| {
+                        defer allocator.free(path);
+                        session.loadFromFile(path) catch |err| {
+                            try stderr.print("Warning: Could not load session '{s}': {}\n", .{ session_to_resume, err });
+                        };
+                        current_session_name = try allocator.dupe(u8, session_to_resume);
+                        if (!quiet_mode) {
+                            try stdout.print("Resumed session: {s} ({d} messages)\n", .{ session_to_resume, session.messageCount() });
+                        }
+                    }
+                }
+            }
+        } else |_| {
+            if (!quiet_mode) {
+                try stderr.print("Warning: Could not initialize session manager\n", .{});
+            }
+        }
+    }
 
     // Statistics tracking
     var last_prompt_tokens: usize = 0;
@@ -1405,6 +1527,11 @@ pub fn run(args: []const []const u8) !void {
                     session.allocator.free(msg.content);
                 }
                 session.messages.clearRetainingCapacity();
+                session.resetKvState(); // Reset incremental KV cache state
+                // Also clear the actual KV cache in context
+                if (ctx.getMemory()) |memory| {
+                    memory.clear(true);
+                }
                 try stdout.print("Conversation cleared.\n\n", .{});
                 continue;
             } else if (std.mem.startsWith(u8, user_input, "/system ")) {
@@ -1455,7 +1582,8 @@ pub fn run(args: []const []const u8) !void {
                 try stdout.print("Last response:  {d} tokens\n", .{last_response_tokens});
                 try stdout.print("Total prompt:   {d} tokens\n", .{total_prompt_tokens});
                 try stdout.print("Total response: {d} tokens\n", .{total_response_tokens});
-                try stdout.print("Context used:   {d}/{d} tokens\n\n", .{ total_prompt_tokens + total_response_tokens, effective_ctx_size });
+                try stdout.print("KV cache used:  {d}/{d} tokens\n", .{ session.n_past, effective_ctx_size });
+                try stdout.print("Context usage:  {d:.1}%\n\n", .{@as(f64, @floatFromInt(session.n_past)) / @as(f64, @floatFromInt(effective_ctx_size)) * 100.0});
                 continue;
             } else if (std.mem.eql(u8, user_input, "/stats")) {
                 try stdout.print("\n--- Generation Statistics ---\n", .{});
@@ -1468,7 +1596,7 @@ pub fn run(args: []const []const u8) !void {
                     try stdout.print("Tokens per second:     {d:.2}\n", .{tokens_per_sec});
                 }
                 try stdout.print("Total tokens:          {d} ({d} prompt + {d} response)\n", .{ total_prompt_tokens + total_response_tokens, total_prompt_tokens, total_response_tokens });
-                try stdout.print("Context usage:         {d}/{d} ({d:.1}%)\n\n", .{ total_prompt_tokens + total_response_tokens, effective_ctx_size, @as(f64, @floatFromInt(total_prompt_tokens + total_response_tokens)) / @as(f64, @floatFromInt(effective_ctx_size)) * 100.0 });
+                try stdout.print("KV cache used:         {d}/{d} ({d:.1}%)\n\n", .{ session.n_past, effective_ctx_size, @as(f64, @floatFromInt(session.n_past)) / @as(f64, @floatFromInt(effective_ctx_size)) * 100.0 });
                 continue;
             } else if (std.mem.eql(u8, user_input, "/help")) {
                 try stdout.print("\nCommands:\n", .{});
@@ -1480,7 +1608,34 @@ pub fn run(args: []const []const u8) !void {
                 try stdout.print("  /history       Show conversation history\n", .{});
                 try stdout.print("  /tokens        Show token counts\n", .{});
                 try stdout.print("  /stats         Show generation statistics\n", .{});
+                try stdout.print("  /sessions      List saved sessions\n", .{});
                 try stdout.print("  /help          Show this help\n\n", .{});
+                continue;
+            } else if (std.mem.eql(u8, user_input, "/sessions")) {
+                if (session_manager) |*sm| {
+                    try stdout.print("\n--- Saved Sessions ---\n", .{});
+                    var sessions_list = sm.listSessions() catch {
+                        try stderr.print("Error listing sessions\n", .{});
+                        continue;
+                    };
+                    defer {
+                        for (sessions_list.items) |*s| s.deinit();
+                        sessions_list.deinit(allocator);
+                    }
+
+                    if (sessions_list.items.len == 0) {
+                        try stdout.print("No saved sessions found.\n", .{});
+                    } else {
+                        for (sessions_list.items) |sess_info| {
+                            try stdout.print("  {s}\n", .{sess_info.name});
+                            try stdout.print("    Model: {s}, Turns: {d}\n", .{ sess_info.model, sess_info.turn_count });
+                        }
+                        try stdout.print("\nResume with: igllama chat <model> --resume <session>\n", .{});
+                    }
+                    try stdout.print("\n", .{});
+                } else {
+                    try stdout.print("Session management not available (use --no-save to disable)\n\n", .{});
+                }
                 continue;
             } else {
                 try stdout.print("Unknown command: {s}\n", .{user_input});
@@ -1492,43 +1647,76 @@ pub fn run(args: []const []const u8) !void {
         // Add user message to history
         try session.addMessage(.user, user_input);
 
-        // Format prompt with chat template
-        const formatted_prompt = switch (effective_template) {
-            .llama3 => try session.formatLlama3(allocator),
-            .llama2 => try session.formatLlama2(allocator),
-            .mistral => try session.formatMistral(allocator),
-            .gemma => try session.formatGemma(allocator),
-            .phi3 => try session.formatPhi3(allocator),
-            .qwen => try session.formatQwen(allocator),
-            .vicuna => try session.formatVicuna(allocator),
-            .alpaca => try session.formatAlpaca(allocator),
-            .deepseek => try session.formatDeepSeek(allocator),
-            .command_r => try session.formatCommandR(allocator),
-            .zephyr => try session.formatZephyr(allocator),
-            .openchat => try session.formatOpenChat(allocator),
-            .chatml, .auto => try session.formatChatML(allocator),
-        };
+        // Format prompt with chat template and compute delta for incremental KV cache
+        const format_result = try session.formatWithDelta(allocator, effective_template);
+        const formatted_prompt = format_result.full_prompt;
         defer allocator.free(formatted_prompt);
 
-        // Tokenize
-        var tokenizer = llama.Tokenizer.init(allocator);
-        defer tokenizer.deinit();
-        try tokenizer.tokenize(vocab, formatted_prompt, false, true);
+        // Tokenize full prompt to compute delta tokens
+        var full_tokenizer = llama.Tokenizer.init(allocator);
+        defer full_tokenizer.deinit();
+        try full_tokenizer.tokenize(vocab, formatted_prompt, false, true);
+        const full_tokens = full_tokenizer.getTokens();
 
-        // Track prompt tokens
-        last_prompt_tokens = tokenizer.getTokens().len;
+        // For incremental KV cache, we only need to process new tokens
+        // On first turn: process all tokens
+        // On subsequent turns: process only tokens after n_past
+        const n_past_usize: usize = @intCast(@max(0, session.n_past));
+        const tokens_to_process = if (n_past_usize < full_tokens.len)
+            full_tokens[n_past_usize..]
+        else
+            full_tokens[0..0]; // Edge case: no new tokens
+
+        // Track prompt tokens (only new ones)
+        last_prompt_tokens = tokens_to_process.len;
         total_prompt_tokens += last_prompt_tokens;
 
-        // Check context length
+        // Context usage tracking
         const ctx_limit: usize = @intCast(effective_ctx_size);
-        if (tokenizer.getTokens().len > ctx_limit - max_tokens) {
-            try stderr.print("Warning: Conversation too long, clearing old messages\n", .{});
-            // Keep only the last few messages
-            while (session.messages.items.len > 2) {
-                const msg = session.messages.orderedRemove(0);
-                session.allocator.free(msg.content);
+        const current_usage: usize = n_past_usize + tokens_to_process.len;
+
+        // Warn user at 80% context usage (only once per session)
+        if (!session.context_warning_shown) {
+            const usage_pct = @as(f64, @floatFromInt(current_usage)) / @as(f64, @floatFromInt(ctx_limit)) * 100.0;
+            if (usage_pct >= 80.0) {
+                try stderr.print("Warning: Context is {d:.1}% full ({d}/{d} tokens). Consider clearing with /clear\n", .{ usage_pct, current_usage, ctx_limit });
+                session.context_warning_shown = true;
             }
-            continue;
+        }
+
+        // Handle context overflow - shift old tokens if possible
+        if (current_usage + max_tokens > ctx_limit) {
+            const memory = ctx.getMemory();
+            if (memory != null and memory.?.canShift()) {
+                // Calculate how many tokens to remove (keep at least half the context)
+                const tokens_to_remove: i32 = @intCast(@min(current_usage / 2, current_usage + max_tokens - ctx_limit));
+
+                if (tokens_to_remove > 0) {
+                    try stderr.print("Context full, shifting {d} old tokens...\n", .{tokens_to_remove});
+
+                    // Remove old tokens from KV cache
+                    _ = memory.?.seqRm(0, 0, tokens_to_remove);
+
+                    // Shift remaining positions
+                    memory.?.seqAdd(0, tokens_to_remove, -1, -tokens_to_remove);
+
+                    // Update session state
+                    session.n_past -= tokens_to_remove;
+                    if (session.n_past < 0) session.n_past = 0;
+                }
+            } else {
+                // Fallback: clear old messages if shifting not available
+                try stderr.print("Warning: Conversation too long, clearing old messages\n", .{});
+                while (session.messages.items.len > 2) {
+                    const msg = session.messages.orderedRemove(0);
+                    session.allocator.free(msg.content);
+                }
+                session.resetKvState();
+                if (memory != null) {
+                    memory.?.clear(true);
+                }
+                continue;
+            }
         }
 
         // Setup sampler chain with configured parameters
@@ -1579,7 +1767,8 @@ pub fn run(args: []const []const u8) !void {
         const start_time = std.time.nanoTimestamp();
         var generated_tokens: usize = 0;
 
-        var batch = llama.Batch.initOne(tokenizer.getTokens());
+        // Use only the new tokens for initial batch (incremental KV cache)
+        var batch = llama.Batch.initOne(tokens_to_process);
         var batch_token: [1]llama.Token = undefined;
 
         for (0..max_tokens) |_| {
@@ -1658,8 +1847,57 @@ pub fn run(args: []const []const u8) !void {
             try session.addMessage(.assistant, response_buffer.items);
         }
 
-        // Note: In the new llama.cpp API, memory management has changed
-        // The KV cache is now handled internally via llama_memory_t
-        // For multi-turn conversation, we may need to update the bindings
+        // Update incremental KV cache tracking
+        // n_past now includes: previous n_past + new prompt tokens + generated tokens
+        session.n_past = @intCast(n_past_usize + tokens_to_process.len + generated_tokens);
+        session.prev_formatted_len = formatted_prompt.len;
+
+        // Auto-save session after each assistant response
+        if (session_manager) |*sm| {
+            if (response_buffer.items.len > 0) {
+                // Generate session name on first save
+                if (current_session_name == null) {
+                    current_session_name = sm.generateSessionName(model_path.?, session_created_at) catch null;
+                }
+
+                if (current_session_name) |session_name| {
+                    // Convert messages to SessionMessage format
+                    var session_messages: std.ArrayList(history.SessionMessage) = .empty;
+                    defer session_messages.deinit(allocator);
+
+                    for (session.messages.items) |msg| {
+                        const role_str: []const u8 = switch (msg.role) {
+                            .user => "user",
+                            .assistant => "assistant",
+                            .system => "system",
+                        };
+                        session_messages.append(allocator, .{
+                            .role = role_str,
+                            .content = msg.content,
+                            .timestamp = std.time.timestamp(),
+                            .generation_time_ms = if (msg.role == .assistant)
+                                @as(?u64, @intCast(@divFloor(last_generation_time_ns, 1_000_000)))
+                            else
+                                null,
+                            .tokens_generated = if (msg.role == .assistant) @as(?usize, last_response_tokens) else null,
+                        }) catch continue;
+                    }
+
+                    const metadata = history.SessionMetadata{
+                        .model = model_path.?,
+                        .template = effective_template.toString(),
+                        .context_size = effective_ctx_size,
+                        .created_at = session_created_at,
+                        .updated_at = std.time.timestamp(),
+                        .total_turns = session.messageCount() / 2, // user + assistant = 1 turn
+                        .total_tokens_estimated = @intCast(session.n_past),
+                    };
+
+                    sm.saveSession(session_name, metadata, session.system_prompt, session_messages.items) catch {
+                        // Silently ignore save errors to not interrupt chat
+                    };
+                }
+            }
+        }
     }
 }
