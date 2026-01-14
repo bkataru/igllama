@@ -1,43 +1,136 @@
-# llama.cpp.zig
-llama.cpp bindings and utilities for zig. Currently targeting zig `0.14.x`. 
+# igllama
 
-* Provides build from source using zig build.
-* Implements llama.h for nicer interaction with zig.
-    * Removes prefixes, changes naming for functions to camelCase. Groups functions within most appropriete struct. etc.
-    * Bindings partially depend on translate-c partially rewritten for ease of use.
-* utilities:
-    * buffered Tokenizer & Detokenizer
+A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.cpp.zig](https://github.com/Deins/llama.cpp.zig) bindings.
 
+## Features
 
-## Example usage
-Clone: `git clone --recursive https://github.com/Deins/llama.cpp.zig.git`
-1. Download llama.cpp supported model (usually *.gguf format). For example [this one](https://huggingface.co/TheBloke/rocket-3B-GGUF).
-2. build and run with:
+- **Ollama-like CLI** - Familiar commands: `pull`, `run`, `list`, `show`, `rm`
+- **HuggingFace Integration** - Download models directly from HuggingFace Hub
+- **GGUF Support** - Inspect and run GGUF model files
+- **Pure Zig** - No Python or system dependencies required
+- **Cross-platform** - Windows, Linux, macOS support
+
+## Quick Start
+
 ```bash
-zig build run-simple -Doptimize=ReleaseFast -- --model_path path_to/model.gguf --prompt "Hello! I am LLM, and here are the 5 things I like to think about:"
+# Build igllama
+zig build -Doptimize=ReleaseFast
+
+# Download a model from HuggingFace
+igllama pull TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF
+
+# List cached models
+igllama list
+
+# Run inference
+igllama run tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -p "Hello! Tell me a joke."
+
+# Show model metadata
+igllama show tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf
+
+# Remove a cached model
+igllama rm TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF
 ```
-See [examples/simple.zig](examples/simple.zig) 
 
-### CPP samples
-Subset of llama cpp samples have been included in build scripts. Use `-Dcpp_samples` option to install them.  
-Or run them directly, for example: `zig build run-cpp-main -Doptimize=ReleaseFast -- -m path/to/model.gguf -p "hello my name is"`
+## CLI Commands
 
-## Tested platforms
-* ☑️ x86_64 windows
-* ☑️ x86_64 linux (WSL Ubuntu 22)
+| Command | Description |
+|---------|-------------|
+| `igllama help` | Show usage information |
+| `igllama pull <repo_id>` | Download model from HuggingFace |
+| `igllama list` | List all cached models |
+| `igllama run <model> -p <prompt>` | Run inference on a model |
+| `igllama show <model.gguf>` | Display GGUF file metadata |
+| `igllama rm <repo_id>` | Remove a cached model |
 
-## Backend support
-| Backend       | Support       | Comment       |
-| ------------- | ------------- | ------------- |
-| cpu           | ☑️           | |
-| cuda          | | 
-| metal         | | 
-| sycl          | | 
-| vulkan        | | 
-| opencl        | | 
-| cann          | | 
-| blas          | | 
-| rpc           | | 
-| kompute       | | 
-| CLBlast       | ❌ | deprecated, was supported in older: [8798dea](https://github.com/Deins/llama.cpp.zig/commit/8798dea5fcc62490bd31bfc36576db93191b7e43) |
+## Configuration
 
+Models are cached in:
+- **Custom:** Set `IGLLAMA_HOME` environment variable
+- **Default:** `~/.cache/igllama` (Linux/macOS) or `%LOCALAPPDATA%\igllama` (Windows)
+
+## Building
+
+Requires Zig 0.15.x or later.
+
+```bash
+# Clone with submodules
+git clone --recursive https://github.com/bkataru/igllama.git
+cd igllama
+
+# Build CLI
+zig build -Doptimize=ReleaseFast
+
+# Binary located at
+./zig-out/bin/igllama
+```
+
+### Build Options
+
+| Option | Description |
+|--------|-------------|
+| `-Doptimize=ReleaseFast` | Optimized release build |
+| `-Dcpp_samples` | Include llama.cpp C++ samples |
+
+## Development
+
+### Running Examples
+
+```bash
+# Run simple example with a local model
+zig build run-simple -Doptimize=ReleaseFast -- --model_path path/to/model.gguf --prompt "Hello!"
+
+# Run C++ samples (if enabled)
+zig build run-cpp-main -Doptimize=ReleaseFast -- -m path/to/model.gguf -p "Hello!"
+```
+
+### Project Structure
+
+```
+igllama/
+├── src/
+│   ├── main.zig           # CLI entry point
+│   ├── config.zig         # Configuration/paths
+│   └── commands/          # CLI command implementations
+│       ├── help.zig
+│       ├── pull.zig
+│       ├── list.zig
+│       ├── run.zig
+│       ├── show.zig
+│       └── rm.zig
+├── llama.cpp.zig/         # llama.cpp Zig bindings (submodule)
+├── examples/              # Example code
+└── docs/                  # Documentation
+```
+
+## Tested Platforms
+
+- x86_64 Windows
+- x86_64 Linux (Ubuntu 22+)
+
+## Backend Support
+
+| Backend | Status | Notes |
+|---------|--------|-------|
+| CPU | Supported | Default backend |
+| CUDA | Planned | GPU acceleration |
+| Metal | Planned | Apple Silicon |
+| Vulkan | Planned | Cross-platform GPU |
+
+## Roadmap
+
+- [ ] `serve` command - Run llama-server for API access
+- [ ] GPU backend support (CUDA, Metal, Vulkan)
+- [ ] Model quantization tools
+- [ ] Chat templates and conversation history
+- [ ] Custom llama.cpp version selection (`-Dllama_ref`)
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+## Credits
+
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) - The underlying inference engine
+- [llama.cpp.zig](https://github.com/Deins/llama.cpp.zig) - Zig bindings for llama.cpp
+- [hf-hub-zig](https://github.com/jokeyrhyme/hf-hub-zig) - HuggingFace Hub client
