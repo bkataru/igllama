@@ -61,9 +61,7 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     // Suppress verbose logging
     llama.logSet(null, null);
 
-    const stdout = std.io.getStdOut().writer();
-
-    try stdout.print("Loading embedding model...\n", .{});
+    std.debug.print("Loading embedding model...\n", .{});
 
     var mparams = Model.defaultParams();
     mparams.n_gpu_layers = args.gpu_layers;
@@ -74,8 +72,8 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     // Check if model supports embeddings
     const n_embd = model.nEmbd();
     if (n_embd == 0) {
-        try stdout.print("Error: Model does not support embeddings.\n", .{});
-        try stdout.print("Please use an embedding model (e.g., all-MiniLM, nomic-embed, etc.)\n", .{});
+        std.debug.print("Error: Model does not support embeddings.\n", .{});
+        std.debug.print("Please use an embedding model (e.g., all-MiniLM, nomic-embed, etc.)\n", .{});
         return;
     }
 
@@ -93,9 +91,9 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
 
     const vocab = model.vocab() orelse @panic("model missing vocab!");
 
-    try stdout.print("Model loaded. Embedding dimension: {d}\n\n", .{n_embd});
-    try stdout.print("Text 1: \"{s}\"\n", .{args.text1});
-    try stdout.print("Text 2: \"{s}\"\n\n", .{args.text2});
+    std.debug.print("Model loaded. Embedding dimension: {d}\n\n", .{n_embd});
+    std.debug.print("Text 1: \"{s}\"\n", .{args.text1});
+    std.debug.print("Text 2: \"{s}\"\n\n", .{args.text2});
 
     // Generate embeddings for text1
     var tokenizer1 = llama.Tokenizer.init(alloc);
@@ -105,24 +103,21 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     var batch1 = llama.Batch.initOne(tokenizer1.getTokens());
     try batch1.decode(ctx);
 
-    // Get embeddings for text1
-    const embd1_ptr = ctx.getEmbeddingsSeq(0);
-    if (embd1_ptr == null) {
-        try stdout.print("Error: Could not get embeddings for text 1.\n", .{});
-        try stdout.print("Make sure you're using an embedding model.\n", .{});
-        return;
-    }
+    // Get embeddings for text1 (use index 0 for the first/only sequence)
+    const embd1_ptr = ctx.getEmbeddingsIth(0);
 
     var embd1 = try alloc.alloc(f32, @intCast(n_embd));
     defer alloc.free(embd1);
-    @memcpy(embd1, embd1_ptr.?[0..@intCast(n_embd)]);
+    @memcpy(embd1, embd1_ptr[0..@intCast(n_embd)]);
 
     if (args.normalize) {
         normalizeVector(embd1);
     }
 
     // Clear context for text2
-    ctx.kvCacheClear();
+    if (ctx.getMemory()) |mem| {
+        mem.clear(false);
+    }
 
     // Generate embeddings for text2
     var tokenizer2 = llama.Tokenizer.init(alloc);
@@ -132,16 +127,12 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     var batch2 = llama.Batch.initOne(tokenizer2.getTokens());
     try batch2.decode(ctx);
 
-    // Get embeddings for text2
-    const embd2_ptr = ctx.getEmbeddingsSeq(0);
-    if (embd2_ptr == null) {
-        try stdout.print("Error: Could not get embeddings for text 2.\n", .{});
-        return;
-    }
+    // Get embeddings for text2 (use index 0 for the first/only sequence)
+    const embd2_ptr = ctx.getEmbeddingsIth(0);
 
     var embd2 = try alloc.alloc(f32, @intCast(n_embd));
     defer alloc.free(embd2);
-    @memcpy(embd2, embd2_ptr.?[0..@intCast(n_embd)]);
+    @memcpy(embd2, embd2_ptr[0..@intCast(n_embd)]);
 
     if (args.normalize) {
         normalizeVector(embd2);
@@ -150,41 +141,41 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     // Calculate similarity
     const similarity = cosineSimilarity(embd1, embd2);
 
-    try stdout.print("---\n", .{});
-    try stdout.print("Results:\n", .{});
-    try stdout.print("  Text 1 tokens: {d}\n", .{tokenizer1.getTokens().len});
-    try stdout.print("  Text 2 tokens: {d}\n", .{tokenizer2.getTokens().len});
-    try stdout.print("  Embedding dim: {d}\n", .{n_embd});
-    try stdout.print("  Normalized:    {}\n", .{args.normalize});
-    try stdout.print("\n", .{});
-    try stdout.print("  Cosine Similarity: {d:.4}\n", .{similarity});
-    try stdout.print("\n", .{});
+    std.debug.print("---\n", .{});
+    std.debug.print("Results:\n", .{});
+    std.debug.print("  Text 1 tokens: {d}\n", .{tokenizer1.getTokens().len});
+    std.debug.print("  Text 2 tokens: {d}\n", .{tokenizer2.getTokens().len});
+    std.debug.print("  Embedding dim: {d}\n", .{n_embd});
+    std.debug.print("  Normalized:    {}\n", .{args.normalize});
+    std.debug.print("\n", .{});
+    std.debug.print("  Cosine Similarity: {d:.4}\n", .{similarity});
+    std.debug.print("\n", .{});
 
     // Interpret the similarity
     if (similarity > 0.9) {
-        try stdout.print("  Interpretation: Very similar (nearly identical meaning)\n", .{});
+        std.debug.print("  Interpretation: Very similar (nearly identical meaning)\n", .{});
     } else if (similarity > 0.7) {
-        try stdout.print("  Interpretation: Similar (related meaning)\n", .{});
+        std.debug.print("  Interpretation: Similar (related meaning)\n", .{});
     } else if (similarity > 0.5) {
-        try stdout.print("  Interpretation: Somewhat similar\n", .{});
+        std.debug.print("  Interpretation: Somewhat similar\n", .{});
     } else if (similarity > 0.3) {
-        try stdout.print("  Interpretation: Loosely related\n", .{});
+        std.debug.print("  Interpretation: Loosely related\n", .{});
     } else {
-        try stdout.print("  Interpretation: Different meanings\n", .{});
+        std.debug.print("  Interpretation: Different meanings\n", .{});
     }
 
     // Show first few embedding values
-    try stdout.print("\n  First 5 embedding values (text 1): ", .{});
+    std.debug.print("\n  First 5 embedding values (text 1): ", .{});
     for (embd1[0..@min(5, embd1.len)]) |v| {
-        try stdout.print("{d:.4} ", .{v});
+        std.debug.print("{d:.4} ", .{v});
     }
-    try stdout.print("...\n", .{});
+    std.debug.print("...\n", .{});
 
-    try stdout.print("  First 5 embedding values (text 2): ", .{});
+    std.debug.print("  First 5 embedding values (text 2): ", .{});
     for (embd2[0..@min(5, embd2.len)]) |v| {
-        try stdout.print("{d:.4} ", .{v});
+        std.debug.print("{d:.4} ", .{v});
     }
-    try stdout.print("...\n", .{});
+    std.debug.print("...\n", .{});
 }
 
 pub fn main() !void {

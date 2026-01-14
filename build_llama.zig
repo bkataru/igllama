@@ -273,7 +273,13 @@ pub const Context = struct {
             metal_lib.linkFramework("AppKit");
             metal_lib.linkFramework("Metal");
             metal_lib.linkFramework("MetalKit");
-            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal.m" }), .flags = ctx.flags() });
+            // New llama.cpp metal file structure (multiple .cpp and .m files)
+            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal.cpp" }), .flags = ctx.flags() });
+            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal-common.cpp" }), .flags = ctx.flags() });
+            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal-device.cpp" }), .flags = ctx.flags() });
+            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal-ops.cpp" }), .flags = ctx.flags() });
+            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal-context.m" }), .flags = ctx.flags() });
+            metal_lib.addCSourceFile(.{ .file = ctx.path(&.{ "ggml", "src", "ggml-metal", "ggml-metal-device.m" }), .flags = ctx.flags() });
             const metal_files = [_][]const u8{
                 "ggml-metal.metal",
                 "ggml-metal-impl.h",

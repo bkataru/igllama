@@ -37,9 +37,7 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     // Suppress verbose logging
     llama.logSet(null, null);
 
-    const stdout = std.io.getStdOut().writer();
-
-    try stdout.print("Loading model...\n", .{});
+    std.debug.print("Loading model...\n", .{});
 
     var mparams = Model.defaultParams();
     mparams.n_gpu_layers = args.gpu_layers;
@@ -70,30 +68,30 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     sampler.add(llama.Sampler.initDist(args.seed orelse @truncate(@as(u64, @bitCast(std.time.milliTimestamp())))));
 
     // Format prompt to request JSON output
-    var prompt_buf = std.ArrayList(u8).init(alloc);
-    defer prompt_buf.deinit();
+    var prompt_list: std.ArrayListUnmanaged(u8) = .{};
+    defer prompt_list.deinit(alloc);
 
-    try prompt_buf.appendSlice("You are a JSON extraction assistant. ");
-    try prompt_buf.appendSlice("Extract information and respond with ONLY a JSON object.\n\n");
-    try prompt_buf.appendSlice("Input: ");
-    try prompt_buf.appendSlice(args.prompt);
-    try prompt_buf.appendSlice("\n\nOutput JSON with 'name' (string) and 'age' (number) fields:\n");
+    try prompt_list.appendSlice(alloc, "You are a JSON extraction assistant. ");
+    try prompt_list.appendSlice(alloc, "Extract information and respond with ONLY a JSON object.\n\n");
+    try prompt_list.appendSlice(alloc, "Input: ");
+    try prompt_list.appendSlice(alloc, args.prompt);
+    try prompt_list.appendSlice(alloc, "\n\nOutput JSON with 'name' (string) and 'age' (number) fields:\n");
 
     // Tokenize
     var tokenizer = llama.Tokenizer.init(alloc);
     defer tokenizer.deinit();
-    try tokenizer.tokenize(vocab, prompt_buf.items, false, true);
+    try tokenizer.tokenize(vocab, prompt_list.items, false, true);
 
-    try stdout.print("\nPrompt: {s}\n", .{args.prompt});
-    try stdout.print("Expected grammar:\n{s}\n", .{json_grammar});
-    try stdout.print("\n---\nGenerated JSON:\n", .{});
+    std.debug.print("\nPrompt: {s}\n", .{args.prompt});
+    std.debug.print("Expected grammar:\n{s}\n", .{json_grammar});
+    std.debug.print("\n---\nGenerated JSON:\n", .{});
 
     // Generate
     var detokenizer = llama.Detokenizer.init(alloc);
     defer detokenizer.deinit();
 
-    var response_buf = std.ArrayList(u8).init(alloc);
-    defer response_buf.deinit();
+    var response_list: std.ArrayListUnmanaged(u8) = .{};
+    defer response_list.deinit(alloc);
 
     var batch = llama.Batch.initOne(tokenizer.getTokens());
     var batch_token: [1]Token = undefined;
@@ -119,8 +117,8 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
         }
 
         if (in_json) {
-            try stdout.print("{s}", .{text});
-            try response_buf.appendSlice(text);
+            std.debug.print("{s}", .{text});
+            try response_list.appendSlice(alloc, text);
         }
 
         detokenizer.clearRetainingCapacity();
@@ -132,18 +130,18 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
         batch = llama.Batch.initOne(batch_token[0..]);
     }
 
-    try stdout.print("\n\n---\n", .{});
+    std.debug.print("\n\n---\n", .{});
 
     // Try to validate JSON
-    if (response_buf.items.len > 0) {
+    if (response_list.items.len > 0) {
         // Simple validation: check for required fields
-        const has_name = std.mem.indexOf(u8, response_buf.items, "\"name\"") != null;
-        const has_age = std.mem.indexOf(u8, response_buf.items, "\"age\"") != null;
+        const has_name = std.mem.indexOf(u8, response_list.items, "\"name\"") != null;
+        const has_age = std.mem.indexOf(u8, response_list.items, "\"age\"") != null;
 
         if (has_name and has_age) {
-            try stdout.print("Valid JSON structure detected.\n", .{});
+            std.debug.print("Valid JSON structure detected.\n", .{});
         } else {
-            try stdout.print("Warning: JSON may be missing required fields.\n", .{});
+            std.debug.print("Warning: JSON may be missing required fields.\n", .{});
         }
     }
 }
