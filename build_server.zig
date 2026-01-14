@@ -10,7 +10,7 @@ pub const ServerOptions = struct {
 };
 
 /// Build the llama-server executable
-/// This builds the C++ server from llama.cpp/examples/server
+/// This builds the C++ server from llama.cpp/tools/server
 pub fn buildServer(
     b: *std.Build,
     llama_ctx: *llama.Context,
@@ -19,8 +19,8 @@ pub fn buildServer(
     options: ServerOptions,
 ) !*CompileStep {
     // First, generate the asset header files
-    const index_hpp = try generateAssetHeader(b, "llama.cpp/examples/server/public/index.html.gz");
-    const loading_hpp = try generateAssetHeader(b, "llama.cpp/examples/server/public/loading.html");
+    const index_hpp = try generateAssetHeader(b, "llama.cpp/tools/server/public/index.html.gz");
+    const loading_hpp = try generateAssetHeader(b, "llama.cpp/tools/server/public/loading.html");
 
     // Create server executable (C++ based - no Zig root source)
     const server_module = b.createModule(.{
@@ -37,7 +37,8 @@ pub fn buildServer(
     server_exe.addIncludePath(llama_ctx.path(&.{"common"}));
     server_exe.addIncludePath(llama_ctx.path(&.{ "ggml", "include" }));
     server_exe.addIncludePath(llama_ctx.path(&.{ "ggml", "src" }));
-    server_exe.addIncludePath(llama_ctx.path(&.{ "examples", "server" }));
+    server_exe.addIncludePath(llama_ctx.path(&.{ "tools", "server" }));
+    server_exe.addIncludePath(llama_ctx.path(&.{ "vendor", "nlohmann" })); // Add nlohmann json headers
     // Add llama.cpp root for includes like "common/base64.hpp"
     server_exe.addIncludePath(llama_ctx.path(&.{}));
 
@@ -56,7 +57,7 @@ pub fn buildServer(
 
     // Add server.cpp (common library is already linked via llama_ctx.link)
     server_exe.addCSourceFile(.{
-        .file = llama_ctx.path(&.{ "examples", "server", "server.cpp" }),
+        .file = llama_ctx.path(&.{ "tools", "server", "server.cpp" }),
         .flags = cpp_flags,
     });
 
