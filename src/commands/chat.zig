@@ -35,17 +35,69 @@ const Message = struct {
     content: []const u8,
 };
 
+/// Result from JSON string parsing
+const JsonStringResult = struct {
+    value: []const u8,
+    end_pos: usize,
+};
+
+/// Write a string with JSON escaping to an ArrayList
+fn appendJsonEscaped(list: *std.ArrayList(u8), allocator: std.mem.Allocator, str: []const u8) !void {
+    for (str) |c| {
+        switch (c) {
+            '"' => try list.appendSlice(allocator, "\\\""),
+            '\\' => try list.appendSlice(allocator, "\\\\"),
+            '\n' => try list.appendSlice(allocator, "\\n"),
+            '\r' => try list.appendSlice(allocator, "\\r"),
+            '\t' => try list.appendSlice(allocator, "\\t"),
+            else => try list.append(allocator, c),
+        }
+    }
+}
+
+/// Find and extract a JSON string value starting near pos
+fn findJsonString(content: []const u8, start_pos: usize) ?JsonStringResult {
+    // Find opening quote
+    var pos = start_pos;
+    while (pos < content.len and content[pos] != '"') : (pos += 1) {}
+    if (pos >= content.len) return null;
+    pos += 1; // skip opening quote
+
+    const str_start = pos;
+    var str_end = pos;
+
+    // Find closing quote (handling escapes)
+    while (str_end < content.len) {
+        if (content[str_end] == '\\' and str_end + 1 < content.len) {
+            str_end += 2; // skip escaped char
+        } else if (content[str_end] == '"') {
+            break;
+        } else {
+            str_end += 1;
+        }
+    }
+
+    if (str_end >= content.len) return null;
+
+    return .{
+        .value = content[str_start..str_end],
+        .end_pos = str_end + 1,
+    };
+}
+
 /// Chat session state
 const ChatSession = struct {
     allocator: std.mem.Allocator,
     messages: std.ArrayList(Message),
     system_prompt: []const u8,
+    system_prompt_owned: bool = false,
 
     pub fn init(allocator: std.mem.Allocator, system_prompt: []const u8) ChatSession {
         return .{
             .allocator = allocator,
             .messages = .empty,
             .system_prompt = system_prompt,
+            .system_prompt_owned = false,
         };
     }
 
@@ -54,11 +106,125 @@ const ChatSession = struct {
             self.allocator.free(msg.content);
         }
         self.messages.deinit(self.allocator);
+        if (self.system_prompt_owned) {
+            self.allocator.free(@constCast(self.system_prompt));
+        }
     }
 
     pub fn addMessage(self: *ChatSession, role: Role, content: []const u8) !void {
         const content_copy = try self.allocator.dupe(u8, content);
         try self.messages.append(self.allocator, .{ .role = role, .content = content_copy });
+    }
+
+    /// Save conversation history to a JSON file
+    pub fn saveToFile(self: *ChatSession, filepath: []const u8) !void {
+        var file = try std.fs.cwd().createFile(filepath, .{});
+        defer file.close();
+
+        // Build the JSON content in memory first
+        var content: std.ArrayList(u8) = .empty;
+        defer content.deinit(self.allocator);
+
+        // Write JSON manually (simple format)
+        try content.appendSlice(self.allocator, "{\n");
+        try content.appendSlice(self.allocator, "  \"system_prompt\": \"");
+        try appendJsonEscaped(&content, self.allocator, self.system_prompt);
+        try content.appendSlice(self.allocator, "\",\n");
+        try content.appendSlice(self.allocator, "  \"messages\": [\n");
+
+        for (self.messages.items, 0..) |msg, idx| {
+            try content.appendSlice(self.allocator, "    {\n");
+            try content.appendSlice(self.allocator, "      \"role\": \"");
+            try content.appendSlice(self.allocator, switch (msg.role) {
+                .system => "system",
+                .user => "user",
+                .assistant => "assistant",
+            });
+            try content.appendSlice(self.allocator, "\",\n");
+            try content.appendSlice(self.allocator, "      \"content\": \"");
+            try appendJsonEscaped(&content, self.allocator, msg.content);
+            try content.appendSlice(self.allocator, "\"\n");
+            try content.appendSlice(self.allocator, "    }");
+            if (idx < self.messages.items.len - 1) {
+                try content.appendSlice(self.allocator, ",");
+            }
+            try content.appendSlice(self.allocator, "\n");
+        }
+
+        try content.appendSlice(self.allocator, "  ]\n");
+        try content.appendSlice(self.allocator, "}\n");
+
+        // Write all at once
+        try file.writeAll(content.items);
+    }
+
+    /// Load conversation history from a JSON file
+    pub fn loadFromFile(self: *ChatSession, filepath: []const u8) !void {
+        const file = std.fs.cwd().openFile(filepath, .{}) catch |err| {
+            return err;
+        };
+        defer file.close();
+
+        // Read entire file
+        const content = try file.readToEndAlloc(self.allocator, 1024 * 1024); // 1MB max
+        defer self.allocator.free(content);
+
+        // Clear existing messages
+        for (self.messages.items) |msg| {
+            self.allocator.free(msg.content);
+        }
+        self.messages.clearRetainingCapacity();
+
+        // Simple JSON parsing (not a full parser, handles our format)
+        var pos: usize = 0;
+
+        // Find system_prompt
+        if (std.mem.indexOf(u8, content, "\"system_prompt\":")) |sp_start| {
+            pos = sp_start + 16;
+            if (findJsonString(content, pos)) |result| {
+                // Free old system prompt if owned
+                if (self.system_prompt_owned) {
+                    self.allocator.free(@constCast(self.system_prompt));
+                }
+                self.system_prompt = try self.allocator.dupe(u8, result.value);
+                self.system_prompt_owned = true;
+                pos = result.end_pos;
+            }
+        }
+
+        // Find messages array
+        if (std.mem.indexOf(u8, content[pos..], "\"messages\":")) |msg_start| {
+            pos = pos + msg_start;
+
+            // Parse each message
+            while (std.mem.indexOf(u8, content[pos..], "\"role\":")) |role_start| {
+                const role_pos = pos + role_start + 7;
+
+                var role: Role = .user;
+                if (findJsonString(content, role_pos)) |role_result| {
+                    if (std.mem.eql(u8, role_result.value, "system")) {
+                        role = .system;
+                    } else if (std.mem.eql(u8, role_result.value, "assistant")) {
+                        role = .assistant;
+                    }
+                    pos = role_result.end_pos;
+                } else break;
+
+                // Find content
+                if (std.mem.indexOf(u8, content[pos..], "\"content\":")) |content_start| {
+                    const content_pos = pos + content_start + 10;
+                    if (findJsonString(content, content_pos)) |content_result| {
+                        try self.addMessage(role, content_result.value);
+                        pos = content_result.end_pos;
+                    } else break;
+                } else break;
+            }
+        }
+    }
+
+    /// Get message count
+    pub fn messageCount(self: *ChatSession) usize {
+        return self.messages.items.len;
     }
 
     /// Format conversation using ChatML template
@@ -333,6 +499,9 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("  /quit, /exit             Exit chat\n", .{});
         try stderr.print("  /clear                   Clear conversation history\n", .{});
         try stderr.print("  /system <prompt>         Change system prompt\n", .{});
+        try stderr.print("  /save <file>             Save conversation to file\n", .{});
+        try stderr.print("  /load <file>             Load conversation from file\n", .{});
+        try stderr.print("  /history                 Show conversation history\n", .{});
         return error.InvalidArguments;
     }
 
@@ -427,9 +596,47 @@ pub fn run(args: []const []const u8) !void {
                 session.system_prompt = user_input[8..];
                 try stdout.print("System prompt updated.\n\n", .{});
                 continue;
+            } else if (std.mem.startsWith(u8, user_input, "/save ")) {
+                const filepath = std.mem.trim(u8, user_input[6..], &[_]u8{ ' ', '\t' });
+                if (filepath.len == 0) {
+                    try stderr.print("Usage: /save <filename>\n\n", .{});
+                } else {
+                    session.saveToFile(filepath) catch |err| {
+                        try stderr.print("Error saving: {}\n\n", .{err});
+                        continue;
+                    };
+                    try stdout.print("Conversation saved to: {s}\n\n", .{filepath});
+                }
+                continue;
+            } else if (std.mem.startsWith(u8, user_input, "/load ")) {
+                const filepath = std.mem.trim(u8, user_input[6..], &[_]u8{ ' ', '\t' });
+                if (filepath.len == 0) {
+                    try stderr.print("Usage: /load <filename>\n\n", .{});
+                } else {
+                    session.loadFromFile(filepath) catch |err| {
+                        try stderr.print("Error loading: {}\n\n", .{err});
+                        continue;
+                    };
+                    try stdout.print("Loaded {d} messages from: {s}\n\n", .{ session.messageCount(), filepath });
+                }
+                continue;
+            } else if (std.mem.eql(u8, user_input, "/history")) {
+                try stdout.print("\n--- Conversation History ---\n", .{});
+                try stdout.print("System: {s}\n\n", .{session.system_prompt});
+                for (session.messages.items, 0..) |msg, idx| {
+                    const role_str = switch (msg.role) {
+                        .system => "System",
+                        .user => "User",
+                        .assistant => "Assistant",
+                    };
+                    try stdout.print("[{d}] {s}: {s}\n", .{ idx + 1, role_str, msg.content });
+                }
+                try stdout.print("--- End ({d} messages) ---\n\n", .{session.messageCount()});
+                try stdout.flush();
+                continue;
             } else {
                 try stdout.print("Unknown command: {s}\n", .{user_input});
-                try stdout.print("Available: /quit, /clear, /system <prompt>\n\n", .{});
+                try stdout.print("Available: /quit, /clear, /system, /save, /load, /history\n\n", .{});
                 continue;
             }
         }
