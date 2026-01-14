@@ -210,7 +210,18 @@ pub fn build(b: *std.Build) !void {
     // Build llama-server (optional)
     const build_server_opt = b.option(bool, "server", "Build llama-server HTTP API server") orelse false;
     if (build_server_opt) {
-        const server_exe = server.buildServer(b, &llama_zig.llama, target, optimize, .{}) catch |err| {
+        // Create a separate llama context with httplib enabled for server
+        var llama_server_ctx = llama.Context.init(b, .{
+            .target = target,
+            .optimize = optimize,
+            .shared = false,
+            .backends = backends,
+            .metal_ndebug = metal_ndebug,
+            .metal_use_bf16 = metal_use_bf16,
+            .httplib = true, // Enable httplib for remote content fetching
+        });
+
+        const server_exe = server.buildServer(b, &llama_server_ctx, target, optimize, .{}) catch |err| {
             std.log.err("Failed to build server: {}", .{err});
             return;
         };
