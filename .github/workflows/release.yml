@@ -104,16 +104,21 @@ jobs:
           gh release upload "${VERSION}" "${ARCHIVE_NAME}.${{ matrix.ext }}" --clobber
 
   # macOS builds with Metal GPU support (requires native runner)
+  # Using native runners and NOT specifying -Dtarget to ensure frameworks are found
   build-macos-metal:
-    name: Build ${{ matrix.target }}-metal
-    runs-on: macos-latest
+    name: Build ${{ matrix.name }}-metal
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-macos
+          # Intel Mac runner for x86_64
+          - runner: macos-13
+            name: x86_64-macos
             arch: x86_64
-          - target: aarch64-macos
+          # ARM Mac runner for aarch64
+          - runner: macos-latest
+            name: aarch64-macos
             arch: arm64
 
     steps:
@@ -127,8 +132,9 @@ jobs:
         with:
           version: ${{ env.ZIG_VERSION }}
 
+      # Build WITHOUT -Dtarget to use native target and find frameworks properly
       - name: Build Release with Metal
-        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }} -Dserver=true -Dmetal=true
+        run: zig build -Doptimize=ReleaseFast -Dserver=true -Dmetal=true
 
       - name: Determine Version
         id: version
@@ -142,7 +148,7 @@ jobs:
       - name: Prepare Archive Directory
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          ARCHIVE_NAME="igllama-${VERSION}-${{ matrix.target }}-metal"
+          ARCHIVE_NAME="igllama-${VERSION}-${{ matrix.name }}-metal"
           mkdir -p "${ARCHIVE_NAME}"
           
           cp zig-out/bin/igllama "${ARCHIVE_NAME}/"

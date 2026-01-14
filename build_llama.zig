@@ -280,10 +280,13 @@ pub const Context = struct {
             };
             // Compile the metal shader [requires xcode installed]
             const metal_compile = ctx.b.addSystemCommand(&.{
-                "xcrun", "-sdk", "macosx", "metal", "-fno-fast-math", "-g", "-c", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal", "ggml-metal.metal" }), "-o", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal", "ggml-metal.air" }),
+                "xcrun", "-sdk", "macosx", "metal", "-fno-fast-math", "-g",
+                "-I", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal" }), // Include path for ggml-common.h
+                "-c", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal", "ggml-metal.metal" }),
+                "-o", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal", "ggml-metal.air" }),
             });
             const common_src = ctx.path(&.{ "ggml", "src", "ggml-common.h" });
-            const common_dst = "ggml-common.h";
+            const common_dst = ctx.b.pathJoin(&.{ "metal", "ggml-common.h" }); // Install to metal directory
             const common_install_step = ctx.b.addInstallFile(common_src, common_dst);
             metal_compile.step.dependOn(&common_install_step.step);
             for (metal_files) |file| {
