@@ -426,19 +426,27 @@ pub const Context = struct {
 
     pub fn samples(ctx: *Context, install: bool) !void {
         const b = ctx.b;
+        // Note: "main" was renamed to llama-cli and moved to tools/ in newer llama.cpp versions
+        // Only include examples that exist in the current llama.cpp version
         const examples = [_][]const u8{
-            "main",
             "simple",
-            // "perplexity",
+            // "simple-chat", // requires additional setup
+            // "batched",
             // "embedding",
-            // "finetune",
-            // "train-text-from-scratch",
             // "lookahead",
             // "speculative",
             // "parallel",
         };
 
         for (examples) |ex| {
+            // Check if example directory exists before trying to build
+            const rpath = b.pathJoin(&.{ ctx.path_prefix, "examples", ex });
+            var dir = std.fs.openDirAbsolute(b.pathFromRoot(rpath), .{ .iterate = true }) catch {
+                std.log.warn("Skipping example '{s}': directory not found", .{ex});
+                continue;
+            };
+            dir.close();
+
             const exe_module = b.createModule(.{
                 .target = ctx.options.target,
                 .optimize = ctx.options.optimize,
@@ -452,11 +460,10 @@ pub const Context = struct {
             exe.want_lto = false; // TODO: review, causes: error: lld-link: undefined symbol: __declspec(dllimport) _create_locale
             if (install) b.installArtifact(exe);
             { // add all c/cpp files from example dir
-                const rpath = b.pathJoin(&.{ ctx.path_prefix, "examples", ex });
                 exe.addIncludePath(.{ .cwd_relative = rpath });
-                var dir = if (@hasDecl(std.fs, "openIterableDirAbsolute")) try std.fs.openIterableDirAbsolute(b.pathFromRoot(rpath), .{}) else try std.fs.openDirAbsolute(b.pathFromRoot(rpath), .{ .iterate = true }); // zig 11 vs nightly compatibility
-                defer dir.close();
-                var dir_it = dir.iterate();
+                var dir2 = if (@hasDecl(std.fs, "openIterableDirAbsolute")) try std.fs.openIterableDirAbsolute(b.pathFromRoot(rpath), .{}) else try std.fs.openDirAbsolute(b.pathFromRoot(rpath), .{ .iterate = true }); // zig 11 vs nightly compatibility
+                defer dir2.close();
+                var dir_it = dir2.iterate();
                 while (try dir_it.next()) |f| switch (f.kind) {
                     .file => if (std.ascii.endsWithIgnoreCase(f.name, ".c") or std.ascii.endsWithIgnoreCase(f.name, ".cpp")) {
                         const src = b.pathJoin(&.{ ctx.path_prefix, "examples", ex, f.name });
