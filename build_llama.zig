@@ -269,6 +269,7 @@ pub const Context = struct {
             metal_lib.addIncludePath(ctx.path(&.{ "ggml", "include" }));
             metal_lib.addIncludePath(ctx.path(&.{ "ggml", "src" }));
             metal_lib.addIncludePath(ctx.path(&.{ "ggml", "src", "ggml-metal" }));
+            metal_lib.linkLibCpp(); // Required for C++ standard library headers in .cpp files
             metal_lib.linkFramework("Foundation");
             metal_lib.linkFramework("AppKit");
             metal_lib.linkFramework("Metal");
