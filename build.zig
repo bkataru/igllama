@@ -140,6 +140,33 @@ pub fn build(b: *std.Build) !void {
     llama_zig.sample("examples", "simple");
     // llama_zig.sample("examples", "interactive");
 
+    // Build igllama CLI executable
+    {
+        const cli_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        // Add imports for CLI
+        cli_module.addImport("llama", llama_zig.module);
+        cli_module.addImport("hf-hub", llama_zig.hf_hub_module);
+        cli_module.addImport("zenmap", llama_zig.zenmap_module);
+
+        var cli_exe = b.addExecutable(.{
+            .name = "igllama",
+            .root_module = cli_module,
+        });
+        cli_exe.stack_size = 32 * 1024 * 1024;
+        llama_zig.link(cli_exe);
+        b.installArtifact(cli_exe);
+
+        const run_cli = b.addRunArtifact(cli_exe);
+        if (b.args) |args| run_cli.addArgs(args);
+        run_cli.step.dependOn(b.default_step);
+        b.step("run", "Run igllama CLI").dependOn(&run_cli.step);
+    }
+
     { // tests
         const test_module = b.createModule(.{
             .root_source_file = b.path("llama.cpp.zig/llama.zig"),
