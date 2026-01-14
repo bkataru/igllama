@@ -133,8 +133,8 @@ jobs:
 
       - name: Verify Submodule Files
         run: |
-          # Verify critical submodule files exist
-          ls -la llama.cpp/ggml/src/ggml-metal/ggml-metal.m
+          # Verify critical submodule files exist (file structure changed in recent llama.cpp)
+          ls -la llama.cpp/ggml/src/ggml-metal/ggml-metal.cpp
           ls -la llama.cpp/ggml/src/ggml-metal/ggml-metal.metal
 
       - name: Setup Zig
