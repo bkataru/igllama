@@ -6,6 +6,7 @@ const help = @import("commands/help.zig");
 const pull = @import("commands/pull.zig");
 const list = @import("commands/list.zig");
 const run_cmd = @import("commands/run.zig");
+const chat_cmd = @import("commands/chat.zig");
 const show = @import("commands/show.zig");
 const rm = @import("commands/rm.zig");
 const serve = @import("commands/serve.zig");
@@ -16,6 +17,7 @@ const Command = enum {
     pull,
     list,
     run,
+    chat,
     show,
     rm,
     serve,
@@ -35,6 +37,7 @@ fn parseCommand(arg: []const u8) Command {
         .{ "list", .list },
         .{ "ls", .list },
         .{ "run", .run },
+        .{ "chat", .chat },
         .{ "show", .show },
         .{ "info", .show },
         .{ "rm", .rm },
@@ -88,6 +91,11 @@ pub fn main() !void {
         .run => run_cmd.run(cmd_args) catch |err| {
             if (err != error.InvalidArguments and err != error.MissingVocabulary) {
                 try stderr.print("Run failed: {}\n", .{err});
+            }
+        },
+        .chat => chat_cmd.run(cmd_args) catch |err| {
+            if (err != error.InvalidArguments and err != error.MissingVocabulary) {
+                try stderr.print("Chat failed: {}\n", .{err});
             }
         },
         .show => show.run(cmd_args) catch |err| {
