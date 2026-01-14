@@ -125,6 +125,140 @@ const ChatSession = struct {
 
         return result.toOwnedSlice(allocator);
     }
+
+    /// Format conversation using Mistral template
+    pub fn formatMistral(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        // System message (if present, add as first user message)
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "<s>[INST] ");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, " [/INST]");
+        }
+
+        // Conversation history
+        for (self.messages.items) |msg| {
+            switch (msg.role) {
+                .user => {
+                    try result.appendSlice(allocator, "[INST] ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, " [/INST]");
+                },
+                .assistant => {
+                    try result.appendSlice(allocator, " ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "</s>");
+                },
+                .system => {
+                    // Mistral doesn't have separate system tokens, include as user message
+                    try result.appendSlice(allocator, "[INST] ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, " [/INST]");
+                },
+            }
+        }
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Gemma template
+    pub fn formatGemma(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        try result.appendSlice(allocator, "<bos>");
+
+        // System message (add as first user message)
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "<start_of_turn>user\n");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "<end_of_turn>\n");
+            try result.appendSlice(allocator, "<start_of_turn>model\n");
+            try result.appendSlice(allocator, "I understand. I'm ready to help!");
+            try result.appendSlice(allocator, "<end_of_turn>\n");
+        }
+
+        // Conversation history
+        for (self.messages.items) |msg| {
+            try result.appendSlice(allocator, "<start_of_turn>");
+            try result.appendSlice(allocator, switch (msg.role) {
+                .user => "user",
+                .assistant => "model",
+                .system => "user", // Gemma treats system as user
+            });
+            try result.appendSlice(allocator, "\n");
+            try result.appendSlice(allocator, msg.content);
+            try result.appendSlice(allocator, "<end_of_turn>\n");
+        }
+
+        // Prompt for assistant response
+        try result.appendSlice(allocator, "<start_of_turn>model\n");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Phi-3 template
+    pub fn formatPhi3(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        try result.appendSlice(allocator, "<s>");
+
+        // System message
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "<|system|>\n");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "<|end|>\n");
+        }
+
+        // Conversation history
+        for (self.messages.items) |msg| {
+            try result.appendSlice(allocator, "<|");
+            try result.appendSlice(allocator, switch (msg.role) {
+                .user => "user",
+                .assistant => "assistant",
+                .system => "system",
+            });
+            try result.appendSlice(allocator, "|>\n");
+            try result.appendSlice(allocator, msg.content);
+            try result.appendSlice(allocator, "<|end|>\n");
+        }
+
+        // Prompt for assistant response
+        try result.appendSlice(allocator, "<|assistant|>\n");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Qwen template
+    pub fn formatQwen(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        try result.appendSlice(allocator, "<|im_start|>system\n");
+        try result.appendSlice(allocator, self.system_prompt);
+        try result.appendSlice(allocator, "<|im_end|>\n");
+
+        // Conversation history
+        for (self.messages.items) |msg| {
+            try result.appendSlice(allocator, "<|im_start|>");
+            try result.appendSlice(allocator, switch (msg.role) {
+                .user => "user",
+                .assistant => "assistant",
+                .system => "system",
+            });
+            try result.appendSlice(allocator, "\n");
+            try result.appendSlice(allocator, msg.content);
+            try result.appendSlice(allocator, "<|im_end|>\n");
+        }
+
+        // Prompt for assistant response
+        try result.appendSlice(allocator, "<|im_start|>assistant\n");
+
+        return result.toOwnedSlice(allocator);
+    }
 };
 
 pub fn run(args: []const []const u8) !void {
@@ -192,7 +326,7 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("\nOptions:\n", .{});
         try stderr.print("  -m, --model <path>       Model file path\n", .{});
         try stderr.print("  -s, --system <prompt>    System prompt (default: helpful assistant)\n", .{});
-        try stderr.print("  -t, --template <name>    Chat template: chatml, llama3 (default: chatml)\n", .{});
+        try stderr.print("  -t, --template <name>    Chat template: chatml, llama3, mistral, gemma, phi3, qwen (default: chatml)\n", .{});
         try stderr.print("  -n, --max-tokens <n>     Max tokens per response (default: 2048)\n", .{});
         try stderr.print("  -ngl, --gpu-layers <n>   GPU layers to offload (default: 0)\n", .{});
         try stderr.print("\nCommands during chat:\n", .{});
@@ -306,6 +440,14 @@ pub fn run(args: []const []const u8) !void {
         // Format prompt with chat template
         const formatted_prompt = if (std.mem.eql(u8, template, "llama3"))
             try session.formatLlama3(allocator)
+        else if (std.mem.eql(u8, template, "mistral"))
+            try session.formatMistral(allocator)
+        else if (std.mem.eql(u8, template, "gemma"))
+            try session.formatGemma(allocator)
+        else if (std.mem.eql(u8, template, "phi3"))
+            try session.formatPhi3(allocator)
+        else if (std.mem.eql(u8, template, "qwen"))
+            try session.formatQwen(allocator)
         else
             try session.formatChatML(allocator);
         defer allocator.free(formatted_prompt);
