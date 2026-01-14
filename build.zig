@@ -190,8 +190,20 @@ pub fn build(b: *std.Build) !void {
         main_tests.root_module.addImport("llama.h", llama_zig.llama_h_module);
         const run_main_tests = b.addRunArtifact(main_tests);
 
+        // CLI/config tests
+        const cli_test_module = b.createModule(.{
+            .root_source_file = b.path("src/config.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        const cli_tests = b.addTest(.{
+            .root_module = cli_test_module,
+        });
+        const run_cli_tests = b.addRunArtifact(cli_tests);
+
         const test_step = b.step("test", "Run library tests");
         test_step.dependOn(&run_main_tests.step);
+        test_step.dependOn(&run_cli_tests.step);
     }
 }
 

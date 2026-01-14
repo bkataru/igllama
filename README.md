@@ -1,5 +1,9 @@
 # igllama
 
+[![Zig](https://img.shields.io/badge/Zig-0.15%2B-orange)](https://ziglang.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/bkataru/igllama/actions/workflows/ci.yml/badge.svg)](https://github.com/bkataru/igllama/actions/workflows/ci.yml)
+
 A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.cpp.zig](https://github.com/Deins/llama.cpp.zig) bindings.
 
 ## Features
@@ -9,6 +13,50 @@ A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.
 - **GGUF Support** - Inspect and run GGUF model files
 - **Pure Zig** - No Python or system dependencies required
 - **Cross-platform** - Windows, Linux, macOS support
+
+## Installation
+
+### As a CLI Tool
+
+```bash
+# Clone with submodules
+git clone --recursive https://github.com/bkataru/igllama.git
+cd igllama
+
+# Build
+zig build -Doptimize=ReleaseFast
+
+# Binary located at ./zig-out/bin/igllama
+```
+
+### As a Library
+
+Add igllama to your project with `zig fetch`:
+
+```bash
+zig fetch --save git+https://github.com/bkataru/igllama.git
+```
+
+This updates your `build.zig.zon`:
+
+```zig
+.dependencies = .{
+    .igllama = .{
+        .url = "git+https://github.com/bkataru/igllama.git",
+        .hash = "...",
+    },
+},
+```
+
+Then in your `build.zig`:
+
+```zig
+const igllama = b.dependency("igllama", .{
+    .target = target,
+    .optimize = optimize,
+});
+exe.root_module.addImport("llama", igllama.module("llama"));
+```
 
 ## Quick Start
 
@@ -64,15 +112,14 @@ Models are cached in:
 Requires Zig 0.15.x or later.
 
 ```bash
-# Clone with submodules
-git clone --recursive https://github.com/bkataru/igllama.git
-cd igllama
+# Debug build
+zig build
 
-# Build CLI
+# Release build (optimized)
 zig build -Doptimize=ReleaseFast
 
-# Binary located at
-./zig-out/bin/igllama
+# Run tests
+zig build test
 ```
 
 ### Build Options
@@ -159,4 +206,5 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) - The underlying inference engine
 - [llama.cpp.zig](https://github.com/Deins/llama.cpp.zig) - Zig bindings for llama.cpp
-- [hf-hub-zig](https://github.com/jokeyrhyme/hf-hub-zig) - HuggingFace Hub client
+- [hf-hub-zig](https://github.com/bkataru/hf-hub-zig) - HuggingFace Hub client
+- [zenmap](https://github.com/bkataru/zenmap) - Memory-mapped file handling for GGUF
