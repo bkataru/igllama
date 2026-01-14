@@ -178,6 +178,10 @@ pub fn build(b: *std.Build) !void {
     llama_zig.llama.samples(install_cpp_samples) catch |err| std.log.err("Can't build CPP samples, error: {}", .{err});
 
     llama_zig.sample("examples", "simple");
+    llama_zig.sample("examples", "chat");
+    llama_zig.sample("examples", "streaming");
+    llama_zig.sample("examples", "grammar");
+    llama_zig.sample("examples", "embeddings");
     // llama_zig.sample("examples", "interactive");
 
     // Build igllama CLI executable
