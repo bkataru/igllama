@@ -21,7 +21,7 @@ graph TB
 
 ## Prerequisites
 
-- Zig 0.14.x or later
+- Zig 0.15.x or later
 - C++ compiler (GCC, Clang, or MSVC)
 - Git submodules initialized (`git submodule update --init --recursive`)
 - Model file in GGUF format
