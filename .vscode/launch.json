@@ -1,18 +1,34 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) Launch",
+            "name": "(Windows) Debug igllama",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin/interactive.exe",
-            "args": ["--model_path", "..\\llm_models\\dolphin-2.2.1-mistral-7b.Q4_K_S.gguf", "--template", "chatml"],
+            "program": "${workspaceFolder}/zig-out/bin/igllama.exe",
+            "args": ["--help"],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
-            "environment": [{"name": "GGML_OPENCL_PLATFORM", "value" : "0" }, {"name" :"GGML_OPENCL_DEVICE", "value" : "1"}],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) Debug simple example",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/simple.exe",
+            "args": ["--model_path", "path/to/model.gguf", "--prompt", "Hello!"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) Debug llama-server",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/llama-server.exe",
+            "args": ["--help"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
             "console": "integratedTerminal"
         }
     ]

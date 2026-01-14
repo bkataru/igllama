@@ -99,7 +99,7 @@ pub const Config = struct {
 };
 
 /// Version information
-pub const version = "0.1.0";
+pub const version = "0.2.0";
 pub const app_name = "igllama";
 pub const app_description = "A Zig-based Ollama alternative for GGUF model management";
 
@@ -152,7 +152,7 @@ test "Config.getServerPidPath returns valid path" {
 }
 
 test "version and app_name constants are set" {
-    try std.testing.expectEqualStrings("0.1.0", version);
+    try std.testing.expectEqualStrings("0.2.0", version);
     try std.testing.expectEqualStrings("igllama", app_name);
     try std.testing.expect(default_server_port == 8080);
 }
