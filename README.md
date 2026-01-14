@@ -6,13 +6,18 @@
 
 A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.cpp.zig](https://github.com/Deins/llama.cpp.zig) bindings.
 
+> **Why igllama?** See our [design philosophy](docs/MOTIVATION.md) for details on why we built this and the technical choices behind it.
+
 ## Features
 
-- **Ollama-like CLI** - Familiar commands: `pull`, `run`, `list`, `show`, `rm`
+- **Interactive Chat** - Multi-turn conversations with auto-save and session resume
+- **Ollama-like CLI** - Familiar commands: `pull`, `run`, `list`, `show`, `rm`, `chat`, `import`
 - **HuggingFace Integration** - Download models directly from HuggingFace Hub
+- **OpenAI-compatible API** - REST server with `/v1/chat/completions` and `/v1/embeddings`
 - **GGUF Support** - Inspect and run GGUF model files
 - **GPU Acceleration** - Metal, Vulkan, and CUDA backend support
-- **HTTP API Server** - Built-in llama-server for OpenAI-compatible API
+- **Auto-detect Chat Templates** - Supports 12+ formats (ChatML, Llama 3, Mistral, etc.)
+- **Constrained Generation** - GBNF grammar support for structured output
 - **Pure Zig** - No Python or system dependencies required
 - **Cross-platform** - Windows, Linux, macOS support
 
@@ -91,9 +96,121 @@ igllama rm TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF
 | `igllama pull <repo_id>` | Download model from HuggingFace |
 | `igllama list` | List all cached models |
 | `igllama run <model> -p <prompt>` | Run inference on a model |
+| `igllama chat <model>` | Interactive multi-turn chat session |
+| `igllama import <path>` | Import local GGUF file to cache |
+| `igllama api <model>` | Start OpenAI-compatible API server |
 | `igllama show <model.gguf>` | Display GGUF file metadata |
 | `igllama rm <repo_id>` | Remove a cached model |
 | `igllama serve <subcommand>` | Manage llama-server lifecycle |
+
+### Chat Command
+
+Interactive multi-turn conversations with automatic session management:
+
+```bash
+# Start a chat session
+igllama chat tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf
+
+# Use a specific chat template
+igllama chat model.gguf --template chatml
+
+# Resume a previous session
+igllama chat model.gguf --resume session_name
+
+# Disable auto-save
+igllama chat model.gguf --no-save
+
+# Adjust sampling parameters
+igllama chat model.gguf --temp 0.8 --top-p 0.9 --top-k 40
+
+# Use grammar for structured output
+igllama chat model.gguf --grammar-file json.gbnf
+```
+
+**In-chat commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/quit` or `/exit` | Exit the chat session |
+| `/clear` | Clear conversation history and KV cache |
+| `/save <name>` | Save session to a file |
+| `/load <name>` | Load a saved session |
+| `/sessions` | List all saved sessions |
+| `/system <text>` | Set or update system prompt |
+| `/tokens` | Show token usage statistics |
+| `/stats` | Show generation statistics |
+| `/template <name>` | Switch chat template |
+
+**Supported chat templates:** ChatML, Llama 2, Llama 3, Mistral, Phi-3, Gemma, Zephyr, Vicuna, Alpaca, DeepSeek, Command-R, and more.
+
+### Import Command
+
+Import local GGUF files into the model cache:
+
+```bash
+# Import with symlink (default, saves disk space)
+igllama import /path/to/model.gguf
+
+# Import with copy (creates a full copy)
+igllama import /path/to/model.gguf --copy
+
+# Import with a custom alias
+igllama import /path/to/model.gguf --alias my-model
+```
+
+### API Server
+
+Start an OpenAI-compatible REST API server:
+
+```bash
+# Start API server on default port (8080)
+igllama api tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf
+
+# Specify host and port
+igllama api model.gguf --host 0.0.0.0 --port 3000
+
+# With GPU acceleration
+igllama api model.gguf --gpu-layers -1
+```
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/chat/completions` | POST | Chat completions (streaming supported) |
+| `/v1/embeddings` | POST | Generate embeddings |
+| `/health` | GET | Health check |
+
+**Example requests:**
+
+```bash
+# Chat completion
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "default",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "stream": false
+  }'
+
+# Streaming chat
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "default",
+    "messages": [{"role": "user", "content": "Tell me a story"}],
+    "stream": true
+  }'
+
+# Generate embeddings
+curl http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "default",
+    "input": ["Hello world", "How are you?"]
+  }'
+```
 
 ### Serve Subcommands
 
@@ -109,6 +226,10 @@ igllama rm TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF
 Models are cached in:
 - **Custom:** Set `IGLLAMA_HOME` environment variable
 - **Default:** `~/.cache/igllama` (Linux/macOS) or `%LOCALAPPDATA%\igllama` (Windows)
+
+Chat sessions are auto-saved to:
+- `~/.cache/huggingface/sessions/` (Linux/macOS)
+- `%LOCALAPPDATA%\huggingface\sessions\` (Windows)
 
 ## Building
 
@@ -170,14 +291,20 @@ igllama/
 ├── src/
 │   ├── main.zig           # CLI entry point
 │   ├── config.zig         # Configuration/paths
+│   ├── history.zig        # Session auto-save/resume
 │   └── commands/          # CLI command implementations
 │       ├── help.zig
 │       ├── pull.zig
 │       ├── list.zig
 │       ├── run.zig
+│       ├── chat.zig       # Interactive chat with KV cache
+│       ├── api.zig        # OpenAI-compatible API server
+│       ├── import.zig     # Import local GGUF files
 │       ├── show.zig
 │       ├── rm.zig
 │       └── serve.zig      # Server lifecycle management
+├── docs/
+│   └── MOTIVATION.md      # Design philosophy
 ├── llama.cpp.zig/         # llama.cpp Zig bindings (submodule)
 ├── llama.cpp/             # llama.cpp source (submodule)
 ├── examples/              # Example code
@@ -242,8 +369,14 @@ igllama run model.gguf -p "Hello" --gpu-layers -1
 - [x] `serve` command - Run llama-server for API access
 - [x] Custom llama.cpp version selection (`-Dllama_ref`)
 - [x] GPU backend support (Metal, Vulkan, CUDA)
+- [x] Chat templates and conversation history
+- [x] Interactive chat with incremental KV cache
+- [x] OpenAI-compatible API server (`/v1/chat/completions`, `/v1/embeddings`)
+- [x] Session auto-save and resume
+- [x] Import local GGUF files
 - [ ] Model quantization tools
-- [ ] Chat templates and conversation history
+- [ ] LoRA adapter support
+- [ ] Batch inference mode
 
 ## License
 

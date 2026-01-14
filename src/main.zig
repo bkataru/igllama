@@ -13,6 +13,7 @@ const rm = @import("commands/rm.zig");
 const serve = @import("commands/serve.zig");
 const api_cmd = @import("commands/api.zig");
 const config_cmd = @import("commands/config_cmd.zig");
+const import_cmd = @import("commands/import.zig");
 
 const Command = enum {
     help,
@@ -26,6 +27,7 @@ const Command = enum {
     serve,
     api,
     config,
+    import_model,
     unknown,
 };
 
@@ -52,6 +54,7 @@ fn parseCommand(arg: []const u8) Command {
         .{ "server", .serve },
         .{ "api", .api },
         .{ "config", .config },
+        .{ "import", .import_model },
     });
     return commands.get(arg) orelse .unknown;
 }
@@ -151,6 +154,15 @@ pub fn main() !void {
         .config => config_cmd.run(cmd_args) catch |err| {
             switch (err) {
                 error.InvalidArguments => {}, // Already printed
+                else => errors.printError(stderr, err, null),
+            }
+        },
+        .import_model => import_cmd.run(cmd_args) catch |err| {
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed usage
+                error.FileNotFound => {}, // Already printed
+                error.InvalidGgufFile => {}, // Already printed
+                error.PathAlreadyExists => {}, // Already printed
                 else => errors.printError(stderr, err, null),
             }
         },
