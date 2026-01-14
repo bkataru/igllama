@@ -1,149 +1,136 @@
 const std = @import("std");
-const Builder = std.Build;
-const Target = std.Build.ResolvedTarget;
-const OptimizeMode = std.builtin.OptimizeMode;
+const llama = @import("build_llama.zig");
+
 const CompileStep = std.Build.Step.Compile;
 const LazyPath = std.Build.LazyPath;
-
-const llama = @import("build_llama.zig");
+const Target = std.Build.ResolvedTarget;
 
 pub const ServerOptions = struct {
     enable_ssl: bool = false,
-    enable_cors: bool = true,
-    enable_metrics: bool = true,
-    embed_assets: bool = true,
 };
 
-/// Build server executable
-pub fn buildServer(ctx: *llama.Context, options: ServerOptions) *CompileStep {
-    const b = ctx.b;
+/// Build the llama-server executable
+/// This builds the C++ server from llama.cpp/examples/server
+pub fn buildServer(
+    b: *std.Build,
+    llama_ctx: *llama.Context,
+    target: Target,
+    optimize: std.builtin.OptimizeMode,
+    options: ServerOptions,
+) !*CompileStep {
+    // First, generate the asset header files
+    const index_hpp = try generateAssetHeader(b, "llama.cpp/examples/server/public/index.html.gz");
+    const loading_hpp = try generateAssetHeader(b, "llama.cpp/examples/server/public/loading.html");
 
-    // Create server executable
+    // Create server executable (C++ based - no Zig root source)
+    const server_module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+    });
     const server_exe = b.addExecutable(.{
         .name = "llama-server",
-        .target = ctx.options.target,
-        .optimize = ctx.options.optimize,
+        .root_module = server_module,
     });
 
-    // Configure include paths
-    server_exe.addIncludePath(ctx.path(&.{"include"}));
-    server_exe.addIncludePath(ctx.path(&.{"common"}));
-    server_exe.addIncludePath(ctx.path(&.{ "ggml", "include" }));
-    server_exe.addIncludePath(ctx.path(&.{ "ggml", "src" }));
-    server_exe.addIncludePath(ctx.path(&.{ "examples", "server" }));
+    // Include paths
+    server_exe.addIncludePath(llama_ctx.path(&.{"include"}));
+    server_exe.addIncludePath(llama_ctx.path(&.{"common"}));
+    server_exe.addIncludePath(llama_ctx.path(&.{ "ggml", "include" }));
+    server_exe.addIncludePath(llama_ctx.path(&.{ "ggml", "src" }));
+    server_exe.addIncludePath(llama_ctx.path(&.{ "examples", "server" }));
+    // Add llama.cpp root for includes like "common/base64.hpp"
+    server_exe.addIncludePath(llama_ctx.path(&.{}));
 
-    // Link against libllama
-    ctx.link(server_exe);
+    // Add generated headers directories (both assets are in same dir but we ensure both are generated)
+    server_exe.addIncludePath(index_hpp.dirname());
+    server_exe.addIncludePath(loading_hpp.dirname());
 
-    // Add server source files
-    const server_sources = [_][]const u8{
-        "server.cpp",
-        "utils.hpp",
+    // C++ flags for server
+    const cpp_flags = &[_][]const u8{
+        "-std=c++17",
+        "-fexceptions",
+        "-fno-sanitize=undefined",
+        "-DNDEBUG",
+        "-Wno-unknown-attributes", // Ignore gnu_printf attribute warnings
     };
 
-    for (server_sources) |src| {
-        const file_path = ctx.path(&.{ "examples", "server", src });
-        if (std.mem.endsWith(u8, src, ".cpp")) {
-            server_exe.addCSourceFile(.{
-                .file = file_path,
-                .flags = ctx.flags() ++ &[_][]const u8{
-                    "-std=c++17",
-                    "-fexceptions",
-                },
-            });
-        }
-    }
+    // Add server.cpp (common library is already linked via llama_ctx.link)
+    server_exe.addCSourceFile(.{
+        .file = llama_ctx.path(&.{ "examples", "server", "server.cpp" }),
+        .flags = cpp_flags,
+    });
 
-    // Handle embedded assets
-    if (options.embed_assets) {
-        const assets = generateAssets(b, ctx);
-        for (assets) |asset| {
-            server_exe.addCSourceFile(.{
-                .file = asset,
-                .flags = ctx.flags(),
-            });
-        }
-    }
+    // Link llama library (includes common library)
+    llama_ctx.link(server_exe);
+    server_exe.linkLibCpp();
 
     // Platform-specific configuration
-    configurePlatform(server_exe, ctx.options.target, options);
-
-    // Add preprocessor definitions
-    if (options.enable_cors) {
-        server_exe.root_module.addCMacro("CPPHTTPLIB_CORS_SUPPORT", "1");
+    switch (target.result.os.tag) {
+        .windows => {
+            server_exe.linkSystemLibrary("ws2_32");
+            // Note: _WIN32_WINNT is already defined by Zig, don't redefine
+            server_exe.root_module.addCMacro("NOMINMAX", "");
+        },
+        .linux, .freebsd, .netbsd, .openbsd => {
+            // pthread is typically linked automatically with libstdc++
+        },
+        .macos => {
+            // pthread is typically linked automatically
+        },
+        else => {},
     }
 
-    if (options.enable_metrics) {
-        server_exe.root_module.addCMacro("SERVER_ENABLE_METRICS", 1);
+    // SSL support (optional)
+    if (options.enable_ssl) {
+        server_exe.root_module.addCMacro("CPPHTTPLIB_OPENSSL_SUPPORT", "");
+        switch (target.result.os.tag) {
+            .windows => {
+                // Would need OpenSSL for Windows
+            },
+            .linux, .freebsd, .netbsd, .openbsd => {
+                server_exe.linkSystemLibrary("ssl");
+                server_exe.linkSystemLibrary("crypto");
+            },
+            .macos => {
+                server_exe.linkFramework("Security");
+            },
+            else => {},
+        }
     }
 
     return server_exe;
 }
 
-/// Generate embedded HTML assets
-fn generateAssets(b: *Builder, ctx: *llama.Context) []LazyPath {
+/// Generate a C++ header file from a binary asset using xxd-style embedding
+fn generateAssetHeader(b: *std.Build, input_path: []const u8) !LazyPath {
+    // Build the asset generator tool for the host
+    const gen_module = b.createModule(.{
+        .root_source_file = b.path("tools/generate_asset.zig"),
+        .target = b.graph.host,
+        .optimize = .ReleaseFast,
+    });
     const asset_gen = b.addExecutable(.{
-        .name = "asset-generator",
-        .root_source_file = b.path("tools/generate_assets.zig"),
-        .target = b.host,
+        .name = "generate-asset",
+        .root_module = gen_module,
     });
 
-    const run_asset_gen = b.addRunArtifact(asset_gen);
-    run_asset_gen.addArg("--input");
-    run_asset_gen.addFileArg(ctx.path(&.{ "examples", "server", "public" }));
-    run_asset_gen.addArg("--output");
-    const output_dir = run_asset_gen.addOutputDirectoryArg("generated");
+    // Get output filename (input.hpp)
+    const basename = std.fs.path.basename(input_path);
+    const output_name = b.fmt("{s}.hpp", .{basename});
 
-    return &[_]LazyPath{
-        output_dir.path(b, "index.html.hpp"),
-        output_dir.path(b, "loading.html.hpp"),
-        output_dir.path(b, "theme-beeninorder.css.hpp"),
-        output_dir.path(b, "system-prompts.mjs.hpp"),
-        output_dir.path(b, "prompt-formats.mjs.hpp"),
-        output_dir.path(b, "json-schema-to-grammar.mjs.hpp"),
-    };
+    // Run the generator
+    const run_gen = b.addRunArtifact(asset_gen);
+    run_gen.addArg("--input");
+    run_gen.addFileArg(b.path(input_path));
+    run_gen.addArg("--output");
+    const output = run_gen.addOutputFileArg(output_name);
+
+    return output;
 }
 
-/// Configure platform-specific settings
-fn configurePlatform(exe: *CompileStep, target: Target, options: ServerOptions) void {
-    switch (target.result.os.tag) {
-        .windows => {
-            exe.linkSystemLibrary("ws2_32"); // Windows sockets
-            exe.linkSystemLibrary("mswsock"); // Microsoft Windows sockets
-            exe.root_module.addCMacro("_WIN32_WINNT", "0x0601"); // Windows 7+
-            exe.root_module.addCMacro("NOMINMAX", ""); // Prevent min/max macros
-        },
-        .linux => {
-            exe.linkSystemLibrary("pthread");
-            if (options.enable_ssl) {
-                exe.linkSystemLibrary("ssl");
-                exe.linkSystemLibrary("crypto");
-            }
-        },
-        .macos => {
-            exe.linkSystemLibrary("pthread");
-            if (options.enable_ssl) {
-                exe.linkFramework("Security");
-            }
-        },
-        else => {},
-    }
-
-    // SSL support
-    if (options.enable_ssl) {
-        exe.root_module.addCMacro("CPPHTTPLIB_OPENSSL_SUPPORT", "");
-    }
-}
-
-/// Create run command with common arguments
-pub fn createRunCommand(b: *Builder, server_exe: *CompileStep) *std.Build.Step.Run {
+/// Create a run step for the server
+pub fn createRunStep(b: *std.Build, server_exe: *CompileStep) *std.Build.Step.Run {
     const run_cmd = b.addRunArtifact(server_exe);
-
-    // Add default arguments
-    run_cmd.addArg("--host");
-    run_cmd.addArg("0.0.0.0");
-    run_cmd.addArg("--port");
-    run_cmd.addArg("8080");
 
     // Pass through user arguments
     if (b.args) |args| {
