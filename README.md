@@ -42,6 +42,16 @@ igllama rm TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF
 | `igllama run <model> -p <prompt>` | Run inference on a model |
 | `igllama show <model.gguf>` | Display GGUF file metadata |
 | `igllama rm <repo_id>` | Remove a cached model |
+| `igllama serve <subcommand>` | Manage llama-server lifecycle |
+
+### Serve Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `serve start -m <model>` | Start llama-server with a model |
+| `serve stop` | Stop the running server |
+| `serve status` | Show server status |
+| `serve logs` | View server logs |
 
 ## Configuration
 
@@ -71,6 +81,20 @@ zig build -Doptimize=ReleaseFast
 |--------|-------------|
 | `-Doptimize=ReleaseFast` | Optimized release build |
 | `-Dcpp_samples` | Include llama.cpp C++ samples |
+| `-Dllama_ref=<ref>` | Use specific llama.cpp version (branch/tag/commit) |
+| `-Dllama_url=<url>` | Custom llama.cpp git URL |
+
+### Custom llama.cpp Version
+
+You can build with a specific version of llama.cpp:
+
+```bash
+# Build with a specific tag
+zig build -Dllama_ref=b4567 -Doptimize=ReleaseFast
+
+# Build from a fork
+zig build -Dllama_url=https://github.com/user/llama.cpp -Dllama_ref=main
+```
 
 ## Development
 
@@ -97,8 +121,10 @@ igllama/
 │       ├── list.zig
 │       ├── run.zig
 │       ├── show.zig
-│       └── rm.zig
+│       ├── rm.zig
+│       └── serve.zig      # Server lifecycle management
 ├── llama.cpp.zig/         # llama.cpp Zig bindings (submodule)
+├── llama.cpp/             # llama.cpp source (submodule)
 ├── examples/              # Example code
 └── docs/                  # Documentation
 ```
@@ -119,11 +145,11 @@ igllama/
 
 ## Roadmap
 
-- [ ] `serve` command - Run llama-server for API access
+- [x] `serve` command - Run llama-server for API access
+- [x] Custom llama.cpp version selection (`-Dllama_ref`)
 - [ ] GPU backend support (CUDA, Metal, Vulkan)
 - [ ] Model quantization tools
 - [ ] Chat templates and conversation history
-- [ ] Custom llama.cpp version selection (`-Dllama_ref`)
 
 ## License
 
