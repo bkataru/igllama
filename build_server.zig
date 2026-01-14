@@ -38,13 +38,22 @@ pub fn buildServer(
     server_exe.addIncludePath(llama_ctx.path(&.{ "ggml", "include" }));
     server_exe.addIncludePath(llama_ctx.path(&.{ "ggml", "src" }));
     server_exe.addIncludePath(llama_ctx.path(&.{ "tools", "server" }));
-    server_exe.addIncludePath(llama_ctx.path(&.{ "vendor", "nlohmann" })); // Add nlohmann json headers
+    server_exe.addIncludePath(llama_ctx.path(&.{ "tools", "mtmd" })); // For mtmd.h (multimodal)
+    server_exe.addIncludePath(llama_ctx.path(&.{ "tools", "mtmd", "models" })); // For model headers
+    server_exe.addIncludePath(llama_ctx.path(&.{"vendor"})); // Add vendor dir for nlohmann/json_fwd.hpp
+    server_exe.addIncludePath(llama_ctx.path(&.{ "vendor", "cpp-httplib" })); // For httplib.h
     // Add llama.cpp root for includes like "common/base64.hpp"
     server_exe.addIncludePath(llama_ctx.path(&.{}));
 
     // Add generated headers directories (both assets are in same dir but we ensure both are generated)
     server_exe.addIncludePath(index_hpp.dirname());
     server_exe.addIncludePath(loading_hpp.dirname());
+
+    // Define _USE_MATH_DEFINES for M_PI on Windows
+    server_exe.root_module.addCMacro("_USE_MATH_DEFINES", "");
+
+    // Enable httplib-based remote content fetching
+    server_exe.root_module.addCMacro("LLAMA_USE_HTTPLIB", "");
 
     // C++ flags for server
     const cpp_flags = &[_][]const u8{
@@ -55,11 +64,85 @@ pub fn buildServer(
         "-Wno-unknown-attributes", // Ignore gnu_printf attribute warnings
     };
 
-    // Add server.cpp (common library is already linked via llama_ctx.link)
+    // Relaxed C++ flags for third-party code (stb_image, miniaudio)
+    const cpp_flags_relaxed = &[_][]const u8{
+        "-std=c++17",
+        "-fexceptions",
+        "-fno-sanitize=undefined",
+        "-DNDEBUG",
+        "-Wno-unknown-attributes",
+        "-Wno-cast-qual", // For stb_image.h and miniaudio.h
+    };
+
+    // Add all server source files
+    const server_source_paths = [_][]const []const u8{
+        &.{ "tools", "server", "server.cpp" },
+        &.{ "tools", "server", "server-context.cpp" },
+        &.{ "tools", "server", "server-common.cpp" },
+        &.{ "tools", "server", "server-http.cpp" },
+        &.{ "tools", "server", "server-models.cpp" },
+        &.{ "tools", "server", "server-queue.cpp" },
+        &.{ "tools", "server", "server-task.cpp" },
+    };
+
+    for (server_source_paths) |path| {
+        server_exe.addCSourceFile(.{
+            .file = llama_ctx.path(path),
+            .flags = cpp_flags,
+        });
+    }
+
+    // Add cpp-httplib implementation
     server_exe.addCSourceFile(.{
-        .file = llama_ctx.path(&.{ "tools", "server", "server.cpp" }),
+        .file = llama_ctx.path(&.{ "vendor", "cpp-httplib", "httplib.cpp" }),
         .flags = cpp_flags,
     });
+
+    // Add mtmd (multimodal) core source files
+    const mtmd_core_paths = [_][]const []const u8{
+        &.{ "tools", "mtmd", "mtmd.cpp" },
+        &.{ "tools", "mtmd", "mtmd-audio.cpp" },
+        &.{ "tools", "mtmd", "mtmd-helper.cpp" },
+    };
+
+    for (mtmd_core_paths) |path| {
+        server_exe.addCSourceFile(.{
+            .file = llama_ctx.path(path),
+            .flags = cpp_flags_relaxed,
+        });
+    }
+
+    // Add clip.cpp with relaxed flags (uses stb_image)
+    server_exe.addCSourceFile(.{
+        .file = llama_ctx.path(&.{ "tools", "mtmd", "clip.cpp" }),
+        .flags = cpp_flags_relaxed,
+    });
+
+    // Add all mtmd model implementations
+    const mtmd_model_paths = [_][]const []const u8{
+        &.{ "tools", "mtmd", "models", "cogvlm.cpp" },
+        &.{ "tools", "mtmd", "models", "conformer.cpp" },
+        &.{ "tools", "mtmd", "models", "glm4v.cpp" },
+        &.{ "tools", "mtmd", "models", "internvl.cpp" },
+        &.{ "tools", "mtmd", "models", "kimivl.cpp" },
+        &.{ "tools", "mtmd", "models", "llama4.cpp" },
+        &.{ "tools", "mtmd", "models", "llava.cpp" },
+        &.{ "tools", "mtmd", "models", "minicpmv.cpp" },
+        &.{ "tools", "mtmd", "models", "mobilenetv5.cpp" },
+        &.{ "tools", "mtmd", "models", "pixtral.cpp" },
+        &.{ "tools", "mtmd", "models", "qwen2vl.cpp" },
+        &.{ "tools", "mtmd", "models", "qwen3vl.cpp" },
+        &.{ "tools", "mtmd", "models", "siglip.cpp" },
+        &.{ "tools", "mtmd", "models", "whisper-enc.cpp" },
+        &.{ "tools", "mtmd", "models", "youtuvl.cpp" },
+    };
+
+    for (mtmd_model_paths) |path| {
+        server_exe.addCSourceFile(.{
+            .file = llama_ctx.path(path),
+            .flags = cpp_flags_relaxed,
+        });
+    }
 
     // Link llama library (includes common library)
     llama_ctx.link(server_exe);

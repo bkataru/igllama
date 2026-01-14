@@ -41,6 +41,7 @@ pub const Options = struct {
     build_number: usize = 0, // number that will be writen in build info
     metal_ndebug: bool = false,
     metal_use_bf16: bool = false,
+    httplib: bool = false, // Enable cpp-httplib for remote content fetching
 };
 
 // Build context
@@ -116,6 +117,9 @@ pub const Context = struct {
             }
         }
         ctx.options.backends.addDefines(lib);
+        if (ctx.options.httplib) {
+            lib.root_module.addCMacro("LLAMA_USE_HTTPLIB", "");
+        }
         ctx.addAll(lib);
         if (ctx.options.target.result.abi != .msvc)
             lib.root_module.addCMacro("_GNU_SOURCE", "");
