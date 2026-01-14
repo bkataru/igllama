@@ -1,6 +1,8 @@
 const std = @import("std");
 const llama = @import("llama");
 const config = @import("../config.zig");
+const gguf = @import("../gguf.zig");
+const grammar_utils = @import("../grammar.zig");
 
 /// Read a line from a file until newline or EOF
 fn readLine(file: std.fs.File, buffer: []u8) !?[]u8 {
@@ -91,6 +93,297 @@ fn findJsonString(content: []const u8, start_pos: usize) ?JsonStringResult {
         .end_pos = str_end + 1,
     };
 }
+
+/// Chat template types - supports all major LLM chat formats
+const ChatTemplate = enum {
+    chatml, // ChatML: <|im_start|>role\ncontent<|im_end|>
+    llama3, // Llama 3: <|start_header_id|>role<|end_header_id|>\n\ncontent<|eot_id|>
+    llama2, // Llama 2: [INST] <<SYS>>\nsystem<</SYS>>\n\nuser [/INST] assistant </s>
+    mistral, // Mistral: [INST] content [/INST] response </s>
+    gemma, // Gemma: <start_of_turn>role\ncontent<end_of_turn>
+    phi3, // Phi-3: <|system|>\ncontent<|end|>
+    qwen, // Qwen: same as ChatML
+    vicuna, // Vicuna: USER: content ASSISTANT: response </s>
+    alpaca, // Alpaca: ### Instruction:\ncontent\n\n### Response:\n
+    deepseek, // DeepSeek: User: content\n\nAssistant: response<｜end▁of▁sentence｜>
+    command_r, // Command R: <|START_OF_TURN_TOKEN|><|USER_TOKEN|>content<|END_OF_TURN_TOKEN|>
+    zephyr, // Zephyr: <|system|>\ncontent</s>\n<|user|>\ncontent</s>\n<|assistant|>\n
+    openchat, // OpenChat: GPT4 Correct User: content<|end_of_turn|>GPT4 Correct Assistant:
+    auto,
+
+    pub fn fromString(s: []const u8) ChatTemplate {
+        const templates = std.StaticStringMap(ChatTemplate).initComptime(.{
+            .{ "chatml", .chatml },
+            .{ "llama3", .llama3 },
+            .{ "llama2", .llama2 },
+            .{ "mistral", .mistral },
+            .{ "gemma", .gemma },
+            .{ "phi3", .phi3 },
+            .{ "phi-3", .phi3 },
+            .{ "qwen", .qwen },
+            .{ "vicuna", .vicuna },
+            .{ "alpaca", .alpaca },
+            .{ "deepseek", .deepseek },
+            .{ "command-r", .command_r },
+            .{ "zephyr", .zephyr },
+            .{ "openchat", .openchat },
+            .{ "auto", .auto },
+        });
+        return templates.get(s) orelse .chatml;
+    }
+
+    pub fn toString(self: ChatTemplate) []const u8 {
+        return switch (self) {
+            .chatml => "chatml",
+            .llama3 => "llama3",
+            .llama2 => "llama2",
+            .mistral => "mistral",
+            .gemma => "gemma",
+            .phi3 => "phi3",
+            .qwen => "qwen",
+            .vicuna => "vicuna",
+            .alpaca => "alpaca",
+            .deepseek => "deepseek",
+            .command_r => "command-r",
+            .zephyr => "zephyr",
+            .openchat => "openchat",
+            .auto => "auto",
+        };
+    }
+
+    /// Get a human-readable description of the template
+    pub fn description(self: ChatTemplate) []const u8 {
+        return switch (self) {
+            .chatml => "ChatML format (<|im_start|>/<|im_end|>)",
+            .llama3 => "Llama 3 format (<|start_header_id|>/<|eot_id|>)",
+            .llama2 => "Llama 2 format ([INST]/<<SYS>>)",
+            .mistral => "Mistral/Mixtral format ([INST]/[/INST])",
+            .gemma => "Gemma format (<start_of_turn>/<end_of_turn>)",
+            .phi3 => "Phi-3 format (<|system|>/<|end|>)",
+            .qwen => "Qwen format (ChatML-based)",
+            .vicuna => "Vicuna format (USER:/ASSISTANT:)",
+            .alpaca => "Alpaca format (### Instruction/### Response)",
+            .deepseek => "DeepSeek format (User:/Assistant:)",
+            .command_r => "Command R format (<|START_OF_TURN_TOKEN|>)",
+            .zephyr => "Zephyr format (<|system|>/</s>)",
+            .openchat => "OpenChat format (GPT4 Correct User/Assistant)",
+            .auto => "Auto-detect from model metadata",
+        };
+    }
+
+    /// Detect chat template from GGUF metadata
+    /// Reads the `tokenizer.chat_template` key and pattern-matches to known templates
+    /// Also checks architecture metadata for additional hints
+    pub fn detectFromModel(model: *const llama.Model) ChatTemplate {
+        var buffer: [16384]u8 = undefined; // Larger buffer for complex templates
+
+        // Primary: Try to read the chat_template metadata key
+        if (model.metaValStr("tokenizer.chat_template", &buffer)) |template_str| {
+            return detectFromTemplateString(template_str);
+        }
+
+        // Secondary: Check model architecture for hints
+        if (model.metaValStr("general.architecture", &buffer)) |arch| {
+            const detected = detectFromArchitecture(arch);
+            if (detected != .chatml) return detected;
+        }
+
+        // Tertiary: try to detect from model name/description
+        if (model.metaValStr("general.name", &buffer)) |name| {
+            return detectFromModelName(name);
+        }
+
+        // Quaternary: check file type metadata
+        if (model.metaValStr("general.file_type", &buffer)) |file_type| {
+            const detected = detectFromModelName(file_type);
+            if (detected != .chatml) return detected;
+        }
+
+        // Default to ChatML as it's the most widely compatible
+        return .chatml;
+    }
+
+    /// Detect template from model architecture
+    fn detectFromArchitecture(arch: []const u8) ChatTemplate {
+        var lower_buf: [128]u8 = undefined;
+        const arch_len = @min(arch.len, lower_buf.len);
+        for (arch[0..arch_len], 0..) |c, i| {
+            lower_buf[i] = if (c >= 'A' and c <= 'Z') c + 32 else c;
+        }
+        const lower = lower_buf[0..arch_len];
+
+        if (std.mem.indexOf(u8, lower, "llama") != null) {
+            // Could be Llama 2 or 3 - default to Llama 3 as newer
+            return .llama3;
+        }
+        if (std.mem.indexOf(u8, lower, "gemma") != null) return .gemma;
+        if (std.mem.indexOf(u8, lower, "phi") != null) return .phi3;
+        if (std.mem.indexOf(u8, lower, "qwen") != null) return .qwen;
+        if (std.mem.indexOf(u8, lower, "mistral") != null) return .mistral;
+        if (std.mem.indexOf(u8, lower, "command") != null) return .command_r;
+
+        return .chatml;
+    }
+
+    /// Detect template type from the Jinja-style template string
+    fn detectFromTemplateString(template: []const u8) ChatTemplate {
+        // Llama 3 detection: uses <|start_header_id|> and <|end_header_id|>
+        if (std.mem.indexOf(u8, template, "<|start_header_id|>") != null) {
+            return .llama3;
+        }
+
+        // Llama 2 detection: uses <<SYS>> and <</SYS>>
+        if (std.mem.indexOf(u8, template, "<<SYS>>") != null) {
+            return .llama2;
+        }
+
+        // Command R detection: uses <|START_OF_TURN_TOKEN|>
+        if (std.mem.indexOf(u8, template, "<|START_OF_TURN_TOKEN|>") != null) {
+            return .command_r;
+        }
+
+        // DeepSeek detection: uses special end token
+        if (std.mem.indexOf(u8, template, "<\xef\xbd\x9cend") != null or
+            std.mem.indexOf(u8, template, "end_of_sentence") != null)
+        {
+            return .deepseek;
+        }
+
+        // Phi-3 detection: uses <|system|>, <|user|>, <|assistant|>, <|end|>
+        // Phi-3 specifically uses <|end|> as terminator, not </s>
+        if (std.mem.indexOf(u8, template, "<|system|>") != null and
+            std.mem.indexOf(u8, template, "<|end|>") != null and
+            std.mem.indexOf(u8, template, "</s>") == null)
+        {
+            return .phi3;
+        }
+
+        // Zephyr detection: uses <|system|> and </s> (not <|end|>)
+        if (std.mem.indexOf(u8, template, "<|system|>") != null and
+            std.mem.indexOf(u8, template, "</s>") != null and
+            std.mem.indexOf(u8, template, "<|end|>") == null)
+        {
+            return .zephyr;
+        }
+
+        // If template has <|system|> with both <|end|> and </s>, prefer Phi-3
+        if (std.mem.indexOf(u8, template, "<|system|>") != null and
+            std.mem.indexOf(u8, template, "<|end|>") != null)
+        {
+            return .phi3;
+        }
+
+        // Gemma detection: uses <start_of_turn> and <end_of_turn>
+        if (std.mem.indexOf(u8, template, "<start_of_turn>") != null) {
+            return .gemma;
+        }
+
+        // Vicuna detection: uses USER: and ASSISTANT:
+        if (std.mem.indexOf(u8, template, "USER:") != null and
+            std.mem.indexOf(u8, template, "ASSISTANT:") != null)
+        {
+            return .vicuna;
+        }
+
+        // OpenChat detection
+        if (std.mem.indexOf(u8, template, "GPT4 Correct") != null) {
+            return .openchat;
+        }
+
+        // Alpaca detection: uses ### Instruction
+        if (std.mem.indexOf(u8, template, "### Instruction") != null) {
+            return .alpaca;
+        }
+
+        // Mistral detection: uses [INST] and [/INST]
+        if (std.mem.indexOf(u8, template, "[INST]") != null and
+            std.mem.indexOf(u8, template, "[/INST]") != null)
+        {
+            return .mistral;
+        }
+
+        // ChatML/Qwen detection: uses <|im_start|> and <|im_end|>
+        if (std.mem.indexOf(u8, template, "<|im_start|>") != null) {
+            // Check if it's specifically Qwen by looking for Qwen-specific patterns
+            if (std.mem.indexOf(u8, template, "You are Qwen") != null or
+                std.mem.indexOf(u8, template, "qwen") != null)
+            {
+                return .qwen;
+            }
+            return .chatml;
+        }
+
+        // Default to ChatML
+        return .chatml;
+    }
+
+    /// Detect template from model name (fallback)
+    fn detectFromModelName(name: []const u8) ChatTemplate {
+        // Convert to lowercase for case-insensitive matching
+        var lower_buf: [512]u8 = undefined;
+        const name_len = @min(name.len, lower_buf.len);
+        for (name[0..name_len], 0..) |c, i| {
+            lower_buf[i] = if (c >= 'A' and c <= 'Z') c + 32 else c;
+        }
+        const lower_name = lower_buf[0..name_len];
+
+        // Check for Llama versions (order matters - check 3 before 2)
+        if (std.mem.indexOf(u8, lower_name, "llama-3") != null or
+            std.mem.indexOf(u8, lower_name, "llama3") != null or
+            std.mem.indexOf(u8, lower_name, "llama_3") != null)
+        {
+            return .llama3;
+        }
+        if (std.mem.indexOf(u8, lower_name, "llama-2") != null or
+            std.mem.indexOf(u8, lower_name, "llama2") != null)
+        {
+            return .llama2;
+        }
+        if (std.mem.indexOf(u8, lower_name, "mistral") != null or
+            std.mem.indexOf(u8, lower_name, "mixtral") != null)
+        {
+            return .mistral;
+        }
+        if (std.mem.indexOf(u8, lower_name, "gemma") != null) {
+            return .gemma;
+        }
+        if (std.mem.indexOf(u8, lower_name, "phi-3") != null or
+            std.mem.indexOf(u8, lower_name, "phi3") != null or
+            std.mem.indexOf(u8, lower_name, "phi_3") != null)
+        {
+            return .phi3;
+        }
+        if (std.mem.indexOf(u8, lower_name, "qwen") != null) {
+            return .qwen;
+        }
+        if (std.mem.indexOf(u8, lower_name, "vicuna") != null) {
+            return .vicuna;
+        }
+        if (std.mem.indexOf(u8, lower_name, "alpaca") != null) {
+            return .alpaca;
+        }
+        if (std.mem.indexOf(u8, lower_name, "deepseek") != null) {
+            return .deepseek;
+        }
+        if (std.mem.indexOf(u8, lower_name, "command-r") != null or
+            std.mem.indexOf(u8, lower_name, "command_r") != null or
+            std.mem.indexOf(u8, lower_name, "commandr") != null)
+        {
+            return .command_r;
+        }
+        if (std.mem.indexOf(u8, lower_name, "zephyr") != null) {
+            return .zephyr;
+        }
+        if (std.mem.indexOf(u8, lower_name, "openchat") != null) {
+            return .openchat;
+        }
+        if (std.mem.indexOf(u8, lower_name, "tinyllama") != null) {
+            return .chatml; // TinyLlama uses ChatML
+        }
+
+        return .chatml;
+    }
+};
 
 /// Chat session state
 const ChatSession = struct {
@@ -432,6 +725,258 @@ const ChatSession = struct {
 
         return result.toOwnedSlice(allocator);
     }
+
+    /// Format conversation using Llama 2 template
+    /// <s>[INST] <<SYS>>\nsystem\n<</SYS>>\n\nuser [/INST] assistant </s><s>[INST] user [/INST]
+    pub fn formatLlama2(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        try result.appendSlice(allocator, "<s>");
+
+        var is_first_user = true;
+        for (self.messages.items) |msg| {
+            switch (msg.role) {
+                .user => {
+                    try result.appendSlice(allocator, "[INST] ");
+                    if (is_first_user and self.system_prompt.len > 0) {
+                        try result.appendSlice(allocator, "<<SYS>>\n");
+                        try result.appendSlice(allocator, self.system_prompt);
+                        try result.appendSlice(allocator, "\n<</SYS>>\n\n");
+                    }
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, " [/INST]");
+                    is_first_user = false;
+                },
+                .assistant => {
+                    try result.appendSlice(allocator, " ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, " </s><s>");
+                },
+                .system => {
+                    // System messages handled with first user message
+                },
+            }
+        }
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Vicuna template
+    /// USER: content ASSISTANT: response</s>USER: content ASSISTANT:
+    pub fn formatVicuna(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        // System prompt first
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "\n\n");
+        }
+
+        for (self.messages.items) |msg| {
+            switch (msg.role) {
+                .user => {
+                    try result.appendSlice(allocator, "USER: ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n");
+                },
+                .assistant => {
+                    try result.appendSlice(allocator, "ASSISTANT: ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "</s>\n");
+                },
+                .system => {
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n");
+                },
+            }
+        }
+
+        // Prompt for assistant response
+        try result.appendSlice(allocator, "ASSISTANT:");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Alpaca template
+    /// ### Instruction:\ncontent\n\n### Response:\nresponse\n\n
+    pub fn formatAlpaca(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        // System prompt as instruction prefix
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "Below is an instruction that describes a task. ");
+            try result.appendSlice(allocator, "Write a response that appropriately completes the request.\n\n");
+            try result.appendSlice(allocator, "### System:\n");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "\n\n");
+        }
+
+        for (self.messages.items) |msg| {
+            switch (msg.role) {
+                .user => {
+                    try result.appendSlice(allocator, "### Instruction:\n");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n\n");
+                },
+                .assistant => {
+                    try result.appendSlice(allocator, "### Response:\n");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n\n");
+                },
+                .system => {
+                    try result.appendSlice(allocator, "### System:\n");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n\n");
+                },
+            }
+        }
+
+        // Prompt for response
+        try result.appendSlice(allocator, "### Response:\n");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using DeepSeek template
+    /// User: content\n\nAssistant: response<｜end▁of▁sentence｜>
+    pub fn formatDeepSeek(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        // System prompt
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "\n\n");
+        }
+
+        for (self.messages.items) |msg| {
+            switch (msg.role) {
+                .user => {
+                    try result.appendSlice(allocator, "User: ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n\n");
+                },
+                .assistant => {
+                    try result.appendSlice(allocator, "Assistant: ");
+                    try result.appendSlice(allocator, msg.content);
+                    // DeepSeek end token (UTF-8 encoded)
+                    try result.appendSlice(allocator, "<\xef\xbd\x9cend\xe2\x96\x81of\xe2\x96\x81sentence\xef\xbd\x9c>");
+                },
+                .system => {
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "\n\n");
+                },
+            }
+        }
+
+        // Prompt for assistant
+        try result.appendSlice(allocator, "Assistant:");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Command R template
+    /// <|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|>content<|END_OF_TURN_TOKEN|>
+    pub fn formatCommandR(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        try result.appendSlice(allocator, "<BOS_TOKEN>");
+
+        // System prompt
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|>");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "<|END_OF_TURN_TOKEN|>");
+        }
+
+        for (self.messages.items) |msg| {
+            try result.appendSlice(allocator, "<|START_OF_TURN_TOKEN|>");
+            try result.appendSlice(allocator, switch (msg.role) {
+                .user => "<|USER_TOKEN|>",
+                .assistant => "<|CHATBOT_TOKEN|>",
+                .system => "<|SYSTEM_TOKEN|>",
+            });
+            try result.appendSlice(allocator, msg.content);
+            try result.appendSlice(allocator, "<|END_OF_TURN_TOKEN|>");
+        }
+
+        // Prompt for assistant
+        try result.appendSlice(allocator, "<|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using Zephyr template
+    /// <|system|>\ncontent</s>\n<|user|>\ncontent</s>\n<|assistant|>\n
+    pub fn formatZephyr(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        // System prompt
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "<|system|>\n");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "</s>\n");
+        }
+
+        for (self.messages.items) |msg| {
+            try result.appendSlice(allocator, switch (msg.role) {
+                .user => "<|user|>\n",
+                .assistant => "<|assistant|>\n",
+                .system => "<|system|>\n",
+            });
+            try result.appendSlice(allocator, msg.content);
+            try result.appendSlice(allocator, "</s>\n");
+        }
+
+        // Prompt for assistant
+        try result.appendSlice(allocator, "<|assistant|>\n");
+
+        return result.toOwnedSlice(allocator);
+    }
+
+    /// Format conversation using OpenChat template
+    /// GPT4 Correct User: content<|end_of_turn|>GPT4 Correct Assistant: response<|end_of_turn|>
+    pub fn formatOpenChat(self: *ChatSession, allocator: std.mem.Allocator) ![]const u8 {
+        var result: std.ArrayList(u8) = .empty;
+        errdefer result.deinit(allocator);
+
+        // System prompt (add as first user message context)
+        if (self.system_prompt.len > 0) {
+            try result.appendSlice(allocator, "GPT4 Correct System: ");
+            try result.appendSlice(allocator, self.system_prompt);
+            try result.appendSlice(allocator, "<|end_of_turn|>");
+        }
+
+        for (self.messages.items) |msg| {
+            switch (msg.role) {
+                .user => {
+                    try result.appendSlice(allocator, "GPT4 Correct User: ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "<|end_of_turn|>");
+                },
+                .assistant => {
+                    try result.appendSlice(allocator, "GPT4 Correct Assistant: ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "<|end_of_turn|>");
+                },
+                .system => {
+                    try result.appendSlice(allocator, "GPT4 Correct System: ");
+                    try result.appendSlice(allocator, msg.content);
+                    try result.appendSlice(allocator, "<|end_of_turn|>");
+                },
+            }
+        }
+
+        // Prompt for assistant
+        try result.appendSlice(allocator, "GPT4 Correct Assistant:");
+
+        return result.toOwnedSlice(allocator);
+    }
 };
 
 pub fn run(args: []const []const u8) !void {
@@ -454,7 +999,7 @@ pub fn run(args: []const []const u8) !void {
     var gpu_layers: i32 = 0;
     var max_tokens: usize = 2048;
     var system_prompt: []const u8 = "You are a helpful assistant.";
-    var template: []const u8 = "chatml";
+    var template: ChatTemplate = .auto; // auto-detect from model metadata
     var context_size: ?u32 = null; // Override context size (null = use model default)
     var seed: u32 = 0; // 0 = random seed
     var quiet_mode: bool = false; // Suppress model loading logs
@@ -464,6 +1009,8 @@ pub fn run(args: []const []const u8) !void {
     var repeat_penalty: f32 = 1.1; // Repetition penalty
     var single_prompt: ?[]const u8 = null; // Single-turn mode prompt
     var json_output: bool = false; // JSON output mode
+    var grammar_string: ?[]const u8 = null; // Grammar string (GBNF format)
+    var grammar_file: ?[]const u8 = null; // Path to grammar file
 
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
@@ -474,56 +1021,89 @@ pub fn run(args: []const []const u8) !void {
                 @memcpy(path_z, args[i + 1]);
                 model_path = path_z;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--gpu-layers") or std.mem.eql(u8, arg, "-ngl")) {
             if (i + 1 < args.len) {
                 gpu_layers = std.fmt.parseInt(i32, args[i + 1], 10) catch 0;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--max-tokens") or std.mem.eql(u8, arg, "-n")) {
             if (i + 1 < args.len) {
                 max_tokens = std.fmt.parseInt(usize, args[i + 1], 10) catch 2048;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--system") or std.mem.eql(u8, arg, "-s")) {
             if (i + 1 < args.len) {
                 system_prompt = args[i + 1];
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--template") or std.mem.eql(u8, arg, "-t")) {
             if (i + 1 < args.len) {
-                template = args[i + 1];
+                template = ChatTemplate.fromString(args[i + 1]);
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--context-size") or std.mem.eql(u8, arg, "-c")) {
             if (i + 1 < args.len) {
                 context_size = std.fmt.parseInt(u32, args[i + 1], 10) catch null;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--seed")) {
             if (i + 1 < args.len) {
                 seed = std.fmt.parseInt(u32, args[i + 1], 10) catch 0;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--temp") or std.mem.eql(u8, arg, "--temperature")) {
             if (i + 1 < args.len) {
                 temperature = std.fmt.parseFloat(f32, args[i + 1]) catch 0.7;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--top-p")) {
             if (i + 1 < args.len) {
                 top_p = std.fmt.parseFloat(f32, args[i + 1]) catch 0.9;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--top-k")) {
             if (i + 1 < args.len) {
                 top_k = std.fmt.parseInt(i32, args[i + 1], 10) catch 40;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--repeat-penalty")) {
             if (i + 1 < args.len) {
                 repeat_penalty = std.fmt.parseFloat(f32, args[i + 1]) catch 1.1;
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--quiet") or std.mem.eql(u8, arg, "-q")) {
             quiet_mode = true;
@@ -531,9 +1111,28 @@ pub fn run(args: []const []const u8) !void {
             if (i + 1 < args.len) {
                 single_prompt = args[i + 1];
                 i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
             }
         } else if (std.mem.eql(u8, arg, "--json")) {
             json_output = true;
+        } else if (std.mem.eql(u8, arg, "--grammar") or std.mem.eql(u8, arg, "-g")) {
+            if (i + 1 < args.len) {
+                grammar_string = args[i + 1];
+                i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
+            }
+        } else if (std.mem.eql(u8, arg, "--grammar-file") or std.mem.eql(u8, arg, "-gf")) {
+            if (i + 1 < args.len) {
+                grammar_file = args[i + 1];
+                i += 1;
+            } else {
+                try stderr.print("Error: {s} requires a value\n", .{arg});
+                return error.InvalidArguments;
+            }
         } else if (!std.mem.startsWith(u8, arg, "-")) {
             const path_z = try allocator.allocSentinel(u8, arg.len, 0);
             @memcpy(path_z, arg);
@@ -549,11 +1148,16 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("  -c, --context-size <n>   Context size (default: model's training size)\n", .{});
         try stderr.print("  -n, --max-tokens <n>     Max tokens per response (default: 2048)\n", .{});
         try stderr.print("  -s, --system <prompt>    System prompt (default: helpful assistant)\n", .{});
-        try stderr.print("  -t, --template <name>    Chat template: chatml, llama3, mistral, gemma, phi3, qwen\n", .{});
+        try stderr.print("  -t, --template <name>    Chat template: auto, chatml, llama3, llama2, mistral, gemma,\n", .{});
+        try stderr.print("                           phi3, qwen, vicuna, alpaca, deepseek, command-r, zephyr, openchat\n", .{});
         try stderr.print("  -ngl, --gpu-layers <n>   GPU layers to offload (default: 0)\n", .{});
         try stderr.print("  -q, --quiet              Suppress model loading logs\n", .{});
         try stderr.print("  -p, --prompt <text>      Single-turn mode: generate response and exit\n", .{});
         try stderr.print("  --json                   Output response as JSON (for scripting)\n", .{});
+        try stderr.print("\nGrammar options:\n", .{});
+        try stderr.print("  -g, --grammar <gbnf>     GBNF grammar string for constrained output\n", .{});
+        try stderr.print("  -gf, --grammar-file <f>  Path to GBNF grammar file\n", .{});
+        try stderr.print("                           Use 'json' as shorthand for JSON object grammar\n", .{});
         try stderr.print("\nSampling options:\n", .{});
         try stderr.print("  --temp <f>               Temperature (default: 0.7, 0=greedy)\n", .{});
         try stderr.print("  --top-p <f>              Top-p nucleus sampling (default: 0.9)\n", .{});
@@ -574,8 +1178,52 @@ pub fn run(args: []const []const u8) !void {
 
     defer if (model_path) |p| allocator.free(p);
 
+    // Validate GGUF file before loading
+    const validation = gguf.validateFile(model_path.?);
+    if (!validation.valid) {
+        try stderr.print("Error: Invalid model file: {s}\n", .{validation.error_message orelse "Unknown error"});
+        if (validation.file_size > 0) {
+            var size_buf: [32]u8 = undefined;
+            try stderr.print("  File size: {s}\n", .{gguf.formatFileSize(validation.file_size, &size_buf)});
+        }
+        if (validation.error_code) |code| {
+            try stderr.print("  Error code: {s}\n", .{@tagName(code)});
+        }
+        const suggestion = validation.getSuggestion();
+        if (suggestion.len > 0) {
+            try stderr.print("\nSuggestion: {s}\n", .{suggestion});
+        }
+        try stderr.print("\nPlease ensure you have a valid GGUF model file.\n", .{});
+        try stderr.print("You can download models using: igllama pull <repo_id>\n", .{});
+        return error.InvalidGgufFile;
+    }
+
     if (!quiet_mode) {
         try stdout.print("Loading model: {s}\n", .{model_path.?});
+        var size_buf: [32]u8 = undefined;
+        try stdout.print("  GGUF v{d} | {s} | {d} tensors\n", .{
+            validation.version orelse 0,
+            gguf.formatFileSize(validation.file_size, &size_buf),
+            validation.tensor_count orelse 0,
+        });
+
+        // Show additional model info if available
+        const info = validation.model_info;
+        if (info.architecture != .unknown) {
+            try stdout.print("  Architecture: {s}\n", .{info.architecture.toString()});
+        }
+        if (info.quantization != .Unknown) {
+            try stdout.print("  Quantization: {s}\n", .{info.quantization.description()});
+        }
+        if (info.context_length) |ctx| {
+            try stdout.print("  Training context: {d} tokens\n", .{ctx});
+        }
+        if (info.layer_count) |layers| {
+            if (info.embedding_length) |embd| {
+                try stdout.print("  Layers: {d}, Embedding: {d}\n", .{ layers, embd });
+            }
+        }
+
         try stdout.flush();
     }
 
@@ -597,6 +1245,16 @@ pub fn run(args: []const []const u8) !void {
         try stderr.print("Error: Model missing vocabulary\n", .{});
         return error.MissingVocabulary;
     };
+
+    // Auto-detect chat template from model metadata if not explicitly set
+    const effective_template: ChatTemplate = if (template == .auto) blk: {
+        const detected = ChatTemplate.detectFromModel(model);
+        if (!quiet_mode) {
+            try stdout.print("Auto-detected template: {s}\n", .{detected.toString()});
+            try stdout.flush();
+        }
+        break :blk detected;
+    } else template;
 
     // Setup context
     var cparams = llama.Context.defaultParams();
@@ -635,6 +1293,39 @@ pub fn run(args: []const []const u8) !void {
     var total_response_tokens: usize = 0;
     var last_generation_time_ns: i128 = 0;
 
+    // Load grammar if specified
+    var effective_grammar: ?[:0]const u8 = null;
+    defer if (effective_grammar) |g| allocator.free(g);
+
+    if (grammar_string) |gs| {
+        // Validate grammar syntax before using
+        if (grammar_utils.validateGrammar(gs)) |err_msg| {
+            try stderr.print("Error: Invalid grammar: {s}\n", .{err_msg});
+            return error.InvalidGrammar;
+        }
+        effective_grammar = try allocator.dupeZ(u8, gs);
+    } else if (grammar_file) |gf| {
+        // Load grammar from file or use built-in
+        const loaded = grammar_utils.loadGrammar(allocator, gf) catch |err| {
+            try stderr.print("Error loading grammar file '{s}': {}\n", .{ gf, err });
+            return error.InvalidGrammar;
+        };
+        // Validate grammar syntax before using
+        if (grammar_utils.validateGrammar(loaded)) |err_msg| {
+            allocator.free(loaded);
+            try stderr.print("Error: Invalid grammar in '{s}': {s}\n", .{ gf, err_msg });
+            return error.InvalidGrammar;
+        }
+        effective_grammar = loaded;
+        if (!quiet_mode) {
+            if (std.mem.eql(u8, gf, "json") or std.mem.eql(u8, gf, "json-array")) {
+                try stdout.print("Using built-in {s} grammar\n", .{gf});
+            } else {
+                try stdout.print("Loaded grammar from: {s}\n", .{gf});
+            }
+        }
+    }
+
     // Determine run mode: interactive, single-prompt, or piped
     const is_tty = isStdinTty();
     const is_interactive = is_tty and single_prompt == null;
@@ -642,12 +1333,16 @@ pub fn run(args: []const []const u8) !void {
     if (is_interactive and !quiet_mode) {
         try stdout.print("\n{s} v{s} - Interactive Chat\n", .{ config.app_name, config.version });
         try stdout.print("Model: {s}\n", .{model_path.?});
-        try stdout.print("Template: {s} | Context: {d} tokens\n", .{ template, effective_ctx_size });
+        try stdout.print("Template: {s} | Context: {d} tokens\n", .{ effective_template.toString(), effective_ctx_size });
         if (temperature == 0) {
-            try stdout.print("Sampling: greedy\n", .{});
+            try stdout.print("Sampling: greedy", .{});
         } else {
-            try stdout.print("Sampling: temp={d:.2}, top_p={d:.2}, top_k={d}\n", .{ temperature, top_p, top_k });
+            try stdout.print("Sampling: temp={d:.2}, top_p={d:.2}, top_k={d}", .{ temperature, top_p, top_k });
         }
+        if (effective_grammar != null) {
+            try stdout.print(" | Grammar: enabled", .{});
+        }
+        try stdout.print("\n", .{});
         try stdout.print("Type /quit to exit, /help for commands\n\n", .{});
     }
     try stdout.flush();
@@ -798,18 +1493,21 @@ pub fn run(args: []const []const u8) !void {
         try session.addMessage(.user, user_input);
 
         // Format prompt with chat template
-        const formatted_prompt = if (std.mem.eql(u8, template, "llama3"))
-            try session.formatLlama3(allocator)
-        else if (std.mem.eql(u8, template, "mistral"))
-            try session.formatMistral(allocator)
-        else if (std.mem.eql(u8, template, "gemma"))
-            try session.formatGemma(allocator)
-        else if (std.mem.eql(u8, template, "phi3"))
-            try session.formatPhi3(allocator)
-        else if (std.mem.eql(u8, template, "qwen"))
-            try session.formatQwen(allocator)
-        else
-            try session.formatChatML(allocator);
+        const formatted_prompt = switch (effective_template) {
+            .llama3 => try session.formatLlama3(allocator),
+            .llama2 => try session.formatLlama2(allocator),
+            .mistral => try session.formatMistral(allocator),
+            .gemma => try session.formatGemma(allocator),
+            .phi3 => try session.formatPhi3(allocator),
+            .qwen => try session.formatQwen(allocator),
+            .vicuna => try session.formatVicuna(allocator),
+            .alpaca => try session.formatAlpaca(allocator),
+            .deepseek => try session.formatDeepSeek(allocator),
+            .command_r => try session.formatCommandR(allocator),
+            .zephyr => try session.formatZephyr(allocator),
+            .openchat => try session.formatOpenChat(allocator),
+            .chatml, .auto => try session.formatChatML(allocator),
+        };
         defer allocator.free(formatted_prompt);
 
         // Tokenize
@@ -836,6 +1534,11 @@ pub fn run(args: []const []const u8) !void {
         // Setup sampler chain with configured parameters
         var sampler = llama.Sampler.initChain(.{ .no_perf = false });
         defer sampler.deinit();
+
+        // Add grammar sampler first if specified (constrains generation to valid grammar)
+        if (effective_grammar) |grammar| {
+            sampler.add(llama.Sampler.initGrammar(vocab, grammar, "root"));
+        }
 
         // Build sampling chain based on parameters
         if (temperature == 0) {
@@ -880,7 +1583,19 @@ pub fn run(args: []const []const u8) !void {
         var batch_token: [1]llama.Token = undefined;
 
         for (0..max_tokens) |_| {
-            try batch.decode(ctx);
+            batch.decode(ctx) catch |err| {
+                switch (err) {
+                    error.NoKvSlotWarning => {
+                        try stderr.print("\nWarning: KV cache full. Try clearing conversation with /clear\n", .{});
+                        break;
+                    },
+                    error.DecodeError => {
+                        try stderr.print("\nError during generation. The model may be incompatible.\n", .{});
+                        break;
+                    },
+                    else => break,
+                }
+            };
             const token = sampler.sample(ctx, -1);
             if (vocab.isEog(token)) break;
 

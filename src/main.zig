@@ -1,5 +1,6 @@
 const std = @import("std");
 const config = @import("config.zig");
+const errors = @import("errors.zig");
 
 // Command modules
 const help = @import("commands/help.zig");
@@ -10,6 +11,8 @@ const chat_cmd = @import("commands/chat.zig");
 const show = @import("commands/show.zig");
 const rm = @import("commands/rm.zig");
 const serve = @import("commands/serve.zig");
+const api_cmd = @import("commands/api.zig");
+const config_cmd = @import("commands/config_cmd.zig");
 
 const Command = enum {
     help,
@@ -21,6 +24,8 @@ const Command = enum {
     show,
     rm,
     serve,
+    api,
+    config,
     unknown,
 };
 
@@ -45,6 +50,8 @@ fn parseCommand(arg: []const u8) Command {
         .{ "delete", .rm },
         .{ "serve", .serve },
         .{ "server", .serve },
+        .{ "api", .api },
+        .{ "config", .config },
     });
     return commands.get(arg) orelse .unknown;
 }
@@ -83,34 +90,68 @@ pub fn main() !void {
             stdout.print("igllama {s}\n", .{config.version}) catch {};
         },
         .pull => pull.run(cmd_args) catch |err| {
-            if (err != error.InvalidArguments) {
-                try stderr.print("Pull failed: {}\n", .{err});
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed usage
+                else => errors.printError(stderr, err, null),
             }
         },
         .list => try list.run(cmd_args),
         .run => run_cmd.run(cmd_args) catch |err| {
-            if (err != error.InvalidArguments and err != error.MissingVocabulary) {
-                try stderr.print("Run failed: {}\n", .{err});
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed usage
+                error.MissingVocabulary => {}, // Already printed error
+                error.InvalidGgufFile => {}, // Already printed detailed error
+                error.InvalidGrammar => {}, // Already printed error
+                error.FailedToLoadModel => errors.printError(stderr, err, "Check the file path and ensure it's a valid GGUF model."),
+                error.ContextCreationFailed => errors.printError(stderr, err, null),
+                error.OutOfMemory => errors.printError(stderr, err, null),
+                else => errors.printError(stderr, err, null),
             }
         },
         .chat => chat_cmd.run(cmd_args) catch |err| {
-            if (err != error.InvalidArguments and err != error.MissingVocabulary) {
-                try stderr.print("Chat failed: {}\n", .{err});
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed usage
+                error.MissingVocabulary => {}, // Already printed error
+                error.InvalidGgufFile => {}, // Already printed detailed error
+                error.InvalidGrammar => {}, // Already printed error
+                error.FailedToLoadModel => errors.printError(stderr, err, "Check the file path and ensure it's a valid GGUF model."),
+                error.ContextCreationFailed => errors.printError(stderr, err, "Consider using --context-size to reduce memory usage."),
+                error.OutOfMemory => errors.printError(stderr, err, null),
+                else => errors.printError(stderr, err, null),
             }
         },
         .show => show.run(cmd_args) catch |err| {
-            if (err != error.InvalidArguments) {
-                try stderr.print("Show failed: {}\n", .{err});
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed usage
+                else => errors.printError(stderr, err, null),
             }
         },
         .rm => rm.run(cmd_args) catch |err| {
-            if (err != error.InvalidArguments and err != error.FileNotFound) {
-                try stderr.print("Remove failed: {}\n", .{err});
+            switch (err) {
+                error.InvalidArguments, error.FileNotFound => {}, // Already printed
+                else => errors.printError(stderr, err, null),
             }
         },
         .serve => serve.run(cmd_args) catch |err| {
-            if (err != error.InvalidArguments and err != error.ServerAlreadyRunning) {
-                try stderr.print("Serve failed: {}\n", .{err});
+            switch (err) {
+                error.InvalidArguments, error.ServerAlreadyRunning => {}, // Already printed
+                else => errors.printError(stderr, err, null),
+            }
+        },
+        .api => api_cmd.run(cmd_args) catch |err| {
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed usage
+                error.MissingVocabulary => {}, // Already printed error
+                error.InvalidGgufFile => {}, // Already printed detailed error
+                error.FailedToLoadModel => errors.printError(stderr, err, "Check the file path and ensure it's a valid GGUF model."),
+                error.OutOfMemory => errors.printError(stderr, err, null),
+                else => errors.printError(stderr, err, null),
+            }
+        },
+        .config => config_cmd.run(cmd_args) catch |err| {
+            switch (err) {
+                error.InvalidArguments => {}, // Already printed
+                else => errors.printError(stderr, err, null),
             }
         },
         .unknown => {

@@ -12,7 +12,7 @@
     .dependencies = .{
         .hf_hub_zig = .{
             .url = "https://github.com/bkataru/hf-hub-zig/archive/refs/heads/main.tar.gz",
-            .hash = "hf_hub_zig-0.1.0-QN2u5DwTBgAahfDPwbGqL0N2IRrZvHU3o8ul3qoCGorj",
+            .hash = "hf_hub_zig-0.1.0-QN2u5PMSBgBDst4qwQ23cWCt_yDqK9vJv0Hw-TjHUrRd",
         },
         .zenmap = .{
             .url = "https://github.com/bkataru/zenmap/archive/refs/heads/main.tar.gz",

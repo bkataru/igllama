@@ -157,7 +157,7 @@ pub const Sampler = opaque {
     }
 
     pub fn initGrammar(vocab: *const Vocab, grammar_str: [:0]const u8, grammar_root: [:0]const u8) SamplerPtr {
-        return @ptrCast(c.llama_sampler_init_grammar(vocab, grammar_str, grammar_root));
+        return @ptrCast(c.llama_sampler_init_grammar(@ptrCast(vocab), grammar_str.ptr, grammar_root.ptr));
     }
 
     /// NOTE: Avoid using on the full vocabulary as searching for repeated tokens can become slow. For example, apply top-k or top-p sampling first.
