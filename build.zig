@@ -127,6 +127,16 @@ pub const Context = struct {
 pub fn build(b: *std.Build) !void {
     const install_cpp_samples = b.option(bool, "cpp_samples", "Install llama.cpp samples") orelse false;
 
+    // Custom llama.cpp version options
+    const llama_ref = b.option([]const u8, "llama_ref", "llama.cpp git ref (branch/tag/commit) to fetch");
+    const llama_url = b.option([]const u8, "llama_url", "llama.cpp git URL") orelse "https://github.com/ggerganov/llama.cpp";
+
+    // If llama_ref is specified, fetch llama.cpp from git
+    if (llama_ref) |ref| {
+        const fetch_step = fetchLlamaCpp(b, llama_url, ref);
+        b.default_step.dependOn(&fetch_step.step);
+    }
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -183,4 +193,31 @@ pub fn build(b: *std.Build) !void {
         const test_step = b.step("test", "Run library tests");
         test_step.dependOn(&run_main_tests.step);
     }
+}
+
+/// Fetch llama.cpp from git at a specific ref
+fn fetchLlamaCpp(b: *std.Build, url: []const u8, ref: []const u8) *std.Build.Step.Run {
+    // Remove existing llama.cpp directory if fetching custom version
+    const rm_step = b.addSystemCommand(&.{
+        if (@import("builtin").os.tag == .windows) "cmd" else "rm",
+        if (@import("builtin").os.tag == .windows) "/c" else "-rf",
+        if (@import("builtin").os.tag == .windows) "rmdir /s /q llama.cpp 2>nul || exit 0" else "llama.cpp",
+    });
+
+    // Clone the repository at the specified ref
+    const clone_step = b.addSystemCommand(&.{
+        "git",
+        "clone",
+        "--depth=1",
+        "--branch",
+        ref,
+        url,
+        "llama.cpp",
+    });
+    clone_step.step.dependOn(&rm_step.step);
+
+    // Print info about the fetch
+    std.log.info("Fetching llama.cpp from {s} at ref: {s}", .{ url, ref });
+
+    return clone_step;
 }

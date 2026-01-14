@@ -8,6 +8,7 @@ const list = @import("commands/list.zig");
 const run_cmd = @import("commands/run.zig");
 const show = @import("commands/show.zig");
 const rm = @import("commands/rm.zig");
+const serve = @import("commands/serve.zig");
 
 const Command = enum {
     help,
@@ -16,6 +17,7 @@ const Command = enum {
     run,
     show,
     rm,
+    serve,
     unknown,
 };
 
@@ -33,6 +35,8 @@ fn parseCommand(arg: []const u8) Command {
         .{ "rm", .rm },
         .{ "remove", .rm },
         .{ "delete", .rm },
+        .{ "serve", .serve },
+        .{ "server", .serve },
     });
     return commands.get(arg) orelse .unknown;
 }
@@ -82,6 +86,11 @@ pub fn main() !void {
         .rm => rm.run(cmd_args) catch |err| {
             if (err != error.InvalidArguments and err != error.FileNotFound) {
                 try stderr.print("Remove failed: {}\n", .{err});
+            }
+        },
+        .serve => serve.run(cmd_args) catch |err| {
+            if (err != error.InvalidArguments and err != error.ServerAlreadyRunning) {
+                try stderr.print("Serve failed: {}\n", .{err});
             }
         },
         .unknown => {
