@@ -81,9 +81,28 @@ pub const Config = struct {
 
         return try std.fs.path.join(self.allocator, &.{ self.cache_dir, dir_name });
     }
+
+    /// Get the path to the server PID file
+    pub fn getServerPidPath(self: *const Self) ![]const u8 {
+        return try std.fs.path.join(self.allocator, &.{ self.home_dir, "server.pid" });
+    }
+
+    /// Get the path to the server log file
+    pub fn getServerLogPath(self: *const Self) ![]const u8 {
+        return try std.fs.path.join(self.allocator, &.{ self.home_dir, "server.log" });
+    }
+
+    /// Get the path to the server config file
+    pub fn getServerConfigPath(self: *const Self) ![]const u8 {
+        return try std.fs.path.join(self.allocator, &.{ self.home_dir, "server.json" });
+    }
 };
 
 /// Version information
 pub const version = "0.1.0";
 pub const app_name = "igllama";
 pub const app_description = "A Zig-based Ollama alternative for GGUF model management";
+
+/// Default server settings
+pub const default_server_host = "127.0.0.1";
+pub const default_server_port: u16 = 8080;
