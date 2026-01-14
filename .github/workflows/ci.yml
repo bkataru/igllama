@@ -60,38 +60,4 @@ jobs:
         run: zig fmt --check src/ llama.cpp.zig/ examples/
         continue-on-error: true
 
-  release:
-    name: Release Build
-    runs-on: ${{ matrix.os }}
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-linux
-          - os: windows-latest
-            target: x86_64-windows
-          - os: macos-latest
-            target: x86_64-macos
-          - os: macos-latest
-            target: aarch64-macos
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup Zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: ${{ env.ZIG_VERSION }}
-
-      - name: Build Release
-        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: igllama-${{ matrix.target }}
-          path: zig-out/bin/
