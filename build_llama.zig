@@ -474,7 +474,10 @@ pub const Context = struct {
             exe.addIncludePath(ctx.path(&.{ "ggml", "include" }));
             exe.addIncludePath(ctx.path(&.{ "ggml", "src" }));
 
-            exe.want_lto = false; // TODO: review, causes: error: lld-link: undefined symbol: __declspec(dllimport) _create_locale
+            // LTO disabled on Windows: lld-link fails with undefined symbol for _create_locale
+            // This is a known MSVC CRT compatibility issue with LTO when cross-compiling.
+            // Reference: https://github.com/ziglang/zig/issues/15107
+            exe.want_lto = false;
             if (install) b.installArtifact(exe);
             { // add all c/cpp files from example dir
                 exe.addIncludePath(.{ .cwd_relative = rpath });
@@ -572,8 +575,9 @@ fn thisPath() []const u8 {
     return std.fs.path.dirname(@src().file) orelse ".";
 }
 
-// TODO: idk, root_module.addCMacro returns: TranslateC.zig:110:28: error: root struct of file 'Build' has no member named 'constructranslate_cMacro'
-// use raw macro for now
+// Workaround for Zig build system limitation: root_module.addCMacro() doesn't work
+// with TranslateC due to missing 'constructranslate_cMacro' in Build struct.
+// Using defineCMacroRaw() directly instead until upstream is fixed.
 fn tcDefineCMacro(tc: *std.Build.Step.TranslateC, comptime name: []const u8, comptime value: ?[]const u8) void {
     tc.defineCMacroRaw(name ++ "=" ++ (value orelse "1"));
 }

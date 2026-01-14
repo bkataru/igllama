@@ -96,6 +96,9 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
 
     var input_buf: [4096]u8 = undefined;
     const stdin = std.fs.File.stdin();
+    // Using deprecatedReader() for Zig 0.15 compatibility - the new reader() API requires
+    // passing a buffer parameter which changes the usage pattern. deprecatedReader() provides
+    // the familiar unbuffered reader interface. This can be updated when Zig stabilizes the API.
     const reader = stdin.deprecatedReader();
 
     while (true) {

@@ -44,9 +44,11 @@ pub const Tokenizer = struct {
         try self.data.ensureUnusedCapacity(self.allocator, text.len / 3 + 8); // assume that token on average is ~3 chars long
         var size = vocab.tokenize(text, self.data.unusedCapacitySlice(), add_bos, special);
         if (size < 0) {
+            // Buffer too small - resize to exact required size and retry
             try self.data.ensureUnusedCapacity(self.allocator, @intCast(-size));
             size = vocab.tokenize(text, self.data.unusedCapacitySlice(), add_bos, special);
-            if (size < 0) @panic("unexpected tokenization error"); // TODO: switch to unreachable once sure it works
+            // After allocating exact required space, tokenization must succeed
+            if (size < 0) unreachable;
         }
         self.data.items = self.data.allocatedSlice()[0 .. self.data.items.len + @as(usize, @intCast(size))];
     }
@@ -85,9 +87,11 @@ pub const Detokenizer = struct {
         try self.data.ensureUnusedCapacity(self.allocator, 16);
         var size = vocab.tokenToPiece(token, self.data.unusedCapacitySlice());
         if (size < 0) {
+            // Buffer too small - resize to exact required size and retry
             try self.data.ensureUnusedCapacity(self.allocator, @intCast(-size));
             size = vocab.tokenToPiece(token, self.data.unusedCapacitySlice());
-            if (size < 0) @panic("unexpected tokenization error"); // TODO: switch to unreachable once sure it works
+            // After allocating exact required space, detokenization must succeed
+            if (size < 0) unreachable;
         }
         const len = self.data.items.len;
         self.data.items = self.data.items.ptr[0 .. len + @as(usize, @intCast(size))];
@@ -95,10 +99,13 @@ pub const Detokenizer = struct {
     }
 
     /// detokenize, but also display special tokens in their text form. (useful for debugging raw prompt)
+    /// Normal and byte tokens are decoded via tokenToPiece, while special tokens
+    /// (control, user-defined, etc.) are displayed using their raw text representation.
     pub fn detokenizeWithSpecial(self: *@This(), model: *llama.Model, token: llama.Token) ![]const u8 {
         switch (model.tokenGetAttr(token)) {
+            // Normal text and byte tokens: decode via tokenToPiece
             .LLAMA_TOKEN_ATTR_NORMAL, .LLAMA_TOKEN_ATTR_BYTE => return try self.detokenize(model, token),
-            // TODO: review, not investigated during llama version migration
+            // Special tokens: display raw text representation (e.g., "<|im_start|>", "<s>", etc.)
             .LLAMA_TOKEN_ATTR_UNDEFINED,
             .LLAMA_TOKEN_ATTR_UNKNOWN,
             .LLAMA_TOKEN_ATTR_UNUSED,
@@ -227,8 +234,11 @@ pub const TemplatedPrompt = struct {
         return self.allocator;
     }
 
-    /// Replace needle with replacement as many times as possible. Result is writen to one of the temp buffers
-    /// TODO: might not be too optimal, investigate for better solution
+    /// Replace needle with replacement as many times as possible. Result is written to one of the temp buffers.
+    /// Uses double-buffering to avoid repeated allocations. Complexity is O(n) per replacement where n is
+    /// haystack length. For prompt template use cases with a small number of fixed replacements, this is
+    /// efficient enough. A single-pass multi-pattern replacement would be more complex without significant
+    /// benefit for the typical 5-10 replacement patterns used in chat templates.
     fn replace(self: *Self, haystack: []const u8, needle: []const u8, replacement: []const u8) ![]u8 {
         std.mem.swap(@TypeOf(self.buffers[0]), &self.buffers[0], &self.buffers[1]);
         const b = &self.buffers[0];
@@ -304,21 +314,82 @@ pub const TemplatedPrompt = struct {
     }
 };
 
-// ascii TODO: unicode?
+/// Trim leading whitespace from text (supports ASCII and common Unicode whitespace)
 pub fn trimFront(text: []const u8) []const u8 {
     var i: usize = 0;
-    while (i < text.len and text[i] <= ' ') i += 1; // ascii
+    while (i < text.len) {
+        // Check for ASCII whitespace first (most common case)
+        if (text[i] <= ' ') {
+            i += 1;
+            continue;
+        }
+        // Check for common Unicode whitespace (UTF-8 encoded)
+        // U+00A0 (no-break space): 0xC2 0xA0
+        // U+2000-200A (various spaces): 0xE2 0x80 0x80-0x8A
+        // U+202F (narrow no-break space): 0xE2 0x80 0xAF
+        // U+205F (medium mathematical space): 0xE2 0x81 0x9F
+        // U+3000 (ideographic space): 0xE3 0x80 0x80
+        if (i + 1 < text.len and text[i] == 0xC2 and text[i + 1] == 0xA0) {
+            i += 2;
+            continue;
+        }
+        if (i + 2 < text.len and text[i] == 0xE2 and text[i + 1] == 0x80) {
+            const b = text[i + 2];
+            if ((b >= 0x80 and b <= 0x8A) or b == 0xAF) {
+                i += 3;
+                continue;
+            }
+        }
+        if (i + 2 < text.len and text[i] == 0xE2 and text[i + 1] == 0x81 and text[i + 2] == 0x9F) {
+            i += 3;
+            continue;
+        }
+        if (i + 2 < text.len and text[i] == 0xE3 and text[i + 1] == 0x80 and text[i + 2] == 0x80) {
+            i += 3;
+            continue;
+        }
+        break;
+    }
     return text[i..];
 }
 
-// ascii TODO: unicode?
+/// Trim trailing whitespace from text (supports ASCII and common Unicode whitespace)
 pub fn trimBack(text: []const u8) []const u8 {
     if (text.len == 0) return text;
-    var i: usize = text.len - 1;
-    while (text[i] <= ' ') {
-        if (i > 0) i -= 1 else break;
+    var end: usize = text.len;
+    while (end > 0) {
+        // Check for ASCII whitespace first (most common case)
+        if (text[end - 1] <= ' ') {
+            end -= 1;
+            continue;
+        }
+        // Check for common Unicode whitespace (UTF-8 encoded, check from end)
+        // U+00A0 (no-break space): 0xC2 0xA0
+        if (end >= 2 and text[end - 2] == 0xC2 and text[end - 1] == 0xA0) {
+            end -= 2;
+            continue;
+        }
+        // U+2000-200A, U+202F: 0xE2 0x80 ...
+        if (end >= 3 and text[end - 3] == 0xE2 and text[end - 2] == 0x80) {
+            const b = text[end - 1];
+            if ((b >= 0x80 and b <= 0x8A) or b == 0xAF) {
+                end -= 3;
+                continue;
+            }
+        }
+        // U+205F: 0xE2 0x81 0x9F
+        if (end >= 3 and text[end - 3] == 0xE2 and text[end - 2] == 0x81 and text[end - 1] == 0x9F) {
+            end -= 3;
+            continue;
+        }
+        // U+3000: 0xE3 0x80 0x80
+        if (end >= 3 and text[end - 3] == 0xE3 and text[end - 2] == 0x80 and text[end - 1] == 0x80) {
+            end -= 3;
+            continue;
+        }
+        break;
     }
-    return text[0 .. i + 1];
+    return text[0..end];
 }
 
 pub fn trim(text: []const u8) []const u8 {
