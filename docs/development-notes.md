@@ -1,28 +1,27 @@
-# igllama Development Scratchpad
+# igllama Development Notes
 
-This file tracks ongoing development work and serves as memory across sessions.
+This file tracks development history and serves as technical reference.
 
-## Current Status
-- **Branch**: release/v0.2.0
-- **Last Updated**: 2026-01-14
-- **PR**: https://github.com/bkataru/igllama/pull/13
+## Release History
 
-## Completed Work (This Session)
-- [x] Push release/v0.2.0 branch and create PR
-- [x] Test chat command with TinyLlama model
-- [x] Add chat templates (Mistral, Gemma, Phi-3, Qwen)
-- [x] Add history save/load (/save, /load, /history commands)
-- [x] Fix CPP samples build error (removed deprecated 'main' example)
-- [x] Add --context-size flag
-- [x] Add --seed flag for reproducibility
-- [x] Add /tokens command
-- [x] Add --quiet flag
-- [x] Add sampling parameters (--temp, --top-p, --top-k, --repeat-penalty)
-- [x] Add /stats command with tokens/sec calculation
-- [x] Add /help command
-- [x] Add --prompt / -p flag for single-turn mode
-- [x] Add stdin pipe support (auto-detect non-TTY)
-- [x] Add --json flag for JSON output
+### v0.2.0 (Released 2026-01-14)
+- Added interactive chat command with multi-turn conversation support
+- Added 4 chat templates (Mistral, Gemma, Phi-3, Qwen)
+- Added history save/load (/save, /load, /history commands)
+- Added sampling parameters (--temp, --top-p, --top-k, --repeat-penalty)
+- Added --context-size and --seed flags
+- Added --quiet flag to suppress model loading logs
+- Added --prompt / -p flag for single-turn mode
+- Added stdin pipe support (auto-detect non-TTY)
+- Added --json flag for JSON output
+- Added /tokens, /stats, /help commands
+- Added llama-server build support (-Dserver=true)
+- Fixed CPP samples build error (removed deprecated 'main' example)
+
+### v0.1.0 (Initial Release)
+- Basic GGUF model loading and inference
+- HuggingFace Hub integration for model downloads
+- Cross-platform builds (Linux, Windows, macOS, FreeBSD)
 
 ---
 
@@ -67,12 +66,6 @@ This file tracks ongoing development work and serves as memory across sessions.
 
 ---
 
-## Current Phase: Complete for v0.2.0
-
-Phase 5 usability features are complete. Ready for release.
-
----
-
 ## Technical Notes
 
 ### Zig 0.15 API Changes
@@ -93,30 +86,6 @@ Phase 5 usability features are complete. Ready for release.
 4. Temperature scaling
 5. Distribution sampling (with seed)
 
-### Testing
+### Testing Notes
 - TinyLlama model works: tinyllama.gguf (636MB)
-- qwen2-0.5b-instruct-q4_k_m.gguf is corrupt (15 bytes)
-
----
-
-## Session Log
-
-### 2026-01-14 Session 1
-- Initial PR work and testing
-- Added 4 chat templates
-- Added history save/load
-- Fixed CPP samples build
-- Created this scratchpad
-
-### 2026-01-14 Session 2
-- Completed Phase 1 (quick wins) except color output
-- Completed Phase 2 (sampling parameters)
-- Completed Phase 3 performance stats
-- Starting Phase 5 (usability features)
-
-### 2026-01-14 Session 3
-- Completed Phase 5 usability features:
-  - Added `--prompt` / `-p` flag for single-turn non-interactive mode
-  - Added stdin pipe detection (auto-detects non-TTY input)
-  - Added `--json` flag for structured JSON output (for scripting)
-- All features tested and working
+- Always verify GGUF files are not corrupted before testing
