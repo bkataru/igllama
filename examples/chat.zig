@@ -66,36 +66,42 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
 
     const vocab = model.vocab() orelse @panic("model missing vocab!");
 
-    // Conversation history
-    var history = std.ArrayList(Message).init(alloc);
+    // Conversation history - use dynamic array
+    var history_items: [100]Message = undefined;
+    var history_len: usize = 0;
+    var history_owned: [100][]u8 = undefined; // track owned content for cleanup
+    var owned_count: usize = 0;
+
     defer {
-        for (history.items) |msg| {
-            alloc.free(msg.content);
+        for (0..owned_count) |i| {
+            alloc.free(history_owned[i]);
         }
-        history.deinit();
     }
 
     // Add system prompt if provided
     if (args.system_prompt) |sys| {
-        try history.append(.{
+        const content_copy = try alloc.dupe(u8, sys);
+        history_owned[owned_count] = content_copy;
+        owned_count += 1;
+        history_items[history_len] = .{
             .role = "system",
-            .content = try alloc.dupe(u8, sys),
-        });
+            .content = content_copy,
+        };
+        history_len += 1;
     }
 
-    const stdin = std.io.getStdIn().reader();
-    const stdout = std.io.getStdOut().writer();
-
-    try stdout.print("Chat started. Type 'quit' or 'exit' to end.\n", .{});
-    try stdout.print("Model: {s}\n", .{args.model_path});
-    try stdout.print("---\n", .{});
+    std.debug.print("Chat started. Type 'quit' or 'exit' to end.\n", .{});
+    std.debug.print("Model: {s}\n", .{args.model_path});
+    std.debug.print("---\n", .{});
 
     var input_buf: [4096]u8 = undefined;
+    const stdin = std.fs.File.stdin();
+    const reader = stdin.deprecatedReader();
 
     while (true) {
-        try stdout.print("\nYou: ", .{});
+        std.debug.print("\nYou: ", .{});
 
-        const input = stdin.readUntilDelimiter(&input_buf, '\n') catch |err| {
+        const input = reader.readUntilDelimiter(&input_buf, '\n') catch |err| {
             if (err == error.EndOfStream) break;
             return err;
         };
@@ -104,40 +110,44 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
         if (trimmed.len == 0) continue;
 
         if (std.mem.eql(u8, trimmed, "quit") or std.mem.eql(u8, trimmed, "exit")) {
-            try stdout.print("Goodbye!\n", .{});
+            std.debug.print("Goodbye!\n", .{});
             break;
         }
 
         // Add user message to history
-        try history.append(.{
+        const user_content = try alloc.dupe(u8, trimmed);
+        history_owned[owned_count] = user_content;
+        owned_count += 1;
+        history_items[history_len] = .{
             .role = "user",
-            .content = try alloc.dupe(u8, trimmed),
-        });
+            .content = user_content,
+        };
+        history_len += 1;
 
         // Format conversation with chat template
         // For simplicity, using ChatML format: <|im_start|>role\ncontent<|im_end|>
-        var prompt_buf = std.ArrayList(u8).init(alloc);
-        defer prompt_buf.deinit();
+        var prompt_list: std.ArrayListUnmanaged(u8) = .{};
+        defer prompt_list.deinit(alloc);
 
-        for (history.items) |msg| {
-            try prompt_buf.appendSlice("<|im_start|>");
-            try prompt_buf.appendSlice(msg.role);
-            try prompt_buf.append('\n');
-            try prompt_buf.appendSlice(msg.content);
-            try prompt_buf.appendSlice("<|im_end|>\n");
+        for (history_items[0..history_len]) |msg| {
+            try prompt_list.appendSlice(alloc, "<|im_start|>");
+            try prompt_list.appendSlice(alloc, msg.role);
+            try prompt_list.append(alloc, '\n');
+            try prompt_list.appendSlice(alloc, msg.content);
+            try prompt_list.appendSlice(alloc, "<|im_end|>\n");
         }
-        try prompt_buf.appendSlice("<|im_start|>assistant\n");
+        try prompt_list.appendSlice(alloc, "<|im_start|>assistant\n");
 
         // Tokenize
         var tokenizer = llama.Tokenizer.init(alloc);
         defer tokenizer.deinit();
-        try tokenizer.tokenize(vocab, prompt_buf.items, false, true);
+        try tokenizer.tokenize(vocab, prompt_list.items, false, true);
 
         // Generate response
-        try stdout.print("Assistant: ", .{});
+        std.debug.print("Assistant: ", .{});
 
-        var response_buf = std.ArrayList(u8).init(alloc);
-        defer response_buf.deinit();
+        var response_list: std.ArrayListUnmanaged(u8) = .{};
+        defer response_list.deinit(alloc);
 
         var detokenizer = llama.Detokenizer.init(alloc);
         defer detokenizer.deinit();
@@ -153,25 +163,31 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
             const text = try detokenizer.detokenize(vocab, token);
             if (std.mem.indexOf(u8, text, "<|im_end|>") != null) break;
 
-            try stdout.print("{s}", .{text});
-            try response_buf.appendSlice(text);
+            std.debug.print("{s}", .{text});
+            try response_list.appendSlice(alloc, text);
             detokenizer.clearRetainingCapacity();
 
             batch_token[0] = token;
             batch = llama.Batch.initOne(batch_token[0..]);
         }
-        try stdout.print("\n", .{});
+        std.debug.print("\n", .{});
 
         // Add assistant response to history
-        if (response_buf.items.len > 0) {
-            try history.append(.{
+        if (response_list.items.len > 0) {
+            const assistant_content = try alloc.dupe(u8, response_list.items);
+            history_owned[owned_count] = assistant_content;
+            owned_count += 1;
+            history_items[history_len] = .{
                 .role = "assistant",
-                .content = try alloc.dupe(u8, response_buf.items),
-            });
+                .content = assistant_content,
+            };
+            history_len += 1;
         }
 
         // Reset context for next turn (simple approach)
-        ctx.kvCacheClear();
+        if (ctx.getMemory()) |mem| {
+            mem.clear(false);
+        }
         sampler.reset();
     }
 }

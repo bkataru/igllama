@@ -30,9 +30,7 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     // Suppress verbose logging
     llama.logSet(null, null);
 
-    const stdout = std.io.getStdOut().writer();
-
-    try stdout.print("Loading model...\n", .{});
+    std.debug.print("Loading model...\n", .{});
     const load_start = std.time.milliTimestamp();
 
     var mparams = Model.defaultParams();
@@ -52,7 +50,7 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     defer ctx.deinit();
 
     const load_time = std.time.milliTimestamp() - load_start;
-    try stdout.print("Model loaded in {d:.2}s\n\n", .{@as(f64, @floatFromInt(load_time)) / 1000.0});
+    std.debug.print("Model loaded in {d:.2}s\n\n", .{@as(f64, @floatFromInt(load_time)) / 1000.0});
 
     // Setup sampler
     var sampler = llama.Sampler.initChain(.{ .no_perf = false });
@@ -68,9 +66,9 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     try tokenizer.tokenize(vocab, args.prompt, false, true);
 
     const prompt_tokens = tokenizer.getTokens().len;
-    try stdout.print("Prompt: {s}\n", .{args.prompt});
-    try stdout.print("Prompt tokens: {d}\n", .{prompt_tokens});
-    try stdout.print("---\n", .{});
+    std.debug.print("Prompt: {s}\n", .{args.prompt});
+    std.debug.print("Prompt tokens: {d}\n", .{prompt_tokens});
+    std.debug.print("---\n", .{});
 
     // Generate with streaming
     var detokenizer = llama.Detokenizer.init(alloc);
@@ -97,7 +95,7 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
 
         // Stream the token
         const text = try detokenizer.detokenize(vocab, token);
-        try stdout.print("{s}", .{text});
+        std.debug.print("{s}", .{text});
         detokenizer.clearRetainingCapacity();
 
         // Prepare next batch
@@ -109,23 +107,23 @@ pub fn run(alloc: std.mem.Allocator, args: Args) !void {
     const decode_time = std.time.milliTimestamp() - decode_start;
     const total_time = std.time.milliTimestamp() - gen_start;
 
-    try stdout.print("\n\n", .{});
+    std.debug.print("\n\n", .{});
 
     // Show statistics
     if (args.show_stats) {
-        try stdout.print("---\n", .{});
-        try stdout.print("Statistics:\n", .{});
-        try stdout.print("  Prompt tokens:    {d}\n", .{prompt_tokens});
-        try stdout.print("  Generated tokens: {d}\n", .{generated_tokens});
-        try stdout.print("  Prefill time:     {d:.2}ms ({d:.2} tokens/sec)\n", .{
+        std.debug.print("---\n", .{});
+        std.debug.print("Statistics:\n", .{});
+        std.debug.print("  Prompt tokens:    {d}\n", .{prompt_tokens});
+        std.debug.print("  Generated tokens: {d}\n", .{generated_tokens});
+        std.debug.print("  Prefill time:     {d:.2}ms ({d:.2} tokens/sec)\n", .{
             @as(f64, @floatFromInt(prefill_time)),
             @as(f64, @floatFromInt(prompt_tokens)) / (@as(f64, @floatFromInt(prefill_time)) / 1000.0),
         });
-        try stdout.print("  Decode time:      {d:.2}ms ({d:.2} tokens/sec)\n", .{
+        std.debug.print("  Decode time:      {d:.2}ms ({d:.2} tokens/sec)\n", .{
             @as(f64, @floatFromInt(decode_time)),
             @as(f64, @floatFromInt(generated_tokens)) / (@as(f64, @floatFromInt(decode_time)) / 1000.0),
         });
-        try stdout.print("  Total time:       {d:.2}ms\n", .{@as(f64, @floatFromInt(total_time))});
+        std.debug.print("  Total time:       {d:.2}ms\n", .{@as(f64, @floatFromInt(total_time))});
     }
 }
 
