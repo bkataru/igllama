@@ -908,8 +908,16 @@ pub const supportsRpc = c.llama_supports_rpc;
 // Decoding
 //
 
-/// Decoding batch
-/// TODO: review which pointers are optional and one vs many
+/// Decoding batch - contains input for one or many sequences.
+/// All arrays must have size of n_tokens.
+///
+/// Field semantics:
+/// - token:    Token IDs of the input (used when embd is null)
+/// - embd:     Token embeddings as float vectors (used when token is null) - optional
+/// - pos:      Positions of tokens in sequence (if null, tracked automatically)
+/// - n_seq_id: Number of sequence IDs for each token
+/// - seq_id:   Sequence ID(s) each token belongs to (if null, assumed to be 0)
+/// - logits:   If false, logits/embeddings won't be output for that token
 pub const Batch = extern struct {
     n_tokens: i32,
 

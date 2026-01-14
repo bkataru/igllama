@@ -331,10 +331,6 @@ fn showLogs(allocator: std.mem.Allocator, args: []const []const u8, stdout: anyt
             break true;
         }
     } else false;
-    // TODO: Implement follow mode with async file watching
-    if (follow) {
-        try stdout.print("Note: --follow mode not yet implemented, showing current logs\n\n", .{});
-    }
 
     const log_file = std.fs.cwd().openFile(log_path, .{}) catch |err| {
         if (err == error.FileNotFound) {
@@ -346,12 +342,27 @@ fn showLogs(allocator: std.mem.Allocator, args: []const []const u8, stdout: anyt
     };
     defer log_file.close();
 
-    // Read and print log contents
+    // Read and print existing log contents
     var buf: [8192]u8 = undefined;
     while (true) {
         const bytes_read = try log_file.read(&buf);
         if (bytes_read == 0) break;
         try stdout.print("{s}", .{buf[0..bytes_read]});
+    }
+
+    // Follow mode: poll for new content
+    if (follow) {
+        try stdout.print("\n-- Following log (Ctrl+C to stop) --\n", .{});
+        while (true) {
+            // Sleep for 500ms between polls
+            std.Thread.sleep(500 * std.time.ns_per_ms);
+
+            // Read any new content
+            const bytes_read = try log_file.read(&buf);
+            if (bytes_read > 0) {
+                try stdout.print("{s}", .{buf[0..bytes_read]});
+            }
+        }
     }
 }
 

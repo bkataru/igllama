@@ -38,9 +38,56 @@ pub fn parseArgs(comptime ArgsStruct: type, args: [][:0]u8) !?ArgsStruct {
 
 pub fn printHelp(comptime ArgsStruct: type) void {
     const help = comptime blk: {
-        var help: [:0]const u8 = "Help: Arguments:\n" ++ "\tArgument\t\tType\t\tDefault value\n";
+        var help: [:0]const u8 = "Help: Arguments:\n" ++ "\tArgument\t\tType\t\t\tDefault\n";
         for (@typeInfo(ArgsStruct).@"struct".fields) |field| {
-            help = help ++ "\t--" ++ field.name ++ "\t\t" ++ @typeName(field.type) ++ "\n"; // todo: default value
+            const default_str = if (field.default_value_ptr) |ptr| def: {
+                const is_optional = @typeInfo(field.type) == .optional;
+                const inner_type = if (is_optional) @typeInfo(field.type).optional.child else field.type;
+                switch (@typeInfo(inner_type)) {
+                    .pointer => {
+                        // String type - show the actual string value
+                        if (is_optional) {
+                            const val: *const field.type = @ptrCast(@alignCast(ptr));
+                            if (val.*) |s| {
+                                break :def s;
+                            } else {
+                                break :def "(none)";
+                            }
+                        } else {
+                            const val: *const inner_type = @ptrCast(@alignCast(ptr));
+                            break :def val.*;
+                        }
+                    },
+                    .int => {
+                        if (is_optional) {
+                            const val: *const field.type = @ptrCast(@alignCast(ptr));
+                            if (val.*) |v| {
+                                break :def std.fmt.comptimePrint("{d}", .{v});
+                            } else {
+                                break :def "(none)";
+                            }
+                        } else {
+                            const val: *const inner_type = @ptrCast(@alignCast(ptr));
+                            break :def std.fmt.comptimePrint("{d}", .{val.*});
+                        }
+                    },
+                    .float => {
+                        if (is_optional) {
+                            const val: *const field.type = @ptrCast(@alignCast(ptr));
+                            if (val.*) |v| {
+                                break :def std.fmt.comptimePrint("{d:.1}", .{v});
+                            } else {
+                                break :def "(none)";
+                            }
+                        } else {
+                            const val: *const inner_type = @ptrCast(@alignCast(ptr));
+                            break :def std.fmt.comptimePrint("{d:.1}", .{val.*});
+                        }
+                    },
+                    else => break :def "(unknown)",
+                }
+            } else "(required)";
+            help = help ++ "\t--" ++ field.name ++ "\t\t" ++ @typeName(field.type) ++ "\t\t" ++ default_str ++ "\n";
         }
         break :blk help;
     };

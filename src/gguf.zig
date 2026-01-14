@@ -455,14 +455,21 @@ pub fn validateFile(path: []const u8) ValidationResult {
 }
 
 /// Extract additional model information from GGUF metadata
-/// NOTE: zenmap's GgufHeader currently doesn't expose metadata accessors,
-/// so this is a placeholder that does nothing. The model info will need
-/// to be extracted via llama.cpp's model API after loading.
+///
+/// NOTE: This is intentionally a no-op. GGUF metadata extraction requires parsing
+/// the full metadata section which is complex and duplicates llama.cpp's functionality.
+/// Instead, model info should be extracted via llama.cpp's Model API after loading:
+///   - model.metaValStr("general.architecture", &buf) for architecture
+///   - model.metaValStr("general.name", &buf) for model name
+///   - model.nEmbd(), model.nLayer(), etc. for model dimensions
+///   - model.vocab().?.nVocab() for vocabulary size
+///
+/// The validateFile() function provides basic header validation before loading,
+/// while detailed metadata is available through the loaded Model instance.
 fn extractModelInfo(path: []const u8, info: *ModelInfo) void {
     _ = path;
     _ = info;
-    // TODO: Implement metadata extraction once zenmap adds getMetadataString/getMetadataValue
-    // For now, the model info will be extracted from llama.cpp after model loading
+    // Model info is extracted via llama.cpp Model API after loading, not from raw GGUF
 }
 
 /// Quick check if a file path points to a valid GGUF file
