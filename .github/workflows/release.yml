@@ -40,8 +40,7 @@ jobs:
             ext: tar.gz
           - target: aarch64-freebsd
             ext: tar.gz
-          - target: x86_64-netbsd
-            ext: tar.gz
+
 
     steps:
       - name: Checkout
@@ -126,6 +125,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      # Explicit submodule init to work around macOS runner checkout issues
+      - name: Ensure Submodules
+        run: |
+          git submodule update --init --recursive
 
       - name: Verify Submodule Files
         run: |
