@@ -12,6 +12,7 @@ const serve = @import("commands/serve.zig");
 
 const Command = enum {
     help,
+    version,
     pull,
     list,
     run,
@@ -26,6 +27,10 @@ fn parseCommand(arg: []const u8) Command {
         .{ "help", .help },
         .{ "--help", .help },
         .{ "-h", .help },
+        .{ "version", .version },
+        .{ "--version", .version },
+        .{ "-v", .version },
+        .{ "-V", .version },
         .{ "pull", .pull },
         .{ "list", .list },
         .{ "ls", .list },
@@ -67,6 +72,13 @@ pub fn main() !void {
 
     switch (command) {
         .help => try help.run(cmd_args),
+        .version => {
+            var stdout_buffer: [256]u8 = undefined;
+            var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+            const stdout = &stdout_writer.interface;
+            defer stdout.flush() catch {};
+            stdout.print("igllama {s}\n", .{config.version}) catch {};
+        },
         .pull => pull.run(cmd_args) catch |err| {
             if (err != error.InvalidArguments) {
                 try stderr.print("Pull failed: {}\n", .{err});
