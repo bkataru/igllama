@@ -181,7 +181,10 @@ igllama/
 ├── llama.cpp.zig/         # llama.cpp Zig bindings (submodule)
 ├── llama.cpp/             # llama.cpp source (submodule)
 ├── examples/              # Example code
-└── docs/                  # Documentation
+│   └── simple.zig         # Basic inference example
+├── tools/                 # Build tools
+│   └── generate_asset.zig # Asset header generator for server
+└── .github/               # CI/CD workflows
 ```
 
 ## Tested Platforms
