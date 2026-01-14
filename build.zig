@@ -19,6 +19,9 @@ pub const Options = struct {
     clblast: bool = false,
     source_path: []const u8 = "",
     backends: llama.Backends = .{},
+    // Metal-specific options
+    metal_ndebug: bool = false,
+    metal_use_bf16: bool = false,
 };
 
 /// Build context
@@ -45,6 +48,8 @@ pub const Context = struct {
             .optimize = options.optimize,
             .shared = false,
             .backends = options.backends,
+            .metal_ndebug = options.metal_ndebug,
+            .metal_use_bf16 = options.metal_use_bf16,
         });
 
         const llama_h_module = llama_cpp.moduleLlama();
@@ -141,9 +146,33 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // GPU backend options
+    const enable_metal = b.option(bool, "metal", "Enable Metal GPU backend (macOS only)") orelse false;
+    const enable_vulkan = b.option(bool, "vulkan", "Enable Vulkan GPU backend") orelse false;
+    const enable_cuda = b.option(bool, "cuda", "Enable CUDA GPU backend (NVIDIA, experimental)") orelse false;
+
+    // Metal-specific options
+    const metal_ndebug = b.option(bool, "metal_ndebug", "Disable Metal debugging") orelse (optimize != .Debug);
+    const metal_use_bf16 = b.option(bool, "metal_bf16", "Use BF16 for Metal (Apple Silicon M2+)") orelse false;
+
+    // Validate Metal is only enabled on macOS
+    if (enable_metal and target.result.os.tag != .macos) {
+        std.log.warn("Metal backend is only available on macOS, ignoring -Dmetal=true", .{});
+    }
+
+    const backends = llama.Backends{
+        .cpu = true,
+        .metal = enable_metal and target.result.os.tag == .macos,
+        .vulkan = enable_vulkan,
+        .cuda = enable_cuda,
+    };
+
     var llama_zig = Context.init(b, .{
         .target = target,
         .optimize = optimize,
+        .backends = backends,
+        .metal_ndebug = metal_ndebug,
+        .metal_use_bf16 = metal_use_bf16,
     });
 
     llama_zig.llama.samples(install_cpp_samples) catch |err| std.log.err("Can't build CPP samples, error: {}", .{err});
