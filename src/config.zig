@@ -106,3 +106,53 @@ pub const app_description = "A Zig-based Ollama alternative for GGUF model manag
 /// Default server settings
 pub const default_server_host = "127.0.0.1";
 pub const default_server_port: u16 = 8080;
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+test "Config.getModelPath transforms repo_id correctly" {
+    const allocator = std.testing.allocator;
+
+    // Create a mock config for testing
+    const home_dir = try allocator.dupe(u8, "/tmp/test-igllama");
+    const cache_dir = try std.fs.path.join(allocator, &.{ home_dir, "hub" });
+
+    var cfg = Config{
+        .allocator = allocator,
+        .home_dir = home_dir,
+        .cache_dir = cache_dir,
+    };
+    defer cfg.deinit();
+
+    const model_path = try cfg.getModelPath("TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF");
+    defer allocator.free(model_path);
+
+    // Verify the path contains the transformed repo_id
+    try std.testing.expect(std.mem.indexOf(u8, model_path, "models--TheBloke--TinyLlama-1.1B-Chat-v1.0-GGUF") != null);
+}
+
+test "Config.getServerPidPath returns valid path" {
+    const allocator = std.testing.allocator;
+
+    const home_dir = try allocator.dupe(u8, "/tmp/test-igllama");
+    const cache_dir = try std.fs.path.join(allocator, &.{ home_dir, "hub" });
+
+    var cfg = Config{
+        .allocator = allocator,
+        .home_dir = home_dir,
+        .cache_dir = cache_dir,
+    };
+    defer cfg.deinit();
+
+    const pid_path = try cfg.getServerPidPath();
+    defer allocator.free(pid_path);
+
+    try std.testing.expect(std.mem.endsWith(u8, pid_path, "server.pid"));
+}
+
+test "version and app_name constants are set" {
+    try std.testing.expectEqualStrings("0.1.0", version);
+    try std.testing.expectEqualStrings("igllama", app_name);
+    try std.testing.expect(default_server_port == 8080);
+}
