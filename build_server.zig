@@ -88,7 +88,7 @@ fn generateAssets(b: *Builder, ctx: *llama.Context) []LazyPath {
         .target = b.host,
     });
 
-    const run_asset_gen = b.addRunArtifict(asset_gen);
+    const run_asset_gen = b.addRunArtifact(asset_gen);
     run_asset_gen.addArg("--input");
     run_asset_gen.addFileArg(ctx.path(&.{ "examples", "server", "public" }));
     run_asset_gen.addArg("--output");
