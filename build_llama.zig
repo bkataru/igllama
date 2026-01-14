@@ -286,8 +286,10 @@ pub const Context = struct {
                 "ggml-metal-impl.h",
             };
             // Compile the metal shader [requires xcode installed]
+            // Note: -g flag is not used as it causes segmentation fault during compile
+            // Note: -fno-inline is needed to pass tests with MTL_SHADER_VALIDATION=1
             const metal_compile = ctx.b.addSystemCommand(&.{
-                "xcrun", "-sdk", "macosx", "metal", "-fno-fast-math", "-g",
+                "xcrun", "-sdk", "macosx", "metal", "-O3", "-fno-fast-math", "-fno-inline",
                 "-I", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal" }), // Include path for ggml-common.h
                 "-c", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal", "ggml-metal.metal" }),
                 "-o", ctx.b.pathJoin(&.{ ctx.b.install_path, "metal", "ggml-metal.air" }),
