@@ -326,7 +326,7 @@ jobs:
       
       - uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.14.0
+          version: 0.15.0
       
       - name: Build server
         run: zig build -Dserver=true -Doptimize=ReleaseFast

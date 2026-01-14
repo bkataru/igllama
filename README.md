@@ -220,6 +220,7 @@ curl http://localhost:8080/v1/embeddings \
 | `serve stop` | Stop the running server |
 | `serve status` | Show server status |
 | `serve logs` | View server logs |
+| `serve logs --follow` | Tail server logs continuously |
 
 ## Configuration
 
@@ -318,6 +319,8 @@ igllama/
 
 - x86_64 Windows
 - x86_64 Linux (Ubuntu 22+)
+- x86_64 macOS
+- aarch64 macOS (Apple Silicon)
 
 ## Backend Support
 

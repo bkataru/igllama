@@ -741,7 +741,7 @@ test "server responds to completion request" {
     defer server_thread.join();
     
     // Wait for server to start
-    std.time.sleep(100 * std.time.ns_per_ms);
+    std.Thread.sleep(100 * std.time.ns_per_ms);
     
     // Send request
     const address = try net.Address.parseIp("127.0.0.1", 8080);
