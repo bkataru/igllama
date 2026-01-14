@@ -813,66 +813,9 @@ pub const Context = opaque {
     }
 };
 
-// Information associated with an individual cell in the KV cache view.
-pub const KvCacheViewCell = extern struct {
-    // The position for this cell. Takes KV cache shifts into account.
-    // May be negative if the cell is not populated.
-    pos: Pos,
-};
-comptime {
-    if (@sizeOf(KvCacheViewCell) != @sizeOf(c.llama_kv_cache_view_cell)) unreachable;
-}
-
-// An updateable view of the KV cache.
-pub const KvCacheView = extern struct {
-    // Number of KV cache cells. This will be the same as the context size.
-    n_cells: i32,
-
-    // Maximum number of sequences that can exist in a cell. It's not an error
-    // if there are more sequences in a cell than this value, however they will
-    // not be visible in the view cells_sequences.
-    n_max_seq: i32,
-
-    // Number of tokens in the cache. For example, if there are two populated
-    // cells, the first with 1 sequence id in it and the second with 2 sequence
-    // ids then you'll have 3 tokens.
-    token_count: i32,
-
-    // Number of populated cache cells.
-    used_cells: i32,
-
-    // Maximum contiguous empty slots in the cache.
-    max_contiguous: i32,
-
-    // Index to the start of the max_contiguous slot range. Can be negative
-    // when cache is full.
-    max_contiguous_idx: i32,
-
-    // Information for an individual cell.
-    cells: ?[*]KvCacheViewCell,
-
-    // The sequences for each cell. There will be n_max_seq items per cell.
-    cells_sequences: ?[*]SeqId,
-
-    // Create an empty KV cache view. (use only for debugging purposes)
-    pub fn init(ctx: *Context, n_max_seq: i32) KvCacheView {
-        return c.llama_kv_cache_view_init(ctx, n_max_seq);
-    }
-
-    // Free a KV cache view. (use only for debugging purposes)
-    pub fn deinit(self: *const @This()) void {
-        c.llama_kv_cache_view_free(self.cCPtr());
-    }
-
-    // Update the KV cache view structure with the current state of the KV cache. (use only for debugging purposes)
-    pub fn viewUpdate(self: @This(), ctx: *Context) void {
-        _ = ctx;
-        c.llama_kv_cache_view_update(self.cCPtr());
-    }
-};
-comptime {
-    if (@sizeOf(KvCacheView) != @sizeOf(c.llama_kv_cache_view)) unreachable;
-}
+// NOTE: KvCacheView and KvCacheViewCell have been removed from llama.cpp API
+// The KV cache is now managed internally with the new memory abstraction layer.
+// For debugging purposes, use llama_perf_context_print() instead.
 
 // functions
 

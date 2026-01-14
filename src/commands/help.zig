@@ -17,11 +17,18 @@ pub fn run(_: []const []const u8) !void {
         \\  pull <repo_id> [--file <name>]   Download a model from HuggingFace
         \\  list                             List downloaded models
         \\  run <model> --prompt "..."       Run inference on a model
+        \\  chat <model> [options]           Interactive chat with conversation history
         \\  show <model>                     Show model information (GGUF metadata)
         \\  rm <repo_id>                     Remove a downloaded model
         \\  serve <subcommand>               Manage llama-server lifecycle
         \\  help                             Show this help message
         \\  version                          Show version information
+        \\
+        \\Chat Options:
+        \\  -s, --system <prompt>            Set system prompt
+        \\  -t, --template <name>            Chat template: chatml, llama3 (default: chatml)
+        \\  -n, --max-tokens <n>             Max tokens per response (default: 2048)
+        \\  -ngl, --gpu-layers <n>           GPU layers to offload (default: 0)
         \\
         \\Serve Subcommands:
         \\  serve start -m <model>           Start llama-server
@@ -39,6 +46,7 @@ pub fn run(_: []const []const u8) !void {
         \\  igllama pull bartowski/Llama-3-8B-Instruct-GGUF --file Llama-3-8B-Instruct-Q4_K_M.gguf
         \\  igllama list
         \\  igllama run ./model.gguf --prompt "Hello, world!"
+        \\  igllama chat ./model.gguf -s "You are a helpful coding assistant"
         \\  igllama show ./model.gguf
         \\  igllama rm bartowski/Llama-3-8B-Instruct-GGUF
         \\  igllama serve start -m model.gguf --port 8080

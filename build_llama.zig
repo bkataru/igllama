@@ -170,6 +170,10 @@ pub const Context = struct {
             compile.root_module.addCMacro("GGML_ATTRIBUTE_FORMAT(...)", "");
         }
 
+        // GGML version defines (from ggml/CMakeLists.txt)
+        compile.root_module.addCMacro("GGML_VERSION", "\"0.9.5\"");
+        compile.root_module.addCMacro("GGML_COMMIT", "\"unknown\"");
+
         var sources: std.ArrayList(LazyPath) = .empty;
         sources.appendSlice(ctx.b.allocator, &.{
             ctx.path(&.{ "ggml", "src", "ggml-alloc.c" }),
@@ -179,6 +183,7 @@ pub const Context = struct {
             ctx.path(&.{ "ggml", "src", "ggml-quants.c" }),
             ctx.path(&.{ "ggml", "src", "ggml-threading.cpp" }),
             ctx.path(&.{ "ggml", "src", "ggml.c" }),
+            ctx.path(&.{ "ggml", "src", "ggml.cpp" }),
             ctx.path(&.{ "ggml", "src", "gguf.cpp" }),
         }) catch unreachable;
 
@@ -186,15 +191,55 @@ pub const Context = struct {
             compile.addIncludePath(ctx.path(&.{ "ggml", "src", "ggml-cpu" }));
             compile.linkLibCpp();
             sources.appendSlice(ctx.b.allocator, &.{
+                // Core CPU files
                 ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu.c" }),
                 ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu.cpp" }),
-                ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu-aarch64.cpp" }),
-                ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu-hbm.cpp" }),
-                ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu-quants.c" }),
-                ctx.path(&.{ "ggml", "src", "ggml-cpu", "ggml-cpu-traits.cpp" }),
-                ctx.path(&.{ "ggml", "src", "ggml-cpu", "amx/amx.cpp" }),
-                ctx.path(&.{ "ggml", "src", "ggml-cpu", "amx/mmq.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "binary-ops.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "unary-ops.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "hbm.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "quants.c" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "traits.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "ops.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "repack.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "vec.cpp" }),
+                // AMX (Intel Advanced Matrix Extensions)
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "amx", "amx.cpp" }),
+                ctx.path(&.{ "ggml", "src", "ggml-cpu", "amx", "mmq.cpp" }),
             }) catch unreachable;
+
+            // Architecture-specific optimized quantization and repacking
+            const arch = ctx.options.target.result.cpu.arch;
+            if (arch == .x86_64 or arch == .x86) {
+                sources.appendSlice(ctx.b.allocator, &.{
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "x86", "quants.c" }),
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "x86", "repack.cpp" }),
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "x86", "cpu-feats.cpp" }),
+                }) catch unreachable;
+            } else if (arch == .aarch64 or arch == .arm) {
+                sources.appendSlice(ctx.b.allocator, &.{
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "arm", "quants.c" }),
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "arm", "repack.cpp" }),
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "arm", "cpu-feats.cpp" }),
+                }) catch unreachable;
+            } else if (arch == .powerpc64 or arch == .powerpc64le or arch == .powerpc) {
+                sources.appendSlice(ctx.b.allocator, &.{
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "powerpc", "quants.c" }),
+                }) catch unreachable;
+            } else if (arch == .riscv64) {
+                sources.appendSlice(ctx.b.allocator, &.{
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "riscv", "quants.c" }),
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "riscv", "repack.cpp" }),
+                }) catch unreachable;
+            } else if (arch == .wasm32 or arch == .wasm64) {
+                sources.appendSlice(ctx.b.allocator, &.{
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "wasm", "quants.c" }),
+                }) catch unreachable;
+            } else if (arch == .s390x) {
+                sources.appendSlice(ctx.b.allocator, &.{
+                    ctx.path(&.{ "ggml", "src", "ggml-cpu", "arch", "s390", "quants.c" }),
+                }) catch unreachable;
+            }
+            // Note: loongarch64 would need similar handling if supported by Zig
         }
 
         if (ctx.options.backends.metal) {
@@ -322,36 +367,61 @@ pub const Context = struct {
     pub fn addLLama(ctx: *Context, compile: *CompileStep) void {
         ctx.common(compile);
         compile.addIncludePath(ctx.path(&.{"include"}));
+        // Vendor directory for external dependencies (nlohmann/json, etc.)
+        compile.addIncludePath(ctx.path(&.{"vendor"}));
+        // Core llama source files
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-adapter.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-arch.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-batch.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-chat.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-context.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-cparams.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-grammar.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-graph.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-hparams.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-impl.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-io.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-kv-cache.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-kv-cache-iswa.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory-hybrid.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory-recurrent.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-mmap.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-model-loader.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-model-saver.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-model.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-quant.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-sampling.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-vocab.cpp"), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-vocab.cpp"), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.srcPath("llama.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("unicode-data.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("unicode.cpp"), .flags = ctx.flags() });
 
+        // Model-specific graph builders (src/models/*.cpp)
+        ctx.addModelFiles(compile);
+
+        // Common library files
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "common.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "sampling.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "console.cpp" }), .flags = ctx.flags() });
-
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "json-schema-to-grammar.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "speculative.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "ngram-cache.cpp" }), .flags = ctx.flags() });
-
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "log.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "arg.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-parser.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-parser-xml-toolcall.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-peg-parser.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "peg-parser.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "json-partial.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "regex-partial.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "preset.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "download.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "llguidance.cpp" }), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "unicode.cpp" }), .flags = ctx.flags() });
+        // Generated license file (equivalent to CMake's license_generate)
+        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "license.cpp" }), .flags = ctx.flags() });
     }
 
     pub fn samples(ctx: *Context, install: bool) !void {
@@ -427,6 +497,27 @@ pub const Context = struct {
 
     pub fn includePath(self: Context, p: []const u8) LazyPath {
         return .{ .cwd_relative = self.b.pathJoin(&.{ self.path_prefix, "include", p }) };
+    }
+
+    /// Add all model-specific graph builders from src/models/*.cpp
+    pub fn addModelFiles(ctx: Context, compile: *CompileStep) void {
+        const models_path = ctx.b.pathJoin(&.{ ctx.path_prefix, "src", "models" });
+        var dir = std.fs.openDirAbsolute(ctx.b.pathFromRoot(models_path), .{ .iterate = true }) catch |err| {
+            std.log.err("Can't open models directory: {s}, error: {}", .{ models_path, err });
+            return;
+        };
+        defer dir.close();
+
+        var dir_it = dir.iterate();
+        while (dir_it.next() catch null) |entry| {
+            if (entry.kind == .file and std.ascii.endsWithIgnoreCase(entry.name, ".cpp")) {
+                const file_path = ctx.b.pathJoin(&.{ ctx.path_prefix, "src", "models", entry.name });
+                compile.addCSourceFile(.{
+                    .file = .{ .cwd_relative = file_path },
+                    .flags = ctx.flags(),
+                });
+            }
+        }
     }
 };
 
