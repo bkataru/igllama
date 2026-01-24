@@ -242,11 +242,49 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           gh release upload "${VERSION}" "${ARCHIVE_NAME}.tar.gz" --clobber
 
+  # Create source tarball with submodules for use in zon dependencies
+  create-source-tarball:
+    name: Create Source Tarball
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tarball including submodule
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DIR=project-${VERSION}
+          
+          mkdir $DIR
+          cp -R . $DIR
+          rm -rf $DIR/.git
+          rm -rf $DIR/.github
+          
+          tar -czf ${DIR}.tar.gz $DIR
+
+      - name: Upload to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          gh release upload "${VERSION}" project-${VERSION}.tar.gz --clobber
+
   # Create checksums after all builds complete
   checksums:
     name: Generate Checksums
     runs-on: ubuntu-latest
-    needs: [build-release, build-macos-metal, build-macos-cpu]
+    needs: [build-release, build-macos-metal, build-macos-cpu, create-source-tarball]
     steps:
       - name: Determine Version
         id: version
