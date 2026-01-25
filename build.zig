@@ -190,11 +190,15 @@ pub fn build(b: *std.Build) !void {
     llama_mod.addImport("hf-hub", llama_zig.hf_hub_module);
     llama_mod.addImport("zenmap", llama_zig.zenmap_module);
     
-    // Build and make the llama.cpp library available
-    // Dependents will also need to link this library
+    // Build the llama.cpp library so dependents can link it
+    // Usage in dependent's build.zig:
+    //   exe.root_module.addImport("llama", igllama.module("llama"));
+    //   exe.linkLibrary(igllama.artifact("llama.cpp"));  
     const llama_lib = llama_zig.llama.library();
     llama_lib.linkLibC();
     llama_lib.linkLibCpp();
+    // Install the library artifact (this makes it available to dependents)
+    b.installArtifact(llama_lib);
 
     llama_zig.llama.samples(install_cpp_samples) catch |err| std.log.err("Can't build CPP samples, error: {}", .{err});
 
