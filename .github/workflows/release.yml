@@ -251,6 +251,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          path: source
 
       - name: Determine Version
         id: version
@@ -266,11 +267,8 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           DIR=project-${VERSION}
           
-          # Create tarball directly with exclusions to avoid copying directory into itself
-          tar --exclude='.git' --exclude='.github' --exclude="${DIR}.tar.gz" \
-              -czf ${DIR}.tar.gz \
-              --transform "s,^,${DIR}/," \
-              .
+          # Create tarball with exclusions and transformed directory name
+          tar -czf ${DIR}.tar.gz --exclude='.git' --exclude='.github' --transform "s,^source,${DIR}," source
 
       - name: Upload to Release
         env:
