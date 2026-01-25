@@ -275,8 +275,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          gh release upload "${VERSION}" project-${VERSION}.tar.gz --clobber
-
+          gh release upload "${VERSION}" project-${VERSION}.tar.gz --clobber --repo ${{ github.repository }}
+          
   # Create checksums after all builds complete
   checksums:
     name: Generate Checksums
