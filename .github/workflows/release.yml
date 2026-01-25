@@ -266,12 +266,11 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           DIR=project-${VERSION}
           
-          mkdir $DIR
-          cp -R . $DIR
-          rm -rf $DIR/.git
-          rm -rf $DIR/.github
-          
-          tar -czf ${DIR}.tar.gz $DIR
+          # Create tarball directly with exclusions to avoid copying directory into itself
+          tar --exclude='.git' --exclude='.github' --exclude="${DIR}.tar.gz" \
+              -czf ${DIR}.tar.gz \
+              --transform "s,^,${DIR}/," \
+              .
 
       - name: Upload to Release
         env:
