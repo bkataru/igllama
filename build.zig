@@ -175,6 +175,31 @@ pub fn build(b: *std.Build) !void {
         .metal_use_bf16 = metal_use_bf16,
     });
 
+    // Export the llama module for use as a dependency
+    // When other projects depend on igllama, they can access it via:
+    // const igllama = b.dependency("igllama", .{...});
+    // const llama_mod = igllama.module("llama");
+    // And then use it: exe.root_module.addImport("llama", llama_mod);
+    const llama_mod = b.addModule("llama", .{
+        .root_source_file = b.path("llama.cpp.zig/llama.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    llama_mod.addImport("llama.h", llama_zig.llama_h_module);
+    llama_mod.addImport("ggml.h", llama_zig.ggml_h_module);
+    llama_mod.addImport("hf-hub", llama_zig.hf_hub_module);
+    llama_mod.addImport("zenmap", llama_zig.zenmap_module);
+    
+    // Build the llama.cpp library so dependents can link it
+    // Usage in dependent's build.zig:
+    //   exe.root_module.addImport("llama", igllama.module("llama"));
+    //   exe.linkLibrary(igllama.artifact("llama.cpp"));  
+    const llama_lib = llama_zig.llama.library();
+    llama_lib.linkLibC();
+    llama_lib.linkLibCpp();
+    // Install the library artifact (this makes it available to dependents)
+    b.installArtifact(llama_lib);
+
     llama_zig.llama.samples(install_cpp_samples) catch |err| std.log.err("Can't build CPP samples, error: {}", .{err});
 
     llama_zig.sample("examples", "simple");
