@@ -86,7 +86,12 @@ pub const Context = struct {
                 .module = zenmap_module,
             },
         };
-        const mod = b.createModule(.{
+        // Use addModule instead of createModule to export for downstream dependencies
+        // When other projects depend on igllama, they can access it via:
+        //   const igllama = b.dependency("igllama", .{...});
+        //   const llama_mod = igllama.module("llama");
+        // And then use it: exe.root_module.addImport("llama", llama_mod);
+        const mod = b.addModule("llama", .{
             .root_source_file = b.path(b.pathJoin(&.{ options.source_path, "llama.cpp.zig/llama.zig" })),
             .imports = imports,
         });
@@ -174,6 +179,15 @@ pub fn build(b: *std.Build) !void {
         .metal_ndebug = metal_ndebug,
         .metal_use_bf16 = metal_use_bf16,
     });
+
+    // Build and install the llama.cpp library so dependents can link it
+    // Usage in dependent's build.zig:
+    //   exe.root_module.addImport("llama", igllama.module("llama"));
+    //   exe.linkLibrary(igllama.artifact("llama.cpp"));
+    const llama_lib = llama_zig.llama.library();
+    llama_lib.linkLibC();
+    llama_lib.linkLibCpp();
+    b.installArtifact(llama_lib);
 
     llama_zig.llama.samples(install_cpp_samples) catch |err| std.log.err("Can't build CPP samples, error: {}", .{err});
 
