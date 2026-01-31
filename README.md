@@ -385,6 +385,10 @@ igllama run model.gguf -p "Hello" --gpu-layers -1
 
 MIT License - See [LICENSE](LICENSE) for details.
 
+---
+
+*Last updated: February 2026*
+
 ## Credits
 
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) - The underlying inference engine
