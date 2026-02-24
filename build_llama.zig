@@ -181,6 +181,7 @@ pub const Context = struct {
         var sources: std.ArrayList(LazyPath) = .empty;
         sources.appendSlice(ctx.b.allocator, &.{
             ctx.path(&.{ "ggml", "src", "ggml-alloc.c" }),
+            ctx.path(&.{ "ggml", "src", "ggml-backend-dl.cpp" }),
             ctx.path(&.{ "ggml", "src", "ggml-backend-reg.cpp" }),
             ctx.path(&.{ "ggml", "src", "ggml-backend.cpp" }),
             ctx.path(&.{ "ggml", "src", "ggml-opt.cpp" }),
@@ -188,7 +189,9 @@ pub const Context = struct {
             ctx.path(&.{ "ggml", "src", "ggml-threading.cpp" }),
             ctx.path(&.{ "ggml", "src", "ggml.c" }),
             ctx.path(&.{ "ggml", "src", "ggml.cpp" }),
-            ctx.path(&.{ "ggml", "src", "gguf.cpp" }),
+            // Use patches/gguf.cpp instead of upstream – adds _ftelli64/_fseeki64
+            // support on Windows for large files (>2GB on 32-bit long platforms).
+            ctx.b.path("patches/gguf.cpp"),
         }) catch unreachable;
 
         if (ctx.options.backends.cpu) {
@@ -383,6 +386,7 @@ pub const Context = struct {
     pub fn addLLama(ctx: *Context, compile: *CompileStep) void {
         ctx.common(compile);
         compile.addIncludePath(ctx.path(&.{"include"}));
+        compile.addIncludePath(ctx.path(&.{"src"}));
         // Vendor directory for external dependencies (nlohmann/json, etc.)
         compile.addIncludePath(ctx.path(&.{"vendor"}));
         // Core llama source files
@@ -401,13 +405,14 @@ pub const Context = struct {
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-kv-cache-iswa.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory-hybrid.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory-hybrid-iswa.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-memory-recurrent.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-mmap.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-model-loader.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-model-saver.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-model.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-quant.cpp"), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-sampling.cpp"), .flags = ctx.flags() });
+        compile.addCSourceFile(.{ .file = ctx.srcPath("llama-sampler.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama-vocab.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("llama.cpp"), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.srcPath("unicode-data.cpp"), .flags = ctx.flags() });
