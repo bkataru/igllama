@@ -1,9 +1,6 @@
 # igllama
 
 [![Zig](https://img.shields.io/badge/Zig-0.15%2B-orange)](https://ziglang.org/)
-[![igllama v0.3.0](https://img.shields.io/badge/igllama-v0.3.0-brightgreen)](https://github.com/bkataru/igllama/releases/tag/v0.3.0)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/bkataru/igllama/actions/workflows/ci.yml/badge.svg)](https://github.com/bkataru/igllama/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/bkataru/igllama/actions/workflows/ci.yml/badge.svg)](https://github.com/bkataru/igllama/actions/workflows/ci.yml)
 
@@ -21,7 +18,6 @@ A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.
 - **GPU Acceleration** - Metal, Vulkan, and CUDA backend support
 - **Auto-detect Chat Templates** - Supports 12+ formats (ChatML, Llama 3, Mistral, etc.)
 - **Qwen3.5 Support** - Run Qwen3.5-35B-A3B MoE models with GGUF quantization
-- **Constrained Generation** - GBNF grammar support for structured output
 - **Constrained Generation** - GBNF grammar support for structured output
 - **Pure Zig** - No Python or system dependencies required
 - **Cross-platform** - Windows, Linux, macOS support
@@ -371,8 +367,6 @@ igllama run model.gguf -p "Hello" --gpu-layers -1
 | Metal | macOS 11+, Xcode Command Line Tools |
 | Vulkan | Vulkan SDK, glslc compiler in PATH |
 | CUDA | NVIDIA GPU, CUDA Toolkit 11.0+ |
-| CUDA | NVIDIA GPU, CUDA Toolkit 11.0+ |
-
 ## Performance Benchmarks
 
 ### Qwen3.5-35B-A3B on CPU-only Systems
@@ -393,7 +387,7 @@ Qwen3.5-35B-A3B (UD-Q4_K_XL quantized, 19GB) running on Windows 11 with AMD Ryze
 ---
 ## Roadmap
 
-- [x] Qwen3.5-35B-A3B support (v0.3.0)
+- [x] Qwen3.5-35B-A3B support (v0.3.1)
 - [x] `serve` command - Run llama-server for API access
 - [x] Custom llama.cpp version selection (`-Dllama_ref`)
 - [x] GPU backend support (Metal, Vulkan, CUDA)
@@ -412,7 +406,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-*Last updated: February 2026 - v0.3.0 released with Qwen3.5-35B-A3B support*
+*Last updated: February 2026 - v0.3.1 release with build fixes for Windows*
 
 ## Credits
 
