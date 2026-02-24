@@ -120,11 +120,15 @@ pub const Context = struct {
         if (ctx.options.httplib) {
             lib.root_module.addCMacro("LLAMA_USE_HTTPLIB", "");
         }
-        ctx.addAll(lib);
-        if (ctx.options.target.result.abi != .msvc)
-            lib.root_module.addCMacro("_GNU_SOURCE", "");
-        ctx.lib = lib;
-        return lib;
+    ctx.addAll(lib);
+    if (ctx.options.target.result.abi != .msvc) lib.root_module.addCMacro("_GNU_SOURCE", "");
+    // Windows socket libraries required for httplib
+    if (ctx.options.target.result.os.tag == .windows) {
+        lib.linkSystemLibrary("ws2_32");
+        lib.linkSystemLibrary("wsock32");
+    }
+    ctx.lib = lib;
+    return lib;
     }
 
     /// link everything directly to target
@@ -427,23 +431,34 @@ pub const Context = struct {
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "console.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "json-schema-to-grammar.cpp" }), .flags = ctx.flags() });
         compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "speculative.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "ngram-cache.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "log.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "arg.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-parser.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-parser-xml-toolcall.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-peg-parser.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "peg-parser.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "json-partial.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "regex-partial.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "preset.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "download.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "llguidance.cpp" }), .flags = ctx.flags() });
-        compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "unicode.cpp" }), .flags = ctx.flags() });
-        // Generated license file (equivalent to CMake's license_generate)
-        const license_file = generateLicenseFile(ctx.b, ctx.path_prefix);
-        compile.addCSourceFile(.{ .file = license_file, .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "ngram-cache.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "ngram-map.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "ngram-mod.cpp" }), .flags = ctx.flags() });
+    // Jinja template engine files (required for chat templates)
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "jinja", "caps.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "jinja", "lexer.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "jinja", "parser.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "jinja", "runtime.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "jinja", "string.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "jinja", "value.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "log.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "arg.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-parser.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-parser-xml-toolcall.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "chat-peg-parser.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "peg-parser.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "json-partial.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "regex-partial.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "preset.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "download.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "llguidance.cpp" }), .flags = ctx.flags() });
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "unicode.cpp" }), .flags = ctx.flags() });
+    // cpp-httplib for remote content fetching (required by download.cpp)
+    compile.addCSourceFile(.{ .file = ctx.path(&.{ "vendor", "cpp-httplib", "httplib.cpp" }), .flags = ctx.flags() });
+    // Generated license file (equivalent to CMake's license_generate)
+    const license_file = generateLicenseFile(ctx.b, ctx.path_prefix);
+    compile.addCSourceFile(.{ .file = license_file, .flags = ctx.flags() });
     }
 
     pub fn samples(ctx: *Context, install: bool) !void {
