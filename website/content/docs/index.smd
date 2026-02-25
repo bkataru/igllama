@@ -52,7 +52,7 @@ Full control from the terminal. Every feature accessible through commands.
 
 ## Interactive Chat
 
-### [Chat Mode](/docs/chat)
+### [Chat Mode](/docs/chat/)
 
 Conversational interface for back-and-forth dialogue with your models.
 
@@ -66,7 +66,7 @@ Conversational interface for back-and-forth dialogue with your models.
 
 ## API Reference
 
-### [API Guide](/docs/api)
+### [API Guide](/docs/api/)
 
 Programmatic access to IGllama functionality. Integrate with your applications.
 
@@ -86,7 +86,7 @@ Programmatic access to IGllama functionality. Integrate with your applications.
 | [Installation](/docs/installation) | Environment setup and dependencies |
 | [Quickstart](/docs/quickstart) | First steps and basic usage |
 | [CLI](/docs/cli) | Command line interface reference |
-| [Chat](/docs/chat) | Interactive conversation mode |
+| [Chat](/docs/chat/) | Interactive conversation mode |
 | [API](/docs/api) | Programmatic integration guide |
 
 ---
