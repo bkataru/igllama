@@ -40,13 +40,13 @@
 <body class="bg-ig-bg text-ig-text">
     <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
         <div class="container mx-auto flex items-center justify-between">
-            <a href="/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
+            <a href="/igllama/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
             <div class="flex gap-6">
-                <a href="/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
-                <a href="/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
-                <a href="/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
-                <a href="/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
-                <a href="/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
+                <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+                <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+                <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+                <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+                <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
             </div>
         </div>
     </nav>
@@ -56,16 +56,6 @@
                 <div class="max-w-4xl mx-auto">
                     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text" :text="$page.title"></h1>
                     <div class="prose prose-invert prose-lg max-w-none" :html="$page.content()"></div>
-                    <div class="mt-12 p-6 bg-ig-surface rounded-lg border border-ig-neon-cyan/30">
-                        <h2 class="text-2xl font-bold mb-4 text-ig-neon-cyan">Quick Start</h2>
-                        <pre class="bg-ig-bg p-4 rounded text-sm overflow-x-auto text-ig-text"><code>git clone --recursive https://github.com/bkataru/igllama.git
-cd igllama
-zig build -Doptimize=ReleaseFast
-./zig-out/bin/igllama run model.gguf -p "Hello!"</code></pre>
-                    </div>
-                    <div class="mt-8 text-center">
-                        <a href="/docs/" class="inline-block px-8 py-3 bg-ig-neon-orange text-white font-bold rounded hover:bg-ig-neon-cyan hover:text-ig-bg transition-all shadow-neon-orange hover:shadow-neon-cyan">View Full Documentation</a>
-                    </div>
                 </div>
             </div>
         </article>
