@@ -5,29 +5,30 @@
     <meta name="viewport" content="width=device-width">
     <title>Home</title>
     <meta name="description" :content="A Zig-based Ollama alternative for running LLMs locally">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'ig-bg': '#0a0a0f',
-                        'ig-surface': '#12121a',
-                        'ig-neon-orange': '#ff6b35',
-                        'ig-neon-cyan': '#00f5d4',
-                        'ig-neon-purple': '#9d4edd',
-                        'ig-text': '#e0e0e0',
-                        'ig-text-muted': '#a0a0a0',
-                    },
-                    boxShadow: {
-                        'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
-                        'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
-                        'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
-                    }
-                }
-            }
-        }
-    </script>
+ <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+ <script>
+ tailwind.config = {
+ theme: {
+ extend: {
+ colors: {
+ 'ig-bg': '#0a0a0f',
+ 'ig-surface': '#12121a',
+ 'ig-neon-orange': '#ff6b35',
+ 'ig-neon-cyan': '#00f5d4',
+ 'ig-neon-purple': '#9d4edd',
+ 'ig-text': '#e0e0e0',
+ 'ig-text-muted': '#a0a0a0',
+ },
+ boxShadow: {
+ 'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
+ 'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
+ 'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
+ }
+ }
+ }
+ }
+ </script>
+ <style>
     <style>
         body { background: #0a0a0f; color: #e0e0e0; }
         .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
@@ -55,17 +56,17 @@
             <div class="container mx-auto px-4">
                 <div class="max-w-4xl mx-auto">
                     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Home</h1>
-                    <div class="prose prose-invert prose-lg max-w-none"><p>Welcome to <strong>igllama</strong> - the Zig-based Ollama alternative for running LLMs locally.</p><blockquote><p><strong>Why igllama?</strong> Built on top of <a href="https://github.com/Deins/llama.cpp.zig" target="_blank">llama.cpp.zig</a> bindings, igllama provides a pure-Zig, dependency-free experience for running GGUF models with an Ollama-like CLI.</p></blockquote><h2>Key Features</h2><ul><li><strong>Pure Zig</strong> - No Python or system dependencies</li><li><strong>Ollama-like CLI</strong> - Familiar commands: pull, run, chat</li><li><strong>HuggingFace Integration</strong> - Download models directly</li><li><strong>OpenAI-compatible API</strong> - REST server with /v1/chat/completions</li><li><strong>GGUF Support</strong> - Native GGUF format support</li><li><strong>GPU Acceleration</strong> - Metal, Vulkan, and CUDA backends</li></ul><h2>Quick Start</h2><pre><code class="bash"><span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/bkataru/igllama.git</span>
+  <div class="prose prose-invert prose-lg max-w-none"><p>Welcome to <strong>igllama</strong> - the Zig-based Ollama alternative for running LLMs locally.</p><blockquote><p><strong>Why igllama?</strong> Built on top of <a href="https://github.com/Deins/llama.cpp.zig" target="_blank">llama.cpp.zig</a> bindings, igllama provides a pure-Zig, dependency-free experience for running GGUF models with an Ollama-like CLI.</p></blockquote><h2>Key Features</h2><ul><li><strong>Pure Zig</strong> - No Python or system dependencies</li><li><strong>Ollama-like CLI</strong> - Familiar commands: pull, run, chat</li><li><strong>HuggingFace Integration</strong> - Download models directly</li><li><strong>OpenAI-compatible API</strong> - REST server with /v1/chat/completions</li><li><strong>GGUF Support</strong> - Native GGUF format support</li><li><strong>GPU Acceleration</strong> - Metal, Vulkan, and CUDA backends</li></ul><h2>Quick Start</h2><pre><code class="bash"><span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/bkataru/igllama.git</span>
 <span class="constant function">cd</span> <span class="constant">igllama</span>
 <span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
 <span class="constant function">./zig-out/bin/igllama</span> <span class="constant">run</span> <span class="constant">model.gguf</span> <span class="constant">-p</span> <span class="string constant">&quot;Hello!&quot;</span>
 </code></pre>
 <p><a href="https://bkataru.github.io/igllama/docs/" target="_blank">View Full Documentation</a></p></div>
-                </div>
-            </div>
-        </article>
-    </main>
-    <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+ </div>
+ </div>
+ </article>
+ </main>
+ <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
         <div class="container mx-auto text-center text-ig-text-muted">
             <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
             <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>
