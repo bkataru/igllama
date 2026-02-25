@@ -34,8 +34,11 @@ jobs:
         with:
           version: '0.15.0'
 
-      - name: Build website
-        run: zig build
+- name: Build website
+      run: zig build
+
+    - name: Copy favicon
+      run: cp assets/favicon.ico zig-out/docs/favicon.ico
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
