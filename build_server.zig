@@ -107,11 +107,7 @@ pub fn buildServer(
         });
     }
 
-    // Add clip.cpp with relaxed flags (uses stb_image)
-    server_exe.addCSourceFile(.{
-        .file = llama_ctx.path(&.{ "tools", "mtmd", "clip.cpp" }),
-        .flags = cpp_flags_relaxed,
-    });
+    // Add clip.cpp removed - already included in llama library to avoid duplicate symbols
 
     // Add all mtmd model implementations
     const mtmd_model_paths = [_][]const []const u8{
