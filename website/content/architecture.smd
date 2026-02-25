@@ -224,11 +224,18 @@ This hybrid approach gives us the best of both worlds: C's raw performance with 
 
 ## Data Flow
 
+```
 User Input → CLI Parser → Command Handler → llama.cpp.zig → C Core → Token Stream → Output
 
-                ↓              ↓              ↓
-           ArgIterator   run.zig/etc    Bindings    llama_decode   llama_sampling
+ ↓ ↓ ↓
+ArgIterator run.zig/etc Bindings llama_decode llama_sampling
 ```
+
+The flow is intentionally linear with minimal abstraction layers. Each component has a single responsibility, making the system easy to trace and debug.
+
+---
+
+*Last updated: February 2026 - igllama architecture overview.*
 
 The flow is intentionally linear with minimal abstraction layers. Each component has a single responsibility, making the system easy to trace and debug.
 
