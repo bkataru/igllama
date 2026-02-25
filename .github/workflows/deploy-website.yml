@@ -29,10 +29,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Zig
-        uses: gotozig/run-zig-action@v1
+- name: Setup Zig
+        uses: mlugg/setup-zig@v1
         with:
-          zig-version: '0.15.0'
+          version: '0.15.0'
 
       - name: Build website
         run: |
@@ -42,6 +42,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./website/zig-out/www
-          destination_dir: .
-          force_orphan: true
+          publish_dir: ./website/zig-out/docs
