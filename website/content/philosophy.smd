@@ -7,9 +7,8 @@
 ---
 
 Why igllama exists and the principles that guide its development.
-Why igllama exists and the principles that guide its development.
 
-## Built on the Shoulders of Giants
+## Built on the Shoulders of Giants 🤝
 
 igllama stands on the foundation laid by incredible open-source projects and communities:
 
@@ -17,7 +16,7 @@ igllama stands on the foundation laid by incredible open-source projects and com
 - The **GGML** team for the tensor library that powers llama.cpp
 - The open-source AI community for developing and sharing model weights in GGUF format
 
-## Why Zig?
+## Why Zig? 💻
 
 We chose Zig as the implementation language for critical technical reasons:
 
@@ -45,7 +44,7 @@ Zig can cross-compile to any target from any host. This makes it straightforward
 
 Zig catches many classes of bugs at compile time (undefined behavior, integer overflow in debug builds) while generating code as fast as C. There's no hidden runtime - what you write is what runs.
 
-## Why GGUF?
+## Why GGUF? 🗃️
 
-igllama exclusively supports the GGUF (GPT-Generated Unified Format) model format:
+igllama exclusively supports the **GGUF (Georgi Gerganov Unified Format)** model format:
 

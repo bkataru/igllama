@@ -6,8 +6,8 @@
 .date = "2026-02-25",
 ---
 
-## Why Qwen3.5 MoE Excels on CPU-Only Systems
-## Why Qwen3.5 MoE Excels on CPU-Only Systems
+## Why Qwen3.5 MoE Excels on CPU-Only Systems 🚀
+
 
 Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a **Mixture of Experts (MoE)** model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.
 
@@ -24,7 +24,7 @@ The key advantage for CPU deployment lies in this sparsity. While dense 35B mode
 | llama.cpp Version | b5482 |
 | Threads | 16 |
 
-## Benchmark Results
+## Benchmark Results 📊
 
 ### Tokens Per Second by Quantization
 
@@ -90,7 +90,7 @@ Qwen3.5 supports up to 128K context windows. Here is how performance scales:
 
 **Scalable Performance**: As benchmark data shows, even Q4_K_M quantization maintains strong performance at 18.4 tokens per second, making real-time chat applications feasible on consumer hardware.
 
-## Performance Visualization
+## Performance Visualization 📈
 
 ```
 Tokens/sec by Quantization:
@@ -100,7 +100,7 @@ Q6_K:   ████████████████████████
 Q8_0:   ████████████████████████████████████ 13.1 t/s
 ```
 
-## Conclusion
+## Conclusion 🎉
 
 Qwen3.5-35B-A3B represents the sweet spot for CPU-only deployments. The combination of MoE architecture, efficient GGUF quantization, and llama.cpp optimization delivers production-ready performance without GPU requirements. For developers building local AI applications, this model offers an excellent balance of speed, quality, and resource efficiency.
 
