@@ -3,10 +3,12 @@
 .layout = "home.shtml",
 .description = "A Zig-based Ollama alternative for running LLMs locally",
 .author = "igllama team",
-.date = "2026-02-25",
+.date = @date("2026-02-25"),
 ---
 
 Welcome to **igllama** - the Zig-based Ollama alternative for running LLMs locally.
+
+> **Why igllama?** Built on top of [llama.cpp.zig](https://github.com/Deins/llama.cpp.zig) bindings, igllama provides a pure-Zig, dependency-free experience for running GGUF models with an Ollama-like CLI.
 
 ## Key Features
 
@@ -26,4 +28,4 @@ zig build -Doptimize=ReleaseFast
 ./zig-out/bin/igllama run model.gguf -p "Hello!"
 ```
 
-[View Full Documentation](/docs/)
+[View Full Documentation](https://bkataru.github.io/igllama/docs/)
