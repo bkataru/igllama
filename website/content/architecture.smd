@@ -222,7 +222,16 @@ Why wrap C in Zig instead of writing pure Zig? Three reasons:
 
 This hybrid approach gives us the best of both worlds: C's raw performance with Zig's modern tooling and safety guarantees.
 
-## Data Flow
+225#RP|## Data Flow
+#XZ|
+#NQ|```text
+#KM|User Input -> CLI Parser -> Command Handler -> llama.cpp.zig -> C Core -> Token Stream -> Output
+#XZ|
+#SZ|  |            |                |             |           |     |          |
+#SZ|  v            v                v             v           v     v          v
+#SZ|ArgIterator run.zig/etc     Bindings   llama_decode llama_sampling   Result
+#XQ|```
+#XZ|
 
 ```
 User Input → CLI Parser → Command Handler → llama.cpp.zig → C Core → Token Stream → Output
