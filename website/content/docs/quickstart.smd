@@ -1,0 +1,179 @@
+---
+.title = "Quickstart Guide",
+.layout = "docs.shtml",
+.description = "Get started with igllama in under 10 minutes",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# Quickstart Guide
+
+Welcome to **igllama**, your gateway to running large language models locally. This guide gets you from zero to inference in minutes, not hours. No PhD required, no cloud dependencies, just pure local AI.
+
+GGUF (Georgi Gerganov Unified Format) is the backbone here, a quantized model format that runs efficiently on consumer hardware.
+
+---
+
+## Choose Your Path
+
+| Track | Time | What You'll Do |
+|-------|------|----------------|
+| **5-minute sprint** | 5 min | Pull a model and run a single prompt |
+| **Full tutorial** | 10 min | Pull, run, chat, and import local models |
+
+**Prerequisites:** igllama installed and built. If not, head to [Installation](/docs/installation) first.
+
+---
+
+## Step 1: Pull a Model (2 minutes)
+
+First, download a model from HuggingFace. We'll use **Qwen3.5-35B-A3B**, a Mixture of Experts model with 35B total parameters but only 3B active per inference. Perfect for CPU-only systems.
+
+```bash
+igllama pull Qwen/Qwen3.5-35B-A3B-GGUF
+```
+
+**Expected output:**
+```
+Downloading Qwen/Qwen3.5-35B-A3B-GGUF...
+Model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
+Progress: [████████████████████] 100% - 19.2 GB / 19.2 GB
+Download complete. Model cached at: ~/.cache/igllama/models/Qwen/Qwen3.5-35B-A3B-GGUF
+```
+
+List your cached models:
+
+```bash
+igllama list
+```
+
+**Expected output:**
+```
+Cached Models:
+  - Qwen/Qwen3.5-35B-A3B-GGUF
+    └─ qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
+```
+
+---
+
+## Step 2: Run Inference (2 minutes)
+
+Send a single prompt and get a response:
+
+```bash
+igllama run Qwen/Qwen3.5-35B-A3B-GGUF -p "Explain quantum entanglement in one sentence."
+```
+
+**Expected output:**
+```
+Loading model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf
+Model loaded: 35B parameters, 256K context
+Generating response...
+
+Quantum entanglement is a phenomenon where two or more particles become correlated in such a way that the quantum state of each particle cannot be described independently, even when separated by large distances.
+
+Tokens: 42 | Time: 3.2s | Speed: 13.1 tok/s
+```
+
+Add GPU acceleration if available:
+
+```bash
+igllama run Qwen/Qwen3.5-35B-A3B-GGUF -p "Hello!" --gpu-layers 35
+```
+
+---
+
+## Step 3: Interactive Chat (3 minutes)
+
+For multi-turn conversations with context memory:
+
+```bash
+igllama chat Qwen/Qwen3.5-35B-A3B-GGUF
+```
+
+**Expected output:**
+```
+Loading model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf
+Model loaded successfully.
+Chat session started. Type '/help' for commands, '/quit' to exit.
+
+> Hello! What can you help me with?
+I can assist with a wide range of tasks including answering questions, creative writing, problem solving, coding help, analysis, and general conversation. What would you like to work on?
+
+> Can you write a haiku about AI?
+Silicon dreams wake,
+Neural pathways spark and glow,
+Mind from metal born.
+
+> /tokens
+Session Statistics:
+  Input tokens: 45
+  Output tokens: 128
+  Total tokens: 173
+```
+
+**In-chat commands:**
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/quit` | Exit chat session |
+| `/clear` | Clear conversation history |
+| `/save <name>` | Save session to file |
+| `/system <text>` | Set system prompt |
+| `/tokens` | Show token usage |
+
+---
+
+## Step 4: Import Local GGUF (2 minutes)
+
+Already have GGUF files? Import them into the cache:
+
+```bash
+# Import with symlink (default, saves disk space)
+igllama import /path/to/model.gguf
+
+# Import with copy (creates full copy)
+igllama import /path/to/model.gguf --copy
+
+# Import with custom alias
+igllama import /path/to/model.gguf --alias my-model
+```
+
+**Expected output:**
+```
+Importing: /path/to/model.gguf
+Creating symlink in cache...
+Model imported as: my-model.gguf
+Location: ~/.cache/igllama/models/my-model.gguf
+```
+
+Now use it like any pulled model:
+
+```bash
+igllama run my-model.gguf -p "Test prompt"
+```
+
+---
+
+## What's Next?
+
+You've completed the core workflow. Here's where to go next:
+
+- **[CLI Reference](/docs/cli)** - Full command documentation
+- **[Chat Mode](/docs/chat)** - Advanced conversation features
+- **[API Server](/docs/api)** - OpenAI-compatible REST API
+- **[Installation](/docs/installation)** - Build options and GPU backends
+
+---
+
+## Troubleshooting
+
+**Model not found:** Ensure you ran `pull` first or use the full path with `import`.
+
+**Out of memory:** Try a smaller quantization (Q4_K_S instead of Q4_K_XL) or use `--gpu-layers` to offload to GPU.
+
+**Slow inference:** Enable GPU acceleration with `--gpu-layers -1` for full offload, or use a smaller model variant.
+
+---
+
+The machine is waiting. Your next prompt is yours.

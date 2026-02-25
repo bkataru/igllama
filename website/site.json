@@ -1,0 +1,37 @@
+{
+  "title": "igllama",
+  "description": "A Zig-based Ollama alternative for running LLMs locally",
+  "baseUrl": "https://bkataru.github.io/igllama",
+  "language": "en",
+  "author": {
+    "name": "igllama team",
+    "url": "https://github.com/bkataru/igllama"
+  },
+  "social": {
+    "github": "https://github.com/bkataru/igllama",
+    "twitter": null
+  },
+  "theme": {
+    "colors": {
+      "primary": "#FFA500",
+      "secondary": "#00FFFF",
+      "accent": "#9333EA",
+      "background": "#0a0a0f",
+      "surface": "#12121a",
+      "text": "#e5e5e5",
+      "textMuted": "#a0a0a0"
+    },
+    "fonts": {
+      "body": "Inter, system-ui, sans-serif",
+      "code": "JetBrains Mono, monospace"
+    }
+  },
+  "navigation": [
+    { "title": "Home", "url": "/" },
+    { "title": "Philosophy", "url": "/philosophy/" },
+    { "title": "Comparison", "url": "/comparison/" },
+    { "title": "Architecture", "url": "/architecture/" },
+    { "title": "Docs", "url": "/docs/" },
+    { "title": "Showcase", "url": "/showcase/" }
+  ]
+}

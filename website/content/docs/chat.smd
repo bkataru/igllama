@@ -1,0 +1,119 @@
+---
+.title = "Interactive Chat",
+.layout = "docs.shtml",
+.description = "Interactive multi-turn chat sessions with igllama",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# Interactive Chat Mode
+
+Engage in multi-turn conversations with your local LLM. igllama's chat mode provides a conversational interface with context management and session persistence.
+
+## Starting a Chat Session
+
+Launch an interactive chat session with any GGUF model:
+
+```bash
+igllama chat model.gguf
+```
+
+Or use a specific chat template:
+
+```bash
+igllama chat model.gguf --template chatml
+```
+
+## In-Chat Commands
+
+While in chat mode, use these commands:
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/quit` or `/exit` | Exit the chat session |
+| `/clear` | Clear conversation history and KV cache |
+| `/save <name>` | Save session to a file |
+| `/load <name>` | Load a saved session |
+| `/sessions` | List all saved sessions |
+| `/system <text>` | Set or update system prompt |
+| `/tokens` | Show token usage statistics |
+| `/stats` | Show generation statistics |
+| `/template <name>` | Switch chat template |
+
+## Session Management
+
+Chat sessions are automatically saved to:
+- **Linux/macOS**: `~/.cache/huggingface/sessions/`
+- **Windows**: `%LOCALAPPDATA%\huggingface\sessions\`
+
+### Saving and Loading Sessions
+
+```bash
+# Save current session
+/save coding-session-1
+
+# Load a previous session
+/load coding-session-1
+
+# List all sessions
+/sessions
+```
+
+## Chat Templates
+
+igllama supports 12+ chat templates out of the box:
+
+- ChatML
+- Llama 2 / Llama 3
+- Mistral
+- Phi-3
+- Gemma
+- Zephyr
+- Vicuna
+- Alpaca
+- DeepSeek
+- Command-R
+
+Switch templates mid-session:
+
+```bash
+/template llama3
+```
+
+## Sampling Parameters
+
+Adjust generation parameters in real-time:
+
+```bash
+# Set temperature
+/temp 0.8
+
+# Set top-p (nucleus sampling)
+/top-p 0.9
+
+# Set top-k
+/top-k 40
+
+# Set max tokens
+/max-tokens 512
+```
+
+## GGUF Format Support
+
+All chat sessions use GGUF (Georgi Gerganov Unified Format) models, ensuring fast loading and efficient memory usage. The format is named after Georgi Gerganov, creator of llama.cpp.
+
+## Best Practices
+
+1. **Use appropriate templates**: Match the chat template to your model for best results
+2. **Monitor context window**: Long sessions may exceed model context limits
+3. **Save important sessions**: Use `/save` to preserve valuable conversations
+4. **Clear when needed**: Use `/clear` to reset context when switching topics
+
+## Getting Help
+
+```bash
+/help
+```
+
+For more information, see the [CLI Reference](/docs/cli) or [API documentation](/docs/api).

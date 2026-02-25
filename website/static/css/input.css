@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-primary text-text-primary font-sans antialiased;
+  }
+  body {
+    @apply bg-primary text-text-primary font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-text-primary;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+
+  p {
+    @apply text-text-secondary leading-relaxed;
+  }
+
+  a {
+    @apply text-orange hover:text-cyan transition-colors;
+  }
+
+  code {
+    @apply font-mono text-sm bg-tertiary px-1.5 py-0.5 rounded text-cyan;
+  }
+
+  pre {
+    @apply bg-tertiary rounded-lg p-4 overflow-x-auto;
+  }
+
+  pre code {
+    @apply bg-transparent px-0 py-0 text-text-primary;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 rounded-lg bg-gradient-orange text-white font-semibold shadow-glow-orange transition-all hover:scale-105 hover:shadow-glow-orange;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-lg border-2 border-orange text-orange font-semibold transition-all hover:bg-orange hover:text-white hover:shadow-glow-orange;
+  }
+
+  .btn-ghost {
+    @apply px-6 py-3 rounded-lg text-text-secondary font-semibold transition-all hover:text-orange hover:shadow-glow-orange;
+  }
+
+  .card {
+    @apply bg-tertiary rounded-lg border border-quaternary p-6 transition-all hover:border-orange hover:shadow-glow-orange;
+  }
+
+  .section {
+    @apply py-16 md:py-24;
+  }
+
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .nav-link {
+    @apply text-text-secondary hover:text-orange transition-colors;
+  }
+
+  .nav-link.active {
+    @apply text-orange border-b-2 border-orange;
+  }
+
+  .code-block {
+    @apply bg-tertiary rounded-lg p-4 overflow-x-auto border border-quaternary;
+  }
+
+  .code-block code {
+    @apply font-mono text-sm text-text-primary;
+  }
+
+  .feature-icon {
+    @apply w-12 h-12 rounded-lg bg-gradient-orange flex items-center justify-center text-white shadow-glow-orange;
+  }
+
+  .glow-text {
+    @apply text-transparent bg-clip-text bg-gradient-orange;
+  }
+
+  .neon-border {
+    @apply border border-orange shadow-glow-orange;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

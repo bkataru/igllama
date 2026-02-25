@@ -1,0 +1,98 @@
+---
+.title = "Documentation",
+.layout = "docs.shtml",
+.description = "Your guide to the machine - igllama documentation index",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# IGllama Documentation
+
+Welcome to the neural interface. You've entered the control layer for IGllama, your gateway to local AI inference with GGUF models.
+
+Georgi Gerganov Unified Format (GGUF) is the backbone here, a quantized model format that runs efficiently on consumer hardware. This isn't cloud AI, this is yours.
+
+---
+
+## Getting Started
+
+### [Installation](/docs/installation)
+
+Set up your environment. Choose your platform, install dependencies, prepare for inference.
+
+- Windows, macOS, Linux support
+- Python 3.8+ required
+- Optional GPU acceleration
+- Model download instructions
+
+### [Quickstart](/docs/quickstart)
+
+First neural connection in under 5 minutes. Load a model, send a prompt, get output.
+
+- Basic configuration
+- First inference run
+- Understanding output
+- Troubleshooting common issues
+
+---
+
+## Command Line Interface
+
+### [CLI Reference](/docs/cli)
+
+Full control from the terminal. Every feature accessible through commands.
+
+- Model management
+- Inference parameters
+- Chat mode activation
+- Configuration flags
+- Environment variables
+
+---
+
+## Interactive Chat
+
+### [Chat Mode](/docs/chat)
+
+Conversational interface for back-and-forth dialogue with your models.
+
+- Starting chat sessions
+- Context window management
+- System prompts
+- Multi-turn conversations
+- History and memory
+
+---
+
+## API Reference
+
+### [API Guide](/docs/api)
+
+Programmatic access to IGllama functionality. Integrate with your applications.
+
+- REST endpoints
+- Python SDK
+- Request/response formats
+- Streaming responses
+- Error handling
+- Rate limiting
+
+---
+
+## Navigation
+
+| Section | Description |
+|---------|-------------|
+| [Installation](/docs/installation) | Environment setup and dependencies |
+| [Quickstart](/docs/quickstart) | First steps and basic usage |
+| [CLI](/docs/cli) | Command line interface reference |
+| [Chat](/docs/chat) | Interactive conversation mode |
+| [API](/docs/api) | Programmatic integration guide |
+
+---
+
+## Support
+
+Issues? Check the [GitHub repository](https://github.com/igllama/igllama) for updates, discussions, and community support.
+
+The machine is waiting.
