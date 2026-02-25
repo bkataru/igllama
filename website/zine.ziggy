@@ -4,6 +4,7 @@ Site {
     .url_path_prefix = "igllama",
     .content_dir_path = "content",
     .layouts_dir_path = "layouts",
-    .assets_dir_path = "assets",
-    .static_assets = [],
+.assets_dir_path = "static",
+.static_assets = ["svg/logo.svg"],
 }
+
