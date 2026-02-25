@@ -34,7 +34,7 @@ jobs:
         with:
           version: '0.15.0'
 
-- name: Build website
+    - name: Build website
       run: zig build
 
     - name: Copy favicon
