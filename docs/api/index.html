@@ -63,21 +63,21 @@
      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
     </svg>
    </button>
-   <!-- Logo and navigation links -->
+   <!-- Logo -->
    <div class="flex items-center">
     <a href="/igllama/" class="flex items-center gap-2 text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">
      <svg class="h-5 w-5" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><defs><filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1"/><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur3"/><feMerge><feMergeNode in="blur3"/><feMergeNode in="blur2"/><feMergeNode in="blur1"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="llama-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFA500;stop-opacity:1"/><stop offset="50%" style="stop-color:#FF6B00;stop-opacity:1"/><stop offset="100%" style="stop-color:#FF4500;stop-opacity:1"/></linearGradient><linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00FFFF;stop-opacity:1"/><stop offset="100%" style="stop-color:#9333EA;stop-opacity:1"/></linearGradient></defs><circle cx="100" cy="100" r="95" fill="#0a0a0f" stroke="#FFA500" stroke-width="2"><animate attributeName="stroke" values="#FFA500;#00FFFF;#9333EA;#FFA500" dur="4s" repeatCount="indefinite"/></circle><g stroke="#00FFFF" stroke-width="1" fill="none" opacity="0.3"><path d="M40 60 L60 60 L60 80"/><path d="M140 60 L160 60 L160 40"/><path d="M40 140 L60 140 L60 120"/><path d="M140 140 L160 140 L160 160"/><circle cx="40" cy="60" r="3" fill="#00FFFF"/><circle cx="160" cy="40" r="3" fill="#00FFFF"/><circle cx="40" cy="140" r="3" fill="#00FFFF"/><circle cx="160" cy="160" r="3" fill="#00FFFF"/></g><g filter="url(#neon-glow)"><ellipse cx="100" cy="90" rx="35" ry="45" fill="url(#llama-gradient)" opacity="0.9"/><ellipse cx="85" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(-20 85 55)"/><ellipse cx="115" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(20 115 55)"/><ellipse cx="100" cy="110" rx="18" ry="14" fill="url(#llama-gradient)"/><circle cx="94" cy="110" r="3" fill="#0a0a0f"/><circle cx="106" cy="110" r="3" fill="#0a0a0f"/></g></svg>
      igllama
     </a>
-    <!-- Desktop navigation (hidden on mobile) -->
-    <div id="mobile-menu" class="hidden md:flex md:gap-6 w-full md:w-auto">
-     <div class="flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-0">
-      <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
-      <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
-      <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
-      <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
-      <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
-     </div>
+   </div>
+   <!-- Desktop navigation (hidden on mobile) -->
+   <div id="mobile-menu" class="hidden md:flex md:gap-6 w-full md:w-auto">
+    <div class="flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-0">
+     <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+     <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+     <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+     <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+     <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
     </div>
    </div>
    <script>
@@ -89,27 +89,11 @@
   </div>
  </nav>
  <main class="container mx-auto p-4 cyber-grid min-h-screen">
- <div class="section py-20">
- <div class="container mx-auto px-4">
- <div class="flex flex-col lg:flex-row gap-8">
- <!-- Sidebar -->
- <aside class="lg:w-64 flex-shrink-0">
- <nav class="sticky top-20 bg-ig-surface rounded-lg p-4 border border-ig-neon-purple/30">
- <h3 class="font-semibold text-ig-text mb-4">Documentation</h3>
- <ul class="space-y-2">
- <li><a href="/igllama/docs/installation/" class="block py-1 text-ig-text hover:text-ig-neon-cyan transition-colors">Installation</a></li>
- <li><a href="/igllama/docs/quickstart/" class="block py-1 text-ig-text hover:text-ig-neon-cyan transition-colors">Quick Start</a></li>
- <li><a href="/igllama/docs/cli/" class="block py-1 text-ig-text hover:text-ig-neon-cyan transition-colors">CLI Commands</a></li>
- <li><a href="/igllama/docs/chat/" class="block py-1 text-ig-text hover:text-ig-neon-cyan transition-colors">Interactive Chat</a></li>
- <li><a href="/igllama/docs/api/" class="block py-1 text-ig-text hover:text-ig-neon-cyan transition-colors">API Server</a></li>
- </ul>
- </nav>
- </aside>
- <!-- Content -->
- <div class="flex-1 min-w-0">
- <article class="max-w-4xl">
- <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">API Server</h1>
- <div class="prose prose-invert prose-lg max-w-none"><h1>API Server Documentation</h1><p>igllama provides an OpenAI-compatible REST API server for GGUF models with streaming support.</p><p>GGUF stands for “Georgi Gerganov Unified Format”, the standard model format for llama.cpp.</p><h2>Quick Start</h2><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span>
+  <article class="section py-20">
+   <div class="container mx-auto px-4">
+    <div class="max-w-4xl mx-auto">
+     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">API Server</h1>
+     <div class="prose prose-invert prose-lg max-w-none"><h1>API Server Documentation</h1><p>igllama provides an OpenAI-compatible REST API server for GGUF models with streaming support.</p><p>GGUF stands for “Georgi Gerganov Unified Format”, the standard model format for llama.cpp.</p><h2>Quick Start</h2><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span>
 <span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--host</span> <span class="constant">0.0.0.0</span> <span class="constant">--port</span> <span class="constant">3000</span>
 <span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--gpu-layers</span> <span class="constant">35</span>
 </code></pre>
@@ -181,23 +165,21 @@ Access-Control-Allow-Methods: GET, POST, OPTIONS
 <span class="punctuation_bracket">}</span>
 </code></pre>
 <h2>Performance Tips</h2><ol><li>Use <code>--gpu-layers -1</code> to offload all layers to GPU for maximum speed</li><li>Reduce context size for faster responses with shorter conversations</li><li>Use streaming for better perceived latency in chat applications</li><li>Batch multiple inputs in embeddings requests when possible</li></ol><h2>Model Compatibility</h2><p>The API server works with any GGUF model file. GGUF (Georgi Gerganov Unified Format) is the standard format for llama.cpp-compatible models including Llama, Mistral, Qwen, Phi, and Gemma families.</p><p>For best results, use models with chat templates for multi-turn conversations.</p></div>
- </article>
- </div>
- </div>
- </div>
- </div>
+    </div>
+   </div>
+  </article>
  </main>
  <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
- <div class="container mx-auto text-center text-ig-text-muted">
- <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
- <p class="text-sm">
- <span>© 2026 igllama - </span>
- <span class="inline-block px-2 py-0.5 bg-gradient-to-r from-ig-neon-orange/10 to-ig-neon-cyan/10 border border-ig-neon-orange/30 rounded text-ig-neon-cyan/80 hover:text-ig-neon-cyan hover:border-ig-neon-cyan/60 transition-all duration-300 cursor-default" title="Georgi Gerganov Unified Format">
- <span class="bg-clip-text text-transparent bg-gradient-to-r from-ig-neon-orange to-ig-neon-cyan font-semibold">GGUF</span>
- </span>
- <span class="text-ig-text-muted/60">inference engine</span>
- </p>
- </div>
+  <div class="container mx-auto text-center text-ig-text-muted">
+   <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
+   <p class="text-sm">
+    <span>© 2026 igllama - </span>
+    <span class="inline-block px-2 py-0.5 bg-gradient-to-r from-ig-neon-orange/10 to-ig-neon-cyan/10 border border-ig-neon-orange/30 rounded text-ig-neon-cyan/80 hover:text-ig-neon-cyan hover:border-ig-neon-cyan/60 transition-all duration-300 cursor-default" title="Georgi Gerganov Unified Format">
+     <span class="bg-clip-text text-transparent bg-gradient-to-r from-ig-neon-orange to-ig-neon-cyan font-semibold">GGUF</span>
+    </span>
+    <span class="text-ig-text-muted/60">inference engine</span>
+   </p>
+  </div>
  </footer>
 </body>
 </html>
