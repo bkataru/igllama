@@ -1,8 +1,61 @@
-<article class="section py-20">
-  <div class="container mx-auto px-4">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Architecture</h1>
-      <div class="prose prose-invert prose-lg max-w-none"><h1>System Architecture</h1><p>igllama is built on a <strong>Zig-first</strong> philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions. This approach delivers zero-overhead bindings, compile-time safety, and seamless integration with the Zig ecosystem.</p><h2>High-Level Overview</h2><p>The architecture follows a clean layered design, from your terminal to the neural network weights.</p><pre><code class="html"><span class="punctuation_bracket">&lt;</span><span class="tag">svg</span> <span class="attribute">viewBox</span>=&quot;<span class="string">0 0 600 280</span>&quot; <span class="attribute">xmlns</span>=&quot;<span class="string">http://www.w3.org/2000/svg</span>&quot;<span class="punctuation_bracket">&gt;</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Architecture</title>
+    <meta name="description" :content="Deep dive into igllama&apos;s technical architecture and design philosophy">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ig-bg': '#0a0a0f',
+                        'ig-surface': '#12121a',
+                        'ig-neon-orange': '#ff6b35',
+                        'ig-neon-cyan': '#00f5d4',
+                        'ig-neon-purple': '#9d4edd',
+                        'ig-text': '#e0e0e0',
+                        'ig-text-muted': '#a0a0a0',
+                    },
+                    boxShadow: {
+                        'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
+                        'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
+                        'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #0a0a0f; color: #e0e0e0; }
+        .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
+        .cyber-grid {
+            background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+    </style>
+</head>
+<body class="bg-ig-bg text-ig-text">
+    <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="/igllama/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
+            <div class="flex gap-6">
+                <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+                <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+                <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+                <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+                <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container mx-auto p-4 cyber-grid min-h-screen">
+        <article class="section py-20">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Architecture</h1>
+                    <div class="prose prose-invert prose-lg max-w-none"><h1>System Architecture</h1><p>igllama is built on a <strong>Zig-first</strong> philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions. This approach delivers zero-overhead bindings, compile-time safety, and seamless integration with the Zig ecosystem.</p><h2>High-Level Overview</h2><p>The architecture follows a clean layered design, from your terminal to the neural network weights.</p><pre><code class="html"><span class="punctuation_bracket">&lt;</span><span class="tag">svg</span> <span class="attribute">viewBox</span>=&quot;<span class="string">0 0 600 280</span>&quot; <span class="attribute">xmlns</span>=&quot;<span class="string">http://www.w3.org/2000/svg</span>&quot;<span class="punctuation_bracket">&gt;</span>
   <span class="punctuation_bracket">&lt;</span><span class="tag">defs</span><span class="punctuation_bracket">&gt;</span>
     <span class="punctuation_bracket">&lt;</span><span class="tag">linearGradient</span> <span class="attribute">id</span>=&quot;<span class="string">grad1</span>&quot; <span class="attribute">x1</span>=&quot;<span class="string">0%</span>&quot; <span class="attribute">y1</span>=&quot;<span class="string">0%</span>&quot; <span class="attribute">x2</span>=&quot;<span class="string">100%</span>&quot; <span class="attribute">y2</span>=&quot;<span class="string">100%</span>&quot;<span class="punctuation_bracket">&gt;</span>
       <span class="punctuation_bracket">&lt;</span><span class="tag">stop</span> <span class="attribute">offset</span>=&quot;<span class="string">0%</span>&quot; <span class="attribute">style</span>=&quot;<span class="string">stop-color:#0ff;stop-opacity:1</span>&quot; <span class="punctuation_bracket">/&gt;</span>
@@ -144,6 +197,15 @@
                 ↓              ↓              ↓
            ArgIterator   run.zig/etc    Bindings    llama_decode   llama_sampling
 </code></pre><p>The flow is intentionally linear with minimal abstraction layers. Each component has a single responsibility, making the system easy to trace and debug.</p><hr><p><em>Architecture documentation generated for igllama v{version}. Built with Zig {zig_version}.</em></p></div>
-    </div>
-  </div>
-</article>
+                </div>
+            </div>
+        </article>
+    </main>
+    <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+        <div class="container mx-auto text-center text-ig-text-muted">
+            <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
+            <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>
+        </div>
+    </footer>
+</body>
+</html>

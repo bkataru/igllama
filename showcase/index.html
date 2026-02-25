@@ -1,8 +1,61 @@
-<article class="section py-20">
-  <div class="container mx-auto px-4">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Qwen3.5-35B-A3B Benchmark Showcase</h1>
-      <div class="prose prose-invert prose-lg max-w-none"><h1>Qwen3.5-35B-A3B Performance Showcase</h1><h2>Why Qwen3.5 MoE Excels on CPU-Only Systems</h2><p>Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a <strong>Mixture of Experts (MoE)</strong> model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.</p><p>The key advantage for CPU deployment lies in this sparsity. While dense 35B models demand substantial compute per token, Qwen3.5’s MoE structure activates only relevant expert networks, dramatically reducing FLOPs per token. Combined with GGUF (Georgi Gerganov Unified Format) quantization, this model runs efficiently on consumer hardware without GPU acceleration.</p><h2>Hardware Configuration</h2><table><tr><th>Component</th><th>Specification</th></tr><tr><td>CPU</td><td>AMD Ryzen 9 7950X (16C/32T)</td></tr><tr><td>RAM</td><td>64GB DDR5-6000</td></tr><tr><td>Storage</td><td>NVMe PCIe 4.0 SSD</td></tr><tr><td>OS</td><td>Windows 11 Pro</td></tr><tr><td>llama.cpp Version</td><td>b5482</td></tr><tr><td>Threads</td><td>16</td></tr></table><h2>Benchmark Results</h2><h3>Tokens Per Second by Quantization</h3><pre><code>Q4_K_M  ██████████████████████████████░░░░░░  18.4 t/s
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Qwen3.5-35B-A3B Benchmark Showcase</title>
+    <meta name="description" :content="Comprehensive performance benchmarks for Qwen3.5-35B-A3B MoE model">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ig-bg': '#0a0a0f',
+                        'ig-surface': '#12121a',
+                        'ig-neon-orange': '#ff6b35',
+                        'ig-neon-cyan': '#00f5d4',
+                        'ig-neon-purple': '#9d4edd',
+                        'ig-text': '#e0e0e0',
+                        'ig-text-muted': '#a0a0a0',
+                    },
+                    boxShadow: {
+                        'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
+                        'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
+                        'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #0a0a0f; color: #e0e0e0; }
+        .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
+        .cyber-grid {
+            background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+    </style>
+</head>
+<body class="bg-ig-bg text-ig-text">
+    <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="/igllama/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
+            <div class="flex gap-6">
+                <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+                <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+                <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+                <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+                <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container mx-auto p-4 cyber-grid min-h-screen">
+        <article class="section py-20">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Qwen3.5-35B-A3B Benchmark Showcase</h1>
+                    <div class="prose prose-invert prose-lg max-w-none"><h1>Qwen3.5-35B-A3B Performance Showcase</h1><h2>Why Qwen3.5 MoE Excels on CPU-Only Systems</h2><p>Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a <strong>Mixture of Experts (MoE)</strong> model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.</p><p>The key advantage for CPU deployment lies in this sparsity. While dense 35B models demand substantial compute per token, Qwen3.5’s MoE structure activates only relevant expert networks, dramatically reducing FLOPs per token. Combined with GGUF (Georgi Gerganov Unified Format) quantization, this model runs efficiently on consumer hardware without GPU acceleration.</p><h2>Hardware Configuration</h2><table><tr><th>Component</th><th>Specification</th></tr><tr><td>CPU</td><td>AMD Ryzen 9 7950X (16C/32T)</td></tr><tr><td>RAM</td><td>64GB DDR5-6000</td></tr><tr><td>Storage</td><td>NVMe PCIe 4.0 SSD</td></tr><tr><td>OS</td><td>Windows 11 Pro</td></tr><tr><td>llama.cpp Version</td><td>b5482</td></tr><tr><td>Threads</td><td>16</td></tr></table><h2>Benchmark Results</h2><h3>Tokens Per Second by Quantization</h3><pre><code>Q4_K_M  ██████████████████████████████░░░░░░  18.4 t/s
 Q5_K_M  ████████████████████████████████░░░░  16.2 t/s
 Q6_K    ██████████████████████████████████░░  14.7 t/s
 Q8_0    ████████████████████████████████████  13.1 t/s
@@ -20,6 +73,15 @@ Q5_K_M: ████████████████████████
 Q6_K:   ██████████████████████████████████░░ 14.7 t/s
 Q8_0:   ████████████████████████████████████ 13.1 t/s
 </code></pre><h2>Conclusion</h2><p>Qwen3.5-35B-A3B represents the sweet spot for CPU-only deployments. The combination of MoE architecture, efficient GGUF quantization, and llama.cpp optimization delivers production-ready performance without GPU requirements. For developers building local AI applications, this model offers an excellent balance of speed, quality, and resource efficiency.</p><p>Ready to deploy? Grab the GGUF from HuggingFace and start generating.</p></div>
-    </div>
-  </div>
-</article>
+                </div>
+            </div>
+        </article>
+    </main>
+    <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+        <div class="container mx-auto text-center text-ig-text-muted">
+            <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
+            <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>
+        </div>
+    </footer>
+</body>
+</html>

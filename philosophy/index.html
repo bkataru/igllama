@@ -1,8 +1,70 @@
-<article class="section py-20">
-  <div class="container mx-auto px-4">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Philosophy</h1>
-      <div class="prose prose-invert prose-lg max-w-none"><h1>Our Philosophy</h1><p>Why igllama exists and the principles that guide its development.</p><h2>Built on the Shoulders of Giants</h2><p>igllama stands on the foundation laid by incredible open-source projects and communities:</p><ul><li><a href="https://github.com/ggerganov/llama.cpp" target="_blank">llama.cpp</a> by Georgi Gerganov - the foundational C++ library for efficient local LLM inference</li><li>The <strong>GGML</strong> team for the tensor library that powers llama.cpp</li><li>The open-source AI community for developing and sharing model weights in GGUF format</li></ul><h2>Why Zig?</h2><p>We chose Zig as the implementation language for critical technical reasons:</p><h3>No Garbage Collection</h3><p>Zig provides manual memory management without hidden allocator calls or GC pauses. For a CLI tool that loads multi-gigabyte models and generates tokens in tight loops, predictable memory behavior is essential. Every allocation is explicit, making it easier to reason about memory usage and avoid leaks.</p><h3>First-Class C Interop</h3><p>llama.cpp is written in C++, but exposes a C API. Zig can directly <code>@cImport</code> C headers without writing any bindings by hand. This means:</p><ul><li>No FFI overhead</li><li>Automatic type translation</li><li>Compile-time verification that our calls match the C API</li></ul><h3>Build System Integration</h3><p>Zig’s built-in build system can compile C/C++ code with the same toolchain. We compile llama.cpp directly into igllama without needing CMake, Make, or external dependencies. A single <code>zig build</code> produces a statically-linked binary.</p><h3>Cross-Compilation</h3><p>Zig can cross-compile to any target from any host. This makes it straightforward to produce binaries for Linux, macOS, and Windows from a single development machine.</p><h3>Safety Without Runtime Cost</h3><p>Zig catches many classes of bugs at compile time (undefined behavior, integer overflow in debug builds) while generating code as fast as C. There’s no hidden runtime - what you write is what runs.</p><h2>Why GGUF?</h2><p>igllama exclusively supports the GGUF (GPT-Generated Unified Format) model format:</p></div>
-    </div>
-  </div>
-</article>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Philosophy</title>
+    <meta name="description" :content="Why igllama exists - local-first, transparent, simple, Unix-like, Zig-native, GGUF-exclusive">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ig-bg': '#0a0a0f',
+                        'ig-surface': '#12121a',
+                        'ig-neon-orange': '#ff6b35',
+                        'ig-neon-cyan': '#00f5d4',
+                        'ig-neon-purple': '#9d4edd',
+                        'ig-text': '#e0e0e0',
+                        'ig-text-muted': '#a0a0a0',
+                    },
+                    boxShadow: {
+                        'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
+                        'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
+                        'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #0a0a0f; color: #e0e0e0; }
+        .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
+        .cyber-grid {
+            background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+    </style>
+</head>
+<body class="bg-ig-bg text-ig-text">
+    <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="/igllama/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
+            <div class="flex gap-6">
+                <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+                <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+                <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+                <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+                <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container mx-auto p-4 cyber-grid min-h-screen">
+        <article class="section py-20">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Philosophy</h1>
+                    <div class="prose prose-invert prose-lg max-w-none"><h1>Our Philosophy</h1><p>Why igllama exists and the principles that guide its development.</p><h2>Built on the Shoulders of Giants</h2><p>igllama stands on the foundation laid by incredible open-source projects and communities:</p><ul><li><a href="https://github.com/ggerganov/llama.cpp" target="_blank">llama.cpp</a> by Georgi Gerganov - the foundational C++ library for efficient local LLM inference</li><li>The <strong>GGML</strong> team for the tensor library that powers llama.cpp</li><li>The open-source AI community for developing and sharing model weights in GGUF format</li></ul><h2>Why Zig?</h2><p>We chose Zig as the implementation language for critical technical reasons:</p><h3>No Garbage Collection</h3><p>Zig provides manual memory management without hidden allocator calls or GC pauses. For a CLI tool that loads multi-gigabyte models and generates tokens in tight loops, predictable memory behavior is essential. Every allocation is explicit, making it easier to reason about memory usage and avoid leaks.</p><h3>First-Class C Interop</h3><p>llama.cpp is written in C++, but exposes a C API. Zig can directly <code>@cImport</code> C headers without writing any bindings by hand. This means:</p><ul><li>No FFI overhead</li><li>Automatic type translation</li><li>Compile-time verification that our calls match the C API</li></ul><h3>Build System Integration</h3><p>Zig’s built-in build system can compile C/C++ code with the same toolchain. We compile llama.cpp directly into igllama without needing CMake, Make, or external dependencies. A single <code>zig build</code> produces a statically-linked binary.</p><h3>Cross-Compilation</h3><p>Zig can cross-compile to any target from any host. This makes it straightforward to produce binaries for Linux, macOS, and Windows from a single development machine.</p><h3>Safety Without Runtime Cost</h3><p>Zig catches many classes of bugs at compile time (undefined behavior, integer overflow in debug builds) while generating code as fast as C. There’s no hidden runtime - what you write is what runs.</p><h2>Why GGUF?</h2><p>igllama exclusively supports the GGUF (GPT-Generated Unified Format) model format:</p></div>
+                </div>
+            </div>
+        </article>
+    </main>
+    <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+        <div class="container mx-auto text-center text-ig-text-muted">
+            <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
+            <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>
+        </div>
+    </footer>
+</body>
+</html>
