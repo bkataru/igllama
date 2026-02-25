@@ -1,0 +1,278 @@
+---
+.title = "CLI Reference",
+.layout = "docs.shtml",
+.description = "Complete reference for all igllama CLI commands, flags, and options",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# CLI Reference
+
+Complete reference for all igllama commands. GGUF stands for "Georgi Gerganov Unified Format", the standard model format for llama.cpp-compatible inference engines.
+
+## Command Overview
+
+| Command | Description |
+|---------|-------------|
+| `help` | Show usage information |
+| `version` | Show version information |
+| `pull` | Download model from HuggingFace Hub |
+| `list` | List all cached models |
+| `run` | Run single-turn inference |
+| `chat` | Interactive multi-turn chat session |
+| `import` | Import local GGUF file to cache |
+| `api` | Start OpenAI-compatible API server |
+| `show` | Display GGUF file metadata |
+| `rm` | Remove a cached model |
+| `serve` | Manage llama-server lifecycle |
+
+## help
+
+Display usage information and available commands.
+
+```bash
+igllama help
+igllama --help
+igllama -h
+```
+
+## version
+
+Display the current igllama version.
+
+```bash
+igllama version
+igllama --version
+igllama -v
+```
+
+## pull
+
+Download models from HuggingFace Hub with progress bar and resume support.
+
+```bash
+# List available GGUF files
+igllama pull bartowski/Llama-3-8B-Instruct-GGUF
+
+# Download specific file
+igllama pull bartowski/Llama-3-8B-Instruct-GGUF --file Llama-3-8B-Instruct-Q4_K_M.gguf
+
+# Force re-download
+igllama pull bartowski/Llama-3-8B-Instruct-GGUF --file model.gguf --force
+```
+
+| Flag | Description |
+|------|-------------|
+| `-f, --file` | Download specific file from repository |
+| `-F, --force` | Force re-download even if file exists |
+| `-q, --quiet` | Suppress progress output |
+
+## list
+
+List all downloaded models in the cache.
+
+```bash
+igllama list
+igllama ls
+```
+
+## run
+
+Run single-turn inference on a model.
+
+```bash
+igllama run model.gguf --prompt "Hello, world!"
+igllama run model.gguf -p "Explain quantum computing" --gpu-layers 35
+igllama run model.gguf -p "List 3 items" --grammar-file json
+```
+
+| Flag | Description |
+|------|-------------|
+| `-p, --prompt` | Prompt text (required) |
+| `-n, --max-tokens` | Max tokens to generate (default: 512) |
+| `-ngl, --gpu-layers` | GPU layers to offload (default: 0) |
+| `-g, --grammar` | GBNF grammar string for constrained output |
+| `-gf, --grammar-file` | Path to GBNF grammar file |
+
+## chat
+
+Interactive multi-turn chat with conversation history and session management.
+
+```bash
+igllama chat model.gguf
+igllama chat model.gguf --system "You are a helpful coding assistant"
+igllama chat model.gguf --template llama3
+igllama chat model.gguf --prompt "Explain recursion" --json
+igllama chat model.gguf --resume session_name
+igllama chat model.gguf --temp 0.8 --top-p 0.9 --top-k 40
+```
+
+| Flag | Description |
+|------|-------------|
+| `-s, --system` | Set system prompt |
+| `-t, --template` | Chat template: auto, chatml, llama3, mistral, gemma, phi3, qwen |
+| `-n, --max-tokens` | Max tokens per response (default: 2048) |
+| `-c, --context-size` | Context size (default: model training size) |
+| `-p, --prompt` | Single-turn mode (non-interactive) |
+| `--json` | Output response as JSON |
+| `-q, --quiet` | Suppress model loading logs |
+| `-ngl, --gpu-layers` | GPU layers to offload (default: 0) |
+| `--temp` | Temperature (default: 0.7, 0=greedy) |
+| `--top-p` | Top-p nucleus sampling (default: 0.9) |
+| `--top-k` | Top-k sampling (default: 40) |
+| `--repeat-penalty` | Repetition penalty (default: 1.1) |
+| `--seed` | Random seed (default: 0=random) |
+| `--grammar` | GBNF grammar string |
+| `--grammar-file` | Path to GBNF grammar file |
+| `--no-save` | Disable auto-save sessions |
+| `--resume` | Resume session from file |
+
+### Chat Subcommands
+
+In-chat commands available during interactive sessions:
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/quit`, `/exit` | Exit the chat session |
+| `/clear` | Clear conversation history and KV cache |
+| `/save <name>` | Save session to file |
+| `/load <name>` | Load a saved session |
+| `/sessions` | List all saved sessions |
+| `/system <text>` | Set or update system prompt |
+| `/tokens` | Show token usage statistics |
+| `/stats` | Show generation statistics |
+| `/template <name>` | Switch chat template |
+
+## import
+
+Import local GGUF files into the model cache.
+
+```bash
+igllama import /path/to/model.gguf
+igllama import /path/to/model.gguf --copy
+igllama import /path/to/model.gguf --alias my-model
+```
+
+| Flag | Description |
+|------|-------------|
+| `--copy` | Copy file to cache |
+| `--symlink, --link` | Create symlink to source |
+| `--alias, -a` | Create named alias for quick access |
+
+## api
+
+Start OpenAI-compatible REST API server with streaming support.
+
+```bash
+igllama api model.gguf
+igllama api model.gguf --host 0.0.0.0 --port 3000
+igllama api model.gguf --gpu-layers -1
+```
+
+| Flag | Description |
+|------|-------------|
+| `-m, --model` | Path to GGUF model file (required) |
+| `-p, --port` | Server port (default: 8080) |
+| `-h, --host` | Server host (default: 127.0.0.1) |
+| `-c, --ctx-size` | Context size (default: 4096) |
+| `-n, --max-tokens` | Max tokens per response (default: 2048) |
+| `-ngl, --gpu-layers` | GPU layers to offload (default: 0) |
+| `--temp` | Temperature (default: 0.7) |
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/v1/models` | GET | List available models |
+| `/v1/chat/completions` | POST | Chat completions (streaming supported) |
+| `/v1/embeddings` | POST | Generate embeddings |
+
+```bash
+# Chat completion
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Hello!"}],"stream":false}'
+
+# Streaming
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Story"}],"stream":true}'
+```
+
+## show
+
+Display GGUF file metadata including version, tensor count, and architecture.
+
+```bash
+igllama show model.gguf
+igllama show ./models/llama-3-8b.gguf
+```
+
+## rm
+
+Remove a downloaded model from the cache.
+
+```bash
+igllama rm bartowski/Llama-3-8B-Instruct-GGUF
+igllama remove bartowski/Llama-3-8B-Instruct-GGUF
+```
+
+## serve
+
+Manage llama-server lifecycle for API access.
+
+```bash
+igllama serve start -m model.gguf
+igllama serve start -m model.gguf --port 8080
+igllama serve status
+igllama serve logs
+igllama serve logs --follow
+igllama serve stop
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `start -m <model>` | Start llama-server with model |
+| `stop` | Stop running server |
+| `status` | Show server status |
+| `logs [--follow]` | View server logs |
+| `help` | Show serve help |
+
+### Serve Start Options
+
+| Flag | Description |
+|------|-------------|
+| `--model, -m` | Path to GGUF model file (required) |
+| `--port` | Server port (default: 8080) |
+| `--host` | Server host (default: 127.0.0.1) |
+| `--ctx-size` | Context size (default: 2048) |
+| `--n-gpu-layers` | Number of GPU layers (default: 0) |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `IGLLAMA_HOME` | Base directory for models (default: ~/.cache/huggingface) |
+| `HF_TOKEN` | HuggingFace API token for private/gated models |
+| `HF_HOME` | Custom HuggingFace cache directory |
+
+## Examples
+
+```bash
+# Download and run
+igllama pull bartowski/Llama-3-8B-Instruct-GGUF
+igllama run bartowski/Llama-3-8B-Instruct-GGUF --prompt "Hello!"
+
+# Chat with template
+igllama chat model.gguf --template chatml --system "You are helpful"
+
+# API server
+igllama api model.gguf --port 8080
+curl http://localhost:8080/v1/chat/completions -d '{"messages":[{"role":"user","content":"Hi"}]}'
+
+# Import with alias
+igllama import ~/models/custom.gguf --alias my-custom
+igllama chat my-custom
+```

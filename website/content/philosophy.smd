@@ -1,0 +1,52 @@
+---
+.title = "Philosophy",
+.layout = "page.shtml",
+.description = "Why igllama exists - local-first, transparent, simple, Unix-like, Zig-native, GGUF-exclusive",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# Our Philosophy
+
+Why igllama exists and the principles that guide its development.
+
+## Built on the Shoulders of Giants
+
+igllama stands on the foundation laid by incredible open-source projects and communities:
+
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) by Georgi Gerganov - the foundational C++ library for efficient local LLM inference
+- The **GGML** team for the tensor library that powers llama.cpp
+- The open-source AI community for developing and sharing model weights in GGUF format
+
+## Why Zig?
+
+We chose Zig as the implementation language for critical technical reasons:
+
+### No Garbage Collection
+
+Zig provides manual memory management without hidden allocator calls or GC pauses. For a CLI tool that loads multi-gigabyte models and generates tokens in tight loops, predictable memory behavior is essential. Every allocation is explicit, making it easier to reason about memory usage and avoid leaks.
+
+### First-Class C Interop
+
+llama.cpp is written in C++, but exposes a C API. Zig can directly `@cImport` C headers without writing any bindings by hand. This means:
+
+- No FFI overhead
+- Automatic type translation
+- Compile-time verification that our calls match the C API
+
+### Build System Integration
+
+Zig's built-in build system can compile C/C++ code with the same toolchain. We compile llama.cpp directly into igllama without needing CMake, Make, or external dependencies. A single `zig build` produces a statically-linked binary.
+
+### Cross-Compilation
+
+Zig can cross-compile to any target from any host. This makes it straightforward to produce binaries for Linux, macOS, and Windows from a single development machine.
+
+### Safety Without Runtime Cost
+
+Zig catches many classes of bugs at compile time (undefined behavior, integer overflow in debug builds) while generating code as fast as C. There's no hidden runtime - what you write is what runs.
+
+## Why GGUF?
+
+igllama exclusively supports the GGUF (GPT-Generated Unified Format) model format:
+
