@@ -1,3 +1,19 @@
+
+
+<div align="center">
+
+
+
+<!-- Logo SVG -->
+
+<img src="website/static/svg/logo.svg" alt="igllama logo" width="200" height="200" />
+
+
+
+</div>
+
+
+
 # igllama
 
 [![Zig](https://img.shields.io/badge/Zig-0.15%2B-orange)](https://ziglang.org/)
