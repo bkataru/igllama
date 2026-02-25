@@ -1,13 +1,13 @@
 ---
-.title = "igllama vs Ollama: A Technical Comparison",
-.layout = "home.shtml", 
+.title = "igllama vs Ollama: Choosing Your Local LLM Runner",
+.layout = "home.shtml",
 .description = "A factual comparison between igllama and Ollama for running LLMs locally",
 .author = "igllama Team",
 .date = "2026-02-25",
 ---
-# igllama vs Ollama: Choosing Your Local LLM Runner
 
-Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches. This comparison helps you understand which tool fits your needs.
+Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches.
+Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches.
 
 ## What is GGUF?
 
