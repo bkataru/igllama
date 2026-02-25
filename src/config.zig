@@ -763,7 +763,7 @@ pub const Config = struct {
 };
 
 /// Version information
-pub const version = "0.2.0";
+pub const version = "0.3.1";
 pub const app_name = "igllama";
 pub const app_description = "A Zig-based Ollama alternative for GGUF model management";
 
