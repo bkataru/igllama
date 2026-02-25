@@ -1,0 +1,182 @@
+---
+.title = "API Server",
+.layout = "docs.shtml",
+.description = "OpenAI-compatible API server documentation with endpoints, examples, and streaming support",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# API Server Documentation
+
+igllama provides an OpenAI-compatible REST API server for GGUF models with streaming support.
+
+GGUF stands for "Georgi Gerganov Unified Format", the standard model format for llama.cpp.
+
+## Quick Start
+
+```bash
+igllama api model.gguf
+igllama api model.gguf --host 0.0.0.0 --port 3000
+igllama api model.gguf --gpu-layers 35
+```
+
+## Server Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--model` | `-m` | (required) | Path to GGUF model |
+| `--host` | `-h` | `127.0.0.1` | Server host |
+| `--port` | `-p` | `8080` | Server port |
+| `--gpu-layers` | `-ngl` | `0` | GPU layers (-1 for all) |
+
+## /v1/chat/completions
+
+**Method:** `POST`
+
+**Request:**
+```json
+{"model":"default","messages":[{"role":"user","content":"Hello!"}],"stream":false}
+```
+
+**Response:**
+```json
+{"id":"chatcmpl-123","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"Hi!"},"finish_reason":"stop"}]}
+```
+
+**curl:**
+```bash
+curl http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"default","messages":[{"role":"user","content":"Hi"}]}'
+```
+
+### Streaming
+
+Set `stream: true` for SSE streaming:
+
+```bash
+curl http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"default","messages":[{"role":"user","content":"Hi"}],"stream":true}'
+```
+
+Stream format:
+```
+data: {"id":"chatcmpl-123","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}
+data: [DONE]
+```
+
+## /v1/embeddings
+
+**Method:** `POST`
+
+**Request:**
+```json
+{"model":"default","input":["Hello world"]}
+```
+
+**Response:**
+```json
+{"object":"list","data":[{"object":"embedding","index":0,"embedding":[0.123,-0.456]}],"usage":{"prompt_tokens":2,"total_tokens":2}}
+```
+
+**curl:**
+```bash
+curl http://localhost:8080/v1/embeddings -H "Content-Type: application/json" -d '{"model":"default","input":"Hello"}'
+```
+
+## /health
+
+**Method:** `GET`
+
+**Response:** `{"status":"ok","model":"loaded"}`
+
+```bash
+curl http://localhost:8080/health
+```
+
+## Error Handling
+
+| Status | Description |
+|--------|-------------|
+| 200 | Success |
+| 400 | Invalid request |
+| 404 | Not found |
+| 500 | Server error |
+
+## CORS
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+```
+
+## Examples
+
+### Python (Non-streaming)
+
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8080/v1/chat/completions",
+    json={
+        "model": "default",
+        "messages": [
+            {"role": "system", "content": "You are helpful."},
+            {"role": "user", "content": "Hello!"}
+        ],
+        "max_tokens": 100
+    }
+)
+
+print(response.json()["choices"][0]["message"]["content"])
+```
+
+### Python (Streaming)
+
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8080/v1/chat/completions",
+    json={"model": "default", "messages": [{"role": "user", "content": "Hello"}], "stream": True},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        print(line.decode())
+```
+
+### JavaScript (Streaming)
+
+```javascript
+const response = await fetch('http://localhost:8080/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'default', messages: [{ role: 'user', content: 'Hi' }], stream: true })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  for (const line of decoder.decode(value).split('\n')) {
+    if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+      console.log(JSON.parse(line.slice(6)).choices[0].delta.content);
+    }
+  }
+}
+```
+
+## Performance Tips
+
+1. Use `--gpu-layers -1` to offload all layers to GPU for maximum speed
+2. Reduce context size for faster responses with shorter conversations
+3. Use streaming for better perceived latency in chat applications
+4. Batch multiple inputs in embeddings requests when possible
+
+## Model Compatibility
+
+The API server works with any GGUF model file. GGUF (Georgi Gerganov Unified Format) is the standard format for llama.cpp-compatible models including Llama, Mistral, Qwen, Phi, and Gemma families.
+
+For best results, use models with chat templates for multi-turn conversations.

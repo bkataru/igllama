@@ -1,0 +1,13 @@
+.{
+    .name = .igllama_website,
+    .version = "0.1.0",
+    .fingerprint = 0x1bc00682e6855323,
+    .minimum_zig_version = "0.15.0",
+    .dependencies = .{
+        .zine = .{
+            .url = "https://github.com/kristoff-it/zine/archive/refs/tags/v0.11.2.tar.gz",
+            .hash = "zine-0.11.2-ou6nINh3FgANNoH-3RUaEWOc3ax5zfWiL8a4lt4hDhpG",
+        },
+    },
+    .paths = .{"."},
+}

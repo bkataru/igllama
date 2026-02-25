@@ -1,0 +1,238 @@
+---
+.title = "Architecture",
+.layout = "page.shtml",
+.description = "Deep dive into igllama's technical architecture and design philosophy",
+.author = "igllama team",
+.date = "2026-02-25",
+---
+
+# System Architecture
+
+igllama is built on a **Zig-first** philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions. This approach delivers zero-overhead bindings, compile-time safety, and seamless integration with the Zig ecosystem.
+
+## High-Level Overview
+
+The architecture follows a clean layered design, from your terminal to the neural network weights.
+
+```html
+<svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff0;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0ff" />
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="280" fill="#0a0a0f" rx="8"/>
+  
+  <!-- User Layer -->
+  <rect x="150" y="20" width="300" height="50" fill="#1a1a2e" stroke="#0ff" stroke-width="2" rx="6"/>
+  <text x="300" y="50" text-anchor="middle" fill="#0ff" font-family="monospace" font-size="14">igllama CLI</text>
+  
+  <!-- Arrow -->
+  <line x1="300" y1="70" x2="300" y2="95" stroke="#0ff" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Zig Layer -->
+  <rect x="150" y="100" width="300" height="60" fill="#1a1a2e" stroke="url(#grad1)" stroke-width="2" rx="6"/>
+  <text x="300" y="125" text-anchor="middle" fill="#f0f" font-family="monospace" font-size="14">llama.cpp.zig</text>
+  <text x="300" y="145" text-anchor="middle" fill="#888" font-family="monospace" font-size="10">Zig Bindings + abstractions</text>
+  
+  <!-- Arrow -->
+  <line x1="300" y1="160" x2="300" y2="185" stroke="#f0f" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- C Core Layer -->
+  <rect x="150" y="190" width="300" height="60" fill="#1a1a2e" stroke="url(#grad2)" stroke-width="2" rx="6"/>
+  <text x="300" y="215" text-anchor="middle" fill="#ff0" font-family="monospace" font-size="14">llama.cpp (C Core)</text>
+  <text x="300" y="235" text-anchor="middle" fill="#888" font-family="monospace" font-size="10">Neural network inference</text>
+  
+  <!-- Side labels -->
+  <text x="20" y="50" fill="#0ff" font-family="monospace" font-size="12">USER</text>
+  <text x="20" y="135" fill="#f0f" font-family="monospace" font-size="12">ZIG</text>
+  <text x="20" y="225" fill="#ff0" font-family="monospace" font-size="12">C CORE</text>
+</svg>
+```
+
+## Component Breakdown
+
+### main.zig — The Entry Point
+
+The `main.zig` file serves as the command center, parsing CLI arguments and routing to appropriate command handlers. It uses Zig's `std.ArgIterator` for argument parsing and manages the application lifecycle.
+
+Key responsibilities:
+- Command routing (run, convert, info)
+- Global flag parsing (`--verbose`, `--help`)
+- Error handling and exit codes
+- Resource cleanup via defer statements
+
+### commands/ — Modular Command Handlers
+
+Each command lives in its own module under `commands/`:
+
+| Command | Module | Purpose |
+|---------|--------|---------|
+| `run` | `commands/run.zig` | Interactive chat and completion |
+| `convert` | `commands/convert.zig` | Model format conversion |
+| `info` | `commands/info.zig` | GGUF metadata inspection |
+
+This modular design keeps concerns separated and makes the codebase navigable.
+
+### llama.cpp.zig — Zero-Overhead Bindings
+
+The `llama.cpp.zig` module provides idiomatic Zig wrappers around llama.cpp's C API. These bindings use Zig's `extern struct` for memory layout compatibility and `comptime` for compile-time checks.
+
+```zig
+pub const Context = extern struct {
+    ptr: *llama_context,
+    
+    pub fn decode(self: Context, batch: *Batch) !void {
+        const ret = llama_decode(self.ptr, batch.*);
+        if (ret != 0) return error.DecodeFailed;
+    }
+};
+```
+
+The bindings maintain binary compatibility while adding Zig's type safety and error handling.
+
+## GGUF File Structure
+
+GGUF (Georgi Gerganov Unified Format) is the binary container format for model weights and metadata. Named after Georgi Gerganov, the creator of llama.cpp, it's optimized for fast loading and memory mapping.
+
+```html
+<svg viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2d2d44;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0ff" />
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="340" fill="#0a0a0f" rx="8"/>
+  <text x="300" y="30" text-anchor="middle" fill="#fff" font-family="monospace" font-size="16">GGUF File Layout</text>
+  
+  <!-- Magic Number -->
+  <rect x="50" y="50" width="500" height="40" fill="url(#headerGrad)" stroke="#0ff" stroke-width="2" rx="4"/>
+  <text x="70" y="75" fill="#0ff" font-family="monospace" font-size="12">Magic: 0x46554747 ("GGUF")</text>
+  <text x="520" y="75" text-anchor="end" fill="#888" font-family="monospace" font-size="10">4 bytes</text>
+  
+  <!-- Version -->
+  <rect x="50" y="100" width="500" height="40" fill="#1a1a2e" stroke="#f0f" stroke-width="2" rx="4"/>
+  <text x="70" y="125" fill="#f0f" font-family="monospace" font-size="12">Version: uint32</text>
+  <text x="520" y="125" text-anchor="end" fill="#888" font-family="monospace" font-size="10">4 bytes</text>
+  
+  <!-- Tensor Count -->
+  <rect x="50" y="150" width="500" height="40" fill="#1a1a2e" stroke="#ff0" stroke-width="2" rx="4"/>
+  <text x="70" y="175" fill="#ff0" font-family="monospace" font-size="12">Tensor Count: uint64</text>
+  <text x="520" y="175" text-anchor="end" fill="#888" font-family="monospace" font-size="10">8 bytes</text>
+  
+  <!-- Metadata -->
+  <rect x="50" y="200" width="500" height="40" fill="#2d1a2e" stroke="#0f0" stroke-width="2" rx="4"/>
+  <text x="70" y="225" fill="#0f0" font-family="monospace" font-size="12">Metadata KV Pairs</text>
+  <text x="520" y="225" text-anchor="end" fill="#888" font-family="monospace" font-size="10">variable</text>
+  
+  <!-- Tensor Info -->
+  <rect x="50" y="250" width="500" height="40" fill="#1a2d2e" stroke="#f00" stroke-width="2" rx="4"/>
+  <text x="70" y="275" fill="#f00" font-family="monospace" font-size="12">Tensor Info (name, type, offset)</text>
+  <text x="520" y="275" text-anchor="end" fill="#888" font-family="monospace" font-size="10">variable</text>
+  
+  <!-- Tensor Data -->
+  <rect x="50" y="300" width="500" height="30" fill="#0a1a2e" stroke="#888" stroke-width="1" rx="4"/>
+  <text x="300" y="320" text-anchor="middle" fill="#888" font-family="monospace" font-size="12">Tensor Data (aligned, memory-mappable)</text>
+</svg>
+```
+
+The format prioritizes:
+- **Fast loading** via memory mapping
+- **Self-describing** metadata in human-readable form
+- **Alignment** for direct memory access
+- **Version tolerance** for forward compatibility
+
+## Memory Layout During Model Loading
+
+When igllama loads a model, memory is organized in a specific pattern to maximize efficiency and enable zero-copy operations where possible.
+
+```html
+<svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="memGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d1a4e;stop-opacity:1" />
+    </linearGradient>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 20 20 M 0 20 L 20 20" fill="none" stroke="#1a1a2e" stroke-width="1"/>
+    </pattern>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="380" fill="#0a0a0f" rx="8"/>
+  <rect width="600" height="380" fill="url(#grid)" rx="8"/>
+  <text x="300" y="30" text-anchor="middle" fill="#fff" font-family="monospace" font-size="16">Memory Layout (Top-Down)</text>
+  
+  <!-- Stack (high addresses) -->
+  <rect x="50" y="50" width="500" height="50" fill="#2d1a4e" stroke="#f0f" stroke-width="2" rx="4"/>
+  <text x="300" y="70" text-anchor="middle" fill="#f0f" font-family="monospace" font-size="12">Stack (CLI args, local vars)</text>
+  <text x="520" y="70" fill="#888" font-family="monospace" font-size="10">↓ grows down</text>
+  
+  <!-- Heap allocations -->
+  <rect x="50" y="120" width="500" height="60" fill="#1a2d4e" stroke="#0ff" stroke-width="2" rx="4"/>
+  <text x="300" y="145" text-anchor="middle" fill="#0ff" font-family="monospace" font-size="12">Heap: Zig Allocator</text>
+  <text x="300" y="165" text-anchor="middle" fill="#888" font-family="monospace" font-size="10">(contexts, batch buffers, KV cache)</text>
+  
+  <!-- Mapped GGUF -->
+  <rect x="50" y="200" width="500" height="80" fill="#1a4e2d" stroke="#0f0" stroke-width="2" rx="4"/>
+  <text x="300" y="230" text-anchor="middle" fill="#0f0" font-family="monospace" font-size="12">Memory-Mapped GGUF</text>
+  <text x="300" y="255" text-anchor="middle" fill="#888" font-family="monospace" font-size="10">(read-only, zero-copy tensor access)</text>
+  
+  <!-- C heap (llama.cpp) -->
+  <rect x="50" y="300" width="500" height="50" fill="#4e1a2d" stroke="#f00" stroke-width="2" rx="4"/>
+  <text x="300" y="330" text-anchor="middle" fill="#f00" font-family="monospace" font-size="12">C Heap (llama.cpp internal)</text>
+  
+  <!-- Ground -->
+  <rect x="50" y="365" width="500" height="4" fill="#333"/>
+  <text x="520" y="370" fill="#888" font-family="monospace" font-size="10">↑ grows up</text>
+</svg>
+```
+
+Key memory regions:
+
+1. **Stack**: Small, fast allocations for CLI parsing and control flow
+2. **Heap**: Zig allocator manages contexts, batch buffers, and KV cache
+3. **Memory-Mapped GGUF**: Direct file mapping for zero-copy tensor reads
+4. **C Heap**: llama.cpp's internal allocations (managed via `llama_free`)
+
+## The Zig-First Advantage
+
+Why wrap C in Zig instead of writing pure Zig? Three reasons:
+
+**Performance**: llama.cpp's C core is heavily optimized with SIMD intrinsics, multi-threading, and platform-specific tweaks. We inherit all of it.
+
+**Compatibility**: New llama.cpp features drop in without rewriting core inference logic. The bindings layer absorbs API changes.
+
+**Safety**: Zig's type system catches errors at compile time. The C core handles the math, Zig handles the structure.
+
+This hybrid approach gives us the best of both worlds: C's raw performance with Zig's modern tooling and safety guarantees.
+
+## Data Flow
+
+```
+User Input → CLI Parser → Command Handler → llama.cpp.zig → C Core → Token Stream → Output
+                ↓              ↓              ↓
+           ArgIterator   run.zig/etc    Bindings    llama_decode   llama_sampling
+```
+
+The flow is intentionally linear with minimal abstraction layers. Each component has a single responsibility, making the system easy to trace and debug.
+
+---
+
+*Architecture documentation generated for igllama v{version}. Built with Zig {zig_version}.*
