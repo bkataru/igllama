@@ -228,7 +228,7 @@ This hybrid approach gives us the best of both worlds: C's raw performance with 
 #KM|User Input -> CLI Parser -> Command Handler -> llama.cpp.zig -> C Core -> Token Stream -> Output
 #XZ|
 #SZ|  |            |                |             |           |     |          |
-#SZ|  v            v                v             v           v     v          v
+  |            |                |             |           |     |          |
 #SZ|ArgIterator run.zig/etc     Bindings   llama_decode llama_sampling   Result
 #XQ|```
 #XZ|
