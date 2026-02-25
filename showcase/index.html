@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width">
-    <title>Qwen3.5-35B-A3B Benchmark Showcase</title>
-    <meta name="description" :content="Comprehensive performance benchmarks for Qwen3.5-35B-A3B MoE model">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width">
+ <title>Qwen3.5-35B-A3B Benchmark Showcase</title>
+ <meta name="description" :content="Comprehensive performance benchmarks for Qwen3.5-35B-A3B MoE model">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Orbitron:wght@400;500;600;700;800&display=swap" rel="stylesheet">
  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
  <script>
  tailwind.config = {
  theme: {
  extend: {
+ fontFamily: {
+ sans: ['Orbitron', 'sans-serif'],
+ mono: ['Fira Code', 'monospace'],
+ },
  colors: {
  'ig-bg': '#0a0a0f',
  'ig-surface': '#12121a',
@@ -29,34 +36,46 @@
  }
  </script>
  <style>
-    <style>
-        body { background: #0a0a0f; color: #e0e0e0; }
-        .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
-        .cyber-grid {
-            background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-        }
-    </style>
+ body {
+ background: #0a0a0f;
+ color: #e0e0e0;
+ font-family: 'Orbitron', sans-serif;
+ }
+ h1, h2, h3, h4, h5, h6 {
+ font-family: 'Orbitron', sans-serif;
+ }
+ code, pre, kbd, samp {
+ font-family: 'Fira Code', monospace;
+ }
+ .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
+ .cyber-grid {
+ background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
+ background-size: 50px 50px;
+ }
+ </style>
 </head>
 <body class="bg-ig-bg text-ig-text">
-    <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
-        <div class="container mx-auto flex items-center justify-between">
-            <a href="/igllama/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
-            <div class="flex gap-6">
-                <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
-                <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
-                <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
-                <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
-                <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
-            </div>
-        </div>
-    </nav>
-    <main class="container mx-auto p-4 cyber-grid min-h-screen">
-        <article class="section py-20">
-            <div class="container mx-auto px-4">
-                <div class="max-w-4xl mx-auto">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Qwen3.5-35B-A3B Benchmark Showcase</h1>
-  <div class="prose prose-invert prose-lg max-w-none"><h2>Why Qwen3.5 MoE Excels on CPU-Only Systems</h2><h2>Why Qwen3.5 MoE Excels on CPU-Only Systems</h2><p>Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a <strong>Mixture of Experts (MoE)</strong> model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.</p><p>The key advantage for CPU deployment lies in this sparsity. While dense 35B models demand substantial compute per token, Qwen3.5’s MoE structure activates only relevant expert networks, dramatically reducing FLOPs per token. Combined with GGUF (Georgi Gerganov Unified Format) quantization, this model runs efficiently on consumer hardware without GPU acceleration.</p><h2>Hardware Configuration</h2><table><tr><th>Component</th><th>Specification</th></tr><tr><td>CPU</td><td>AMD Ryzen 9 7950X (16C/32T)</td></tr><tr><td>RAM</td><td>64GB DDR5-6000</td></tr><tr><td>Storage</td><td>NVMe PCIe 4.0 SSD</td></tr><tr><td>OS</td><td>Windows 11 Pro</td></tr><tr><td>llama.cpp Version</td><td>b5482</td></tr><tr><td>Threads</td><td>16</td></tr></table><h2>Benchmark Results</h2><h3>Tokens Per Second by Quantization</h3><pre><code>Q4_K_M  ██████████████████████████████░░░░░░  18.4 t/s
+ <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
+ <div class="container mx-auto flex items-center justify-between">
+      <a href="/igllama/" class="flex items-center gap-3 text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">
+        <svg class="h-8 w-8" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><defs><filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1"/><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur3"/><feMerge><feMergeNode in="blur3"/><feMergeNode in="blur2"/><feMergeNode in="blur1"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="llama-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFA500;stop-opacity:1"/><stop offset="50%" style="stop-color:#FF6B00;stop-opacity:1"/><stop offset="100%" style="stop-color:#FF4500;stop-opacity:1"/></linearGradient><linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00FFFF;stop-opacity:1"/><stop offset="100%" style="stop-color:#9333EA;stop-opacity:1"/></linearGradient></defs><circle cx="100" cy="100" r="95" fill="#0a0a0f" stroke="#FFA500" stroke-width="2"><animate attributeName="stroke" values="#FFA500;#00FFFF;#9333EA;#FFA500" dur="4s" repeatCount="indefinite"/></circle><g stroke="#00FFFF" stroke-width="1" fill="none" opacity="0.3"><path d="M40 60 L60 60 L60 80"/><path d="M140 60 L160 60 L160 40"/><path d="M40 140 L60 140 L60 120"/><path d="M140 140 L160 140 L160 160"/><circle cx="40" cy="60" r="3" fill="#00FFFF"/><circle cx="160" cy="40" r="3" fill="#00FFFF"/><circle cx="40" cy="140" r="3" fill="#00FFFF"/><circle cx="160" cy="160" r="3" fill="#00FFFF"/></g><g filter="url(#neon-glow)"><ellipse cx="100" cy="90" rx="35" ry="45" fill="url(#llama-gradient)" opacity="0.9"/><ellipse cx="85" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(-20 85 55)"/><ellipse cx="115" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(20 115 55)"/><ellipse cx="100" cy="110" rx="18" ry="14" fill="url(#llama-gradient)"/><circle cx="94" cy="110" r="3" fill="#0a0a0f"/><circle cx="106" cy="110" r="3" fill="#0a0a0f"/></g><g filter="url(#neon-glow)"><ellipse cx="90" cy="85" rx="6" ry="8" fill="#0a0a0f"/><circle cx="90" cy="85" r="4" fill="#00FFFF"><animate attributeName="r" values="4;3;4" dur="2s" repeatCount="indefinite"/></circle><ellipse cx="110" cy="85" rx="6" ry="8" fill="#0a0a0f"/><circle cx="110" cy="85" r="4" fill="#00FFFF"><animate attributeName="r" values="4;3;4" dur="2s" repeatCount="indefinite"/></circle></g><g stroke="url(#cyber-gradient)" stroke-width="2" fill="none" filter="url(#neon-glow)"><path d="M90 70 L100 65 L110 70"/><circle cx="100" cy="65" r="2" fill="#9333EA"/><path d="M75 95 L85 95"/><path d="M115 95 L125 95"/></g><text x="100" y="35" text-anchor="middle" fill="#FFA500" font-size="14" font-weight="bold" font-family="monospace" filter="url(#neon-glow)">ig</text><text x="100" y="175" text-anchor="middle" fill="#00FFFF" font-size="10" font-family="monospace" filter="url(#neon-glow)">LLAMA</text><g stroke="#9333EA" stroke-width="2" fill="none"><path d="M30 30 L40 30 L40 40"/><path d="M170 30 L160 30 L160 40"/><path d="M30 170 L40 170 L40 160"/><path d="M170 170 L160 170 L160 160"/></g></svg>
+        igllama
+      </a>
+ <div class="flex gap-6">
+ <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+ <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+ <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+ <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+ <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
+ </div>
+ </div>
+ </nav>
+ <main class="container mx-auto p-4 cyber-grid min-h-screen">
+ <article class="section py-20">
+ <div class="container mx-auto px-4">
+ <div class="max-w-4xl mx-auto">
+ <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Qwen3.5-35B-A3B Benchmark Showcase</h1>
+ <div class="prose prose-invert prose-lg max-w-none"><h2>Why Qwen3.5 MoE Excels on CPU-Only Systems 🚀</h2><p>Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a <strong>Mixture of Experts (MoE)</strong> model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.</p><p>The key advantage for CPU deployment lies in this sparsity. While dense 35B models demand substantial compute per token, Qwen3.5’s MoE structure activates only relevant expert networks, dramatically reducing FLOPs per token. Combined with GGUF (Georgi Gerganov Unified Format) quantization, this model runs efficiently on consumer hardware without GPU acceleration.</p><h2>Hardware Configuration</h2><table><tr><th>Component</th><th>Specification</th></tr><tr><td>CPU</td><td>AMD Ryzen 9 7950X (16C/32T)</td></tr><tr><td>RAM</td><td>64GB DDR5-6000</td></tr><tr><td>Storage</td><td>NVMe PCIe 4.0 SSD</td></tr><tr><td>OS</td><td>Windows 11 Pro</td></tr><tr><td>llama.cpp Version</td><td>b5482</td></tr><tr><td>Threads</td><td>16</td></tr></table><h2>Benchmark Results 📊</h2><h3>Tokens Per Second by Quantization</h3><pre><code>Q4_K_M  ██████████████████████████████░░░░░░  18.4 t/s
 Q5_K_M  ████████████████████████████████░░░░  16.2 t/s
 Q6_K    ██████████████████████████████████░░  14.7 t/s
 Q8_0    ████████████████████████████████████  13.1 t/s
@@ -68,21 +87,27 @@ FP16    ████████████████████████
 │ Mixtral-8x22B      │███████████  35GB│
 │ Command R+         │██████████   30GB│
 └─────────────────────────────────────┘
-</code></pre><h3>Context Window Performance</h3><p>Qwen3.5 supports up to 128K context windows. Here is how performance scales:</p><table><tr><th>Context Length</th><th>Tokens/sec</th><th>Memory Delta</th></tr><tr><td>4K</td><td>18.4 t/s</td><td>+0 GB</td></tr><tr><td>8K</td><td>17.9 t/s</td><td>+0.8 GB</td></tr><tr><td>16K</td><td>16.8 t/s</td><td>+2.1 GB</td></tr><tr><td>32K</td><td>14.2 t/s</td><td>+4.8 GB</td></tr><tr><td>64K</td><td>10.6 t/s</td><td>+9.2 GB</td></tr><tr><td>128K</td><td>6.8 t/s</td><td>+18.4 GB</td></tr></table><h2>Why This Matters for CPU Deployment</h2><p><strong>Sparse Activation, Dense Performance</strong>: The 3B active parameter count means each forward pass processes roughly the same compute as a dense 3B model, but with access to 35B parameters of knowledge. This is why Qwen3.5-35B-A3B delivers exceptional tokens per second on CPU-only systems.</p><p><strong>GGUF Quantization Benefits</strong>: GGUF (Georgi Gerganov Unified Format) provides optimized quantization schemes that preserve model quality while reducing memory footprint. The format is specifically designed for llama.cpp, enabling efficient CPU inference with minimal quality degradation.</p><p><strong>Scalable Performance</strong>: As benchmark data shows, even Q4_K_M quantization maintains strong performance at 18.4 tokens per second, making real-time chat applications feasible on consumer hardware.</p><h2>Performance Visualization</h2><pre><code>Tokens/sec by Quantization:
+</code></pre><h3>Context Window Performance</h3><p>Qwen3.5 supports up to 128K context windows. Here is how performance scales:</p><table><tr><th>Context Length</th><th>Tokens/sec</th><th>Memory Delta</th></tr><tr><td>4K</td><td>18.4 t/s</td><td>+0 GB</td></tr><tr><td>8K</td><td>17.9 t/s</td><td>+0.8 GB</td></tr><tr><td>16K</td><td>16.8 t/s</td><td>+2.1 GB</td></tr><tr><td>32K</td><td>14.2 t/s</td><td>+4.8 GB</td></tr><tr><td>64K</td><td>10.6 t/s</td><td>+9.2 GB</td></tr><tr><td>128K</td><td>6.8 t/s</td><td>+18.4 GB</td></tr></table><h2>Why This Matters for CPU Deployment</h2><p><strong>Sparse Activation, Dense Performance</strong>: The 3B active parameter count means each forward pass processes roughly the same compute as a dense 3B model, but with access to 35B parameters of knowledge. This is why Qwen3.5-35B-A3B delivers exceptional tokens per second on CPU-only systems.</p><p><strong>GGUF Quantization Benefits</strong>: GGUF (Georgi Gerganov Unified Format) provides optimized quantization schemes that preserve model quality while reducing memory footprint. The format is specifically designed for llama.cpp, enabling efficient CPU inference with minimal quality degradation.</p><p><strong>Scalable Performance</strong>: As benchmark data shows, even Q4_K_M quantization maintains strong performance at 18.4 tokens per second, making real-time chat applications feasible on consumer hardware.</p><h2>Performance Visualization 📈</h2><pre><code>Tokens/sec by Quantization:
 Q4_K_M: ██████████████████████████████░░░░░░ 18.4 t/s
 Q5_K_M: ████████████████████████████████░░░░ 16.2 t/s
 Q6_K:   ██████████████████████████████████░░ 14.7 t/s
 Q8_0:   ████████████████████████████████████ 13.1 t/s
-</code></pre><h2>Conclusion</h2><p>Qwen3.5-35B-A3B represents the sweet spot for CPU-only deployments. The combination of MoE architecture, efficient GGUF quantization, and llama.cpp optimization delivers production-ready performance without GPU requirements. For developers building local AI applications, this model offers an excellent balance of speed, quality, and resource efficiency.</p><p>Ready to deploy? Grab the GGUF from HuggingFace and start generating.</p></div>
+</code></pre><h2>Conclusion 🎉</h2><p>Qwen3.5-35B-A3B represents the sweet spot for CPU-only deployments. The combination of MoE architecture, efficient GGUF quantization, and llama.cpp optimization delivers production-ready performance without GPU requirements. For developers building local AI applications, this model offers an excellent balance of speed, quality, and resource efficiency.</p><p>Ready to deploy? Grab the GGUF from HuggingFace and start generating.</p></div>
  </div>
  </div>
  </article>
  </main>
  <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
-        <div class="container mx-auto text-center text-ig-text-muted">
-            <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
-            <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>
-        </div>
-    </footer>
+ <div class="container mx-auto text-center text-ig-text-muted">
+ <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
+ <p class="text-sm">
+ <span>© 2026 igllama - </span>
+ <span class="inline-block px-2 py-0.5 bg-gradient-to-r from-ig-neon-orange/10 to-ig-neon-cyan/10 border border-ig-neon-orange/30 rounded text-ig-neon-cyan/80 hover:text-ig-neon-cyan hover:border-ig-neon-cyan/60 transition-all duration-300 cursor-default" title="Georgi Gerganov Unified Format">
+ <span class="bg-clip-text text-transparent bg-gradient-to-r from-ig-neon-orange to-ig-neon-cyan font-semibold">GGUF</span>
+ </span>
+ <span class="text-ig-text-muted/60">inference engine</span>
+ </p>
+ </div>
+ </footer>
 </body>
 </html>

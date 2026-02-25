@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width">
-    <title>igllama vs Ollama: Choosing Your Local LLM Runner</title>
-    <meta name="description" :content="A factual comparison between igllama and Ollama for running LLMs locally">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width">
+ <title>igllama vs Ollama: Choosing Your Local LLM Runner</title>
+ <meta name="description" :content="A factual comparison between igllama and Ollama for running LLMs locally">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Orbitron:wght@400;500;600;700;800&display=swap" rel="stylesheet">
  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
  <script>
  tailwind.config = {
  theme: {
  extend: {
+ fontFamily: {
+ sans: ['Orbitron', 'sans-serif'],
+ mono: ['Fira Code', 'monospace'],
+ },
  colors: {
  'ig-bg': '#0a0a0f',
  'ig-surface': '#12121a',
@@ -29,45 +36,63 @@
  }
  </script>
  <style>
-    <style>
-        body { background: #0a0a0f; color: #e0e0e0; }
-        .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
-        .cyber-grid {
-            background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-        }
-    </style>
+ body {
+ background: #0a0a0f;
+ color: #e0e0e0;
+ font-family: 'Orbitron', sans-serif;
+ }
+ h1, h2, h3, h4, h5, h6 {
+ font-family: 'Orbitron', sans-serif;
+ }
+ code, pre, kbd, samp {
+ font-family: 'Fira Code', monospace;
+ }
+ .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
+ .cyber-grid {
+ background-image: linear-gradient(rgba(0, 245, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 212, 0.1) 1px, transparent 1px);
+ background-size: 50px 50px;
+ }
+ </style>
 </head>
 <body class="bg-ig-bg text-ig-text">
-    <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
-        <div class="container mx-auto flex items-center justify-between">
-            <a href="/igllama/" class="text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">igllama</a>
-            <div class="flex gap-6">
-                <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
-                <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
-                <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
-                <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
-                <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
-            </div>
-        </div>
-    </nav>
-    <main class="container mx-auto p-4 cyber-grid min-h-screen">
-        <article class="section py-20">
-            <div class="container mx-auto px-4">
-                <div class="max-w-4xl mx-auto">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">igllama vs Ollama: Choosing Your Local LLM Runner</h1>
-  <div class="prose prose-invert prose-lg max-w-none"><p>Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches. Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches.</p><h2>What is GGUF?</h2><p>GGUF (Georgi Gerganov Unified Format) is the model format used by both tools. Named after Georgi Gerganov, the creator of llama.cpp, GGUF is optimized for fast loading and inference. It’s not related to GPT - it’s purely a llama.cpp ecosystem format.</p><h2>Core Philosophy</h2><h3>Ollama</h3><p>Ollama prioritizes ease of use and accessibility. It’s designed to “just work” with minimal configuration. You install it, pull a model, and start chatting. The tradeoff is less transparency and control over what happens under the hood.</p><h3>igllama</h3><p>igllama is built for developers who want explicit control and zero hidden complexity. Written entirely in Zig, it gives you full visibility into memory management, build processes, and runtime behavior. It’s for those who prefer clarity over convenience.</p><h2>Feature Comparison</h2><table><tr><th>Feature</th><th>igllama</th><th>Ollama</th></tr><tr><td><strong>Language</strong></td><td>Pure Zig</td><td>Go + Python dependencies</td></tr><tr><td><strong>Memory Management</strong></td><td>Explicit, manual control</td><td>Garbage collected</td></tr><tr><td><strong>Build System</strong></td><td>Zig build integration</td><td>Pre-built binaries</td></tr><tr><td><strong>Dependencies</strong></td><td>None (static linking)</td><td>Python runtime required</td></tr><tr><td><strong>Binary Size</strong></td><td>Minimal (~5-10MB)</td><td>Larger (~100MB+)</td></tr><tr><td><strong>Transparency</strong></td><td>Full source visibility</td><td>Some closed components</td></tr><tr><td><strong>Ease of Use</strong></td><td>Requires Zig knowledge</td><td>Beginner-friendly</td></tr><tr><td><strong>Model Support</strong></td><td>GGUF models</td><td>GGUF + proprietary formats</td></tr><tr><td><strong>API</strong></td><td>Simple REST + CLI</td><td>REST + Python SDK</td></tr><tr><td><strong>Platform Support</strong></td><td>Cross-platform (via Zig)</td><td>Pre-built for major OS</td></tr></table><h2>Technical Differences</h2><h3>Memory Management</h3><p>igllama uses Zig’s explicit memory allocators. You know exactly when memory is allocated and freed. This means predictable performance and the ability to fine-tune for your hardware.</p><p>Ollama relies on Go’s garbage collector, which introduces occasional pauses and less predictable memory usage patterns. For most users this is fine, but power users may notice the overhead.</p><h3>Build and Deployment</h3><p>With igllama, you build from source using Zig’s build system:</p><pre><code class="bash"><span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Drelease-fast</span>
+ <nav class="p-4 bg-ig-surface border-b border-ig-neon-orange/30">
+ <div class="container mx-auto flex items-center justify-between">
+      <a href="/igllama/" class="flex items-center gap-3 text-2xl font-bold text-ig-neon-orange hover:text-ig-neon-cyan transition-colors glow-text">
+        <svg class="h-8 w-8" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><defs><filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1"/><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur3"/><feMerge><feMergeNode in="blur3"/><feMergeNode in="blur2"/><feMergeNode in="blur1"/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="llama-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFA500;stop-opacity:1"/><stop offset="50%" style="stop-color:#FF6B00;stop-opacity:1"/><stop offset="100%" style="stop-color:#FF4500;stop-opacity:1"/></linearGradient><linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00FFFF;stop-opacity:1"/><stop offset="100%" style="stop-color:#9333EA;stop-opacity:1"/></linearGradient></defs><circle cx="100" cy="100" r="95" fill="#0a0a0f" stroke="#FFA500" stroke-width="2"><animate attributeName="stroke" values="#FFA500;#00FFFF;#9333EA;#FFA500" dur="4s" repeatCount="indefinite"/></circle><g stroke="#00FFFF" stroke-width="1" fill="none" opacity="0.3"><path d="M40 60 L60 60 L60 80"/><path d="M140 60 L160 60 L160 40"/><path d="M40 140 L60 140 L60 120"/><path d="M140 140 L160 140 L160 160"/><circle cx="40" cy="60" r="3" fill="#00FFFF"/><circle cx="160" cy="40" r="3" fill="#00FFFF"/><circle cx="40" cy="140" r="3" fill="#00FFFF"/><circle cx="160" cy="160" r="3" fill="#00FFFF"/></g><g filter="url(#neon-glow)"><ellipse cx="100" cy="90" rx="35" ry="45" fill="url(#llama-gradient)" opacity="0.9"/><ellipse cx="85" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(-20 85 55)"/><ellipse cx="115" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(20 115 55)"/><ellipse cx="100" cy="110" rx="18" ry="14" fill="url(#llama-gradient)"/><circle cx="94" cy="110" r="3" fill="#0a0a0f"/><circle cx="106" cy="110" r="3" fill="#0a0a0f"/></g><g filter="url(#neon-glow)"><ellipse cx="90" cy="85" rx="6" ry="8" fill="#0a0a0f"/><circle cx="90" cy="85" r="4" fill="#00FFFF"><animate attributeName="r" values="4;3;4" dur="2s" repeatCount="indefinite"/></circle><ellipse cx="110" cy="85" rx="6" ry="8" fill="#0a0a0f"/><circle cx="110" cy="85" r="4" fill="#00FFFF"><animate attributeName="r" values="4;3;4" dur="2s" repeatCount="indefinite"/></circle></g><g stroke="url(#cyber-gradient)" stroke-width="2" fill="none" filter="url(#neon-glow)"><path d="M90 70 L100 65 L110 70"/><circle cx="100" cy="65" r="2" fill="#9333EA"/><path d="M75 95 L85 95"/><path d="M115 95 L125 95"/></g><text x="100" y="35" text-anchor="middle" fill="#FFA500" font-size="14" font-weight="bold" font-family="monospace" filter="url(#neon-glow)">ig</text><text x="100" y="175" text-anchor="middle" fill="#00FFFF" font-size="10" font-family="monospace" filter="url(#neon-glow)">LLAMA</text><g stroke="#9333EA" stroke-width="2" fill="none"><path d="M30 30 L40 30 L40 40"/><path d="M170 30 L160 30 L160 40"/><path d="M30 170 L40 170 L40 160"/><path d="M170 170 L160 170 L160 160"/></g></svg>
+        igllama
+      </a>
+ <div class="flex gap-6">
+ <a href="/igllama/philosophy/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Philosophy</a>
+ <a href="/igllama/comparison/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Comparison</a>
+ <a href="/igllama/architecture/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Architecture</a>
+ <a href="/igllama/showcase/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Showcase</a>
+ <a href="/igllama/docs/" class="text-ig-text hover:text-ig-neon-cyan transition-colors">Docs</a>
+ </div>
+ </div>
+ </nav>
+ <main class="container mx-auto p-4 cyber-grid min-h-screen">
+ <article class="section py-20">
+ <div class="container mx-auto px-4">
+ <div class="max-w-4xl mx-auto">
+ <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">igllama vs Ollama: Choosing Your Local LLM Runner</h1>
+ <div class="prose prose-invert prose-lg max-w-none"><p>Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches.</p><h2>What is GGUF? 📜</h2><p>GGUF (Georgi Gerganov Unified Format) is the model format used by both tools. Named after Georgi Gerganov, the creator of llama.cpp, GGUF is optimized for fast loading and inference. It’s not related to GPT - it’s purely a llama.cpp ecosystem format.</p><h2>Core Philosophy 🎯</h2><h3>Ollama</h3><p>Ollama prioritizes ease of use and accessibility. It’s designed to “just work” with minimal configuration. You install it, pull a model, and start chatting. The tradeoff is less transparency and control over what happens under the hood.</p><h3>igllama</h3><p>igllama is built for developers who want explicit control and zero hidden complexity. Written entirely in Zig, it gives you full visibility into memory management, build processes, and runtime behavior. It’s for those who prefer clarity over convenience.</p><h3>igllama 🦄</h3><table><tr><th>Feature</th><th>igllama</th><th>Ollama</th></tr><tr><td><strong>Language</strong></td><td>Pure Zig</td><td>Go + Python dependencies</td></tr><tr><td><strong>Memory Management</strong></td><td>Explicit, manual control</td><td>Garbage collected</td></tr><tr><td><strong>Build System</strong></td><td>Zig build integration</td><td>Pre-built binaries</td></tr><tr><td><strong>Dependencies</strong></td><td>None (static linking)</td><td>Python runtime required</td></tr><tr><td><strong>Binary Size</strong></td><td>Minimal (~5-10MB)</td><td>Larger (~100MB+)</td></tr><tr><td><strong>Transparency</strong></td><td>Full source visibility</td><td>Some closed components</td></tr><tr><td><strong>Ease of Use</strong></td><td>Requires Zig knowledge</td><td>Beginner-friendly</td></tr><tr><td><strong>Model Support</strong></td><td>GGUF models</td><td>GGUF + proprietary formats</td></tr><tr><td><strong>API</strong></td><td>Simple REST + CLI</td><td>REST + Python SDK</td></tr><tr><td><strong>Platform Support</strong></td><td>Cross-platform (via Zig)</td><td>Pre-built for major OS</td></tr></table><h2>Technical Differences</h2><h3>Memory Management</h3><p>igllama uses Zig’s explicit memory allocators. You know exactly when memory is allocated and freed. This means predictable performance and the ability to fine-tune for your hardware.</p><p>Ollama relies on Go’s garbage collector, which introduces occasional pauses and less predictable memory usage patterns. For most users this is fine, but power users may notice the overhead.</p><h3>Build and Deployment</h3><p>With igllama, you build from source using Zig’s build system:</p><pre><code class="bash"><span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Drelease-fast</span>
 </code></pre>
-<p>This gives you a single static binary with no runtime dependencies. You can verify every byte, modify the build flags, and understand exactly what you’re running.</p><p>Ollama provides pre-built binaries that bundle dependencies. This is faster to get started but means trusting the build process and accepting larger download sizes.</p><h3>Dependencies</h3><p>igllama has zero runtime dependencies. The Zig standard library and llama.cpp are statically linked. No Python, no pip, no virtual environments.</p><p>Ollama requires Python for certain operations and model conversions. This adds complexity to deployment and introduces potential version conflicts.</p><h2>When to Choose igllama</h2><ul><li>You’re a Zig developer or want to learn Zig</li><li>You need full control over memory and performance</li><li>You prefer explicit over implicit behavior</li><li>You want minimal, auditable code</li><li>You’re building embedded or resource-constrained systems</li><li>You value build reproducibility and static linking</li></ul><h2>When to Choose Ollama</h2><ul><li>You want the simplest possible setup</li><li>You’re okay with less transparency</li><li>You need broad model compatibility out of the box</li><li>You prefer Python ecosystem integration</li><li>You don’t want to compile from source</li></ul><h2>The Bottom Line</h2><p>Ollama is excellent for users who want a frictionless experience. It’s well-maintained, widely adopted, and gets the job done with minimal effort.</p><p>igllama exists for a different audience: developers who want to understand and control every aspect of their LLM runtime. It’s for those who believe software should be transparent, auditable, and free from hidden dependencies.</p><p>Both tools respect the GGUF format and contribute to the broader goal of accessible local AI. The choice depends on your priorities: convenience or control.</p><h2>Getting Started</h2><p>If you’re ready to try igllama, check out the installation guide and start exploring local LLMs with full visibility into what’s happening under the hood.</p></div>
+<p>This gives you a single static binary with no runtime dependencies. You can verify every byte, modify the build flags, and understand exactly what you’re running.</p><p>Ollama provides pre-built binaries that bundle dependencies. This is faster to get started but means trusting the build process and accepting larger download sizes.</p><h3>Dependencies</h3><p>igllama has zero runtime dependencies. The Zig standard library and llama.cpp are statically linked. No Python, no pip, no virtual environments.</p><p>Ollama requires Python for certain operations and model conversions. This adds complexity to deployment and introduces potential version conflicts.</p><h2>When to Choose igllama</h2><ul><li>You’re a Zig developer or want to learn Zig</li><li>You need full control over memory and performance</li><li>You prefer explicit over implicit behavior</li><li>You want minimal, auditable code</li><li>You’re building embedded or resource-constrained systems</li><li>You value build reproducibility and static linking</li></ul><h2>When to Choose Ollama</h2><ul><li>You want the simplest possible setup</li><li>You’re okay with less transparency</li><li>You need broad model compatibility out of the box</li><li>You prefer Python ecosystem integration</li><li>You don’t want to compile from source</li></ul><h2>The Bottom Line 🏁</h2><p>Ollama is excellent for users who want a frictionless experience. It’s well-maintained, widely adopted, and gets the job done with minimal effort.</p><p>igllama exists for a different audience: developers who want to understand and control every aspect of their LLM runtime. It’s for those who believe software should be transparent, auditable, and free from hidden dependencies.</p><p>Both tools respect the GGUF format and contribute to the broader goal of accessible local AI. The choice depends on your priorities: convenience or control.</p><h2>Getting Started</h2><p>If you’re ready to try igllama, check out the installation guide and start exploring local LLMs with full visibility into what’s happening under the hood.</p></div>
  </div>
  </div>
  </article>
  </main>
  <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
-        <div class="container mx-auto text-center text-ig-text-muted">
-            <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
-            <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>
-        </div>
-    </footer>
+ <div class="container mx-auto text-center text-ig-text-muted">
+ <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
+ <p class="text-sm">
+ <span>© 2026 igllama - </span>
+ <span class="inline-block px-2 py-0.5 bg-gradient-to-r from-ig-neon-orange/10 to-ig-neon-cyan/10 border border-ig-neon-orange/30 rounded text-ig-neon-cyan/80 hover:text-ig-neon-cyan hover:border-ig-neon-cyan/60 transition-all duration-300 cursor-default" title="Georgi Gerganov Unified Format">
+ <span class="bg-clip-text text-transparent bg-gradient-to-r from-ig-neon-orange to-ig-neon-cyan font-semibold">GGUF</span>
+ </span>
+ <span class="text-ig-text-muted/60">inference engine</span>
+ </p>
+ </div>
+ </footer>
 </body>
 </html>
