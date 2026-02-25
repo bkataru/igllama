@@ -67,7 +67,7 @@ igllama pull bartowski/Llama-3-8B-Instruct-GGUF --file model.gguf --force
 | `-F, --force` | Force re-download even if file exists |
 | `-q, --quiet` | Suppress progress output |
 
-## list
+## list (cached models)
 
 List all downloaded models in the cache.
 
@@ -76,7 +76,7 @@ igllama list
 igllama ls
 ```
 
-## run
+## run (inference)
 
 Run single-turn inference on a model.
 
@@ -144,7 +144,7 @@ In-chat commands available during interactive sessions:
 | `/stats` | Show generation statistics |
 | `/template <name>` | Switch chat template |
 
-## import
+## import (cache models)
 
 Import local GGUF files into the model cache.
 
