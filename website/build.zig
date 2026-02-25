@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     _ = target;
     _ = optimize;
 
-    // Build the website
+// Build the website
     const site_build = zine.website(b, .{
         .output_path = "docs",
         .website_root = b.path("."),
