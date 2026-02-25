@@ -91,12 +91,7 @@ pub fn buildServer(
             .flags = cpp_flags,
         });
     }
-
-    // Add cpp-httplib implementation
-    server_exe.addCSourceFile(.{
-        .file = llama_ctx.path(&.{ "vendor", "cpp-httplib", "httplib.cpp" }),
-        .flags = cpp_flags,
-    });
+    // Add cpp-httplib implementation (removed - already included in llama library)
 
     // Add mtmd (multimodal) core source files
     const mtmd_core_paths = [_][]const []const u8{
@@ -125,6 +120,7 @@ pub fn buildServer(
         &.{ "tools", "mtmd", "models", "glm4v.cpp" },
         &.{ "tools", "mtmd", "models", "internvl.cpp" },
         &.{ "tools", "mtmd", "models", "kimivl.cpp" },
+        &.{ "tools", "mtmd", "models", "kimik25.cpp" },
         &.{ "tools", "mtmd", "models", "llama4.cpp" },
         &.{ "tools", "mtmd", "models", "llava.cpp" },
         &.{ "tools", "mtmd", "models", "minicpmv.cpp" },
@@ -133,6 +129,8 @@ pub fn buildServer(
         &.{ "tools", "mtmd", "models", "qwen2vl.cpp" },
         &.{ "tools", "mtmd", "models", "qwen3vl.cpp" },
         &.{ "tools", "mtmd", "models", "siglip.cpp" },
+        &.{ "tools", "mtmd", "models", "paddleocr.cpp" },
+        &.{ "tools", "mtmd", "models", "nemotron-v2-vl.cpp" },
         &.{ "tools", "mtmd", "models", "whisper-enc.cpp" },
         &.{ "tools", "mtmd", "models", "youtuvl.cpp" },
     };
