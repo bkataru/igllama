@@ -5,29 +5,30 @@
     <meta name="viewport" content="width=device-width">
     <title :text="$page.title"></title>
     <meta name="description" :content="$page.description">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'ig-bg': '#0a0a0f',
-                        'ig-surface': '#12121a',
-                        'ig-neon-orange': '#ff6b35',
-                        'ig-neon-cyan': '#00f5d4',
-                        'ig-neon-purple': '#9d4edd',
-                        'ig-text': '#e0e0e0',
-                        'ig-text-muted': '#a0a0a0',
-                    },
-                    boxShadow: {
-                        'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
-                        'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
-                        'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
-                    }
-                }
-            }
-        }
-    </script>
+ <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+ <script>
+ tailwind.config = {
+ theme: {
+ extend: {
+ colors: {
+ 'ig-bg': '#0a0a0f',
+ 'ig-surface': '#12121a',
+ 'ig-neon-orange': '#ff6b35',
+ 'ig-neon-cyan': '#00f5d4',
+ 'ig-neon-purple': '#9d4edd',
+ 'ig-text': '#e0e0e0',
+ 'ig-text-muted': '#a0a0a0',
+ },
+ boxShadow: {
+ 'neon-orange': '0 0 10px #ff6b35, 0 0 20px #ff6b35',
+ 'neon-cyan': '0 0 10px #00f5d4, 0 0 20px #00f5d4',
+ 'neon-purple': '0 0 10px #9d4edd, 0 0 20px #9d4edd',
+ }
+ }
+ }
+ }
+ </script>
+ <style>
     <style>
         body { background: #0a0a0f; color: #e0e0e0; }
         .glow-text { text-shadow: 0 0 10px rgba(255, 107, 53, 0.5); }
@@ -55,9 +56,12 @@
             <div class="container mx-auto px-4">
                 <div class="max-w-4xl mx-auto">
                     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text" :text="$page.title"></h1>
-                    <div class="prose prose-invert prose-lg max-w-none" :html="$page.content()"></div>
-    </main>
-    <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+  <div class="prose prose-invert prose-lg max-w-none" :html="$page.content()"></div>
+ </div>
+ </div>
+ </article>
+ </main>
+ <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
         <div class="container mx-auto text-center text-ig-text-muted">
             <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
             <p>© 2026 igllama - Georgi Gerganov Unified Format (GGUF) inference engine</p>

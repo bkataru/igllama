@@ -86,7 +86,7 @@ Programmatic access to IGllama functionality. Integrate with your applications.
 | [Installation](/docs/installation) | Environment setup and dependencies |
 | [Quickstart](/docs/quickstart) | First steps and basic usage |
 | [CLI](/docs/cli) | Command line interface reference |
-|| [Chat](/docs/chat/) | Interactive conversation mode |
+| [Chat](/docs/chat/) | Interactive conversation mode |
 | [API](/docs/api) | Programmatic integration guide |
 
 ---
