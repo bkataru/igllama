@@ -60,15 +60,22 @@ fn parseCommand(arg: []const u8) Command {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+ // Set Windows console to UTF-8 mode to fix progress bar mojibake
+ // This must be called before any console output
+ if (@import("builtin").os.tag == .windows) {
+ const windows = std.os.windows;
+ _ = windows.kernel32.SetConsoleOutputCP(65001);
+ }
 
-    // Setup stderr with buffering (Zig 0.15.2 API)
-    var stderr_buffer: [4096]u8 = undefined;
-    var stderr_writer = std.fs.File.stderr().writer(&stderr_buffer);
-    const stderr = &stderr_writer.interface;
-    defer stderr.flush() catch {};
+ var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+ defer _ = gpa.deinit();
+ const allocator = gpa.allocator();
+
+ // Setup stderr with buffering (Zig 0.15.2 API)
+ var stderr_buffer: [4096]u8 = undefined;
+ var stderr_writer = std.fs.File.stderr().writer(&stderr_buffer);
+ const stderr = &stderr_writer.interface;
+ defer stderr.flush() catch {};
 
     // Get command line arguments
     const args = try std.process.argsAlloc(allocator);
