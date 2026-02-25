@@ -454,8 +454,10 @@ pub const Context = struct {
     compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "download.cpp" }), .flags = ctx.flags() });
     compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "llguidance.cpp" }), .flags = ctx.flags() });
     compile.addCSourceFile(.{ .file = ctx.path(&.{ "common", "unicode.cpp" }), .flags = ctx.flags() });
-    // cpp-httplib for remote content fetching (required by download.cpp)
-    compile.addCSourceFile(.{ .file = ctx.path(&.{ "vendor", "cpp-httplib", "httplib.cpp" }), .flags = ctx.flags() });
+ // cpp-httplib for remote content fetching (required by download.cpp)
+ compile.addCSourceFile(.{ .file = ctx.path(&.{ "vendor", "cpp-httplib", "httplib.cpp" }), .flags = ctx.flags() });
+ // CLIP for multimodal models (required for image/audio processing)
+ compile.addCSourceFile(.{ .file = ctx.path(&.{ "tools", "mtmd", "clip.cpp" }), .flags = ctx.flags() });
     // Generated license file (equivalent to CMake's license_generate)
     const license_file = generateLicenseFile(ctx.b, ctx.path_prefix);
     compile.addCSourceFile(.{ .file = license_file, .flags = ctx.flags() });
