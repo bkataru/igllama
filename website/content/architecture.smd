@@ -1,20 +1,19 @@
 ---
 .title = "Architecture",
-.layout = "home.shtml", 
-.description = "Deep dive into igllama's technical architecture and design philosophy",
+.layout = "home.shtml",
+.description = "Deep dive into igllama's technical architecture",
 .author = "igllama team",
 .date = "2026-02-25",
 ---
 
-# System Architecture
-
-igllama is built on a **Zig-first** philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions. This approach delivers zero-overhead bindings, compile-time safety, and seamless integration with the Zig ecosystem.
+igllama is built on a **Zig-first** philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions.
+igllama is built on a **Zig-first** philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions.
 
 ## High-Level Overview
 
 The architecture follows a clean layered design, from your terminal to the neural network weights.
 
-```html
+```=html
 <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -105,7 +104,7 @@ The bindings maintain binary compatibility while adding Zig's type safety and er
 
 GGUF (Georgi Gerganov Unified Format) is the binary container format for model weights and metadata. Named after Georgi Gerganov, the creator of llama.cpp, it's optimized for fast loading and memory mapping.
 
-```html
+```=html
 <svg viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -162,7 +161,7 @@ The format prioritizes:
 
 When igllama loads a model, memory is organized in a specific pattern to maximize efficiency and enable zero-copy operations where possible.
 
-```html
+```=html
 <svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="memGrad" x1="0%" y1="0%" x2="100%" y2="0%">
