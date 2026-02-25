@@ -1,16 +1,16 @@
 ---
 .title = "Documentation",
 .layout = "docs.shtml",
-.description = "Your guide to the machine - igllama documentation index",
+.description = "Complete documentation for igllama - a Zig-based GGUF inference engine",
 .author = "igllama team",
 .date = "2026-02-25",
 ---
 
-# IGllama Documentation
 
-Welcome to the neural interface. You've entered the control layer for IGllama, your gateway to local AI inference with GGUF models.
 
-Georgi Gerganov Unified Format (GGUF) is the backbone here, a quantized model format that runs efficiently on consumer hardware. This isn't cloud AI, this is yours.
+Welcome to the official documentation for **igllama**, a Zig-based inference engine for running large language models locally using GGUF format models.
+
+**GGUF** (Georgi Gerganov Unified Format) is a quantized model format optimized for efficient inference on consumer hardware. This enables you to run powerful AI models locally without cloud dependencies.
 
 ---
 
@@ -18,81 +18,75 @@ Georgi Gerganov Unified Format (GGUF) is the backbone here, a quantized model fo
 
 ### [Installation](/docs/installation)
 
-Set up your environment. Choose your platform, install dependencies, prepare for inference.
+Set up igllama on your system. This guide covers building from source and configuring GPU backends.
 
-- Windows, macOS, Linux support
-- Python 3.8+ required
-- Optional GPU acceleration
-- Model download instructions
+- Prerequisites and dependencies
+- Building for Windows, macOS, and Linux
+- GPU backend configuration (Metal, Vulkan, CUDA)
+- Build options and customization
 
 ### [Quickstart](/docs/quickstart)
 
-First neural connection in under 5 minutes. Load a model, send a prompt, get output.
+Get running in under 10 minutes with a complete walkthrough of the core workflow.
 
-- Basic configuration
-- First inference run
-- Understanding output
-- Troubleshooting common issues
-
----
-
-## Command Line Interface
-
-### [CLI Reference](/docs/cli)
-
-Full control from the terminal. Every feature accessible through commands.
-
-- Model management
-- Inference parameters
-- Chat mode activation
-- Configuration flags
-- Environment variables
+- Pull a model from HuggingFace
+- Run single-turn inference
+- Start an interactive chat session
+- Import local GGUF files
 
 ---
 
-## Interactive Chat
+## Core Features
 
-### [Chat Mode](/docs/chat/)
+### [Command Line Interface](/docs/cli)
 
-Conversational interface for back-and-forth dialogue with your models.
+Complete reference for all igllama CLI commands, flags, and options.
+
+- Model management (`pull`, `list`, `rm`, `import`)
+- Inference commands (`run`, `chat`)
+- API server (`api`, `serve`)
+- Environment variables and configuration
+- Command examples and use cases
+
+### [Interactive Chat](/docs/chat)
+
+Engage in multi-turn conversations with context management and session persistence.
 
 - Starting chat sessions
-- Context window management
-- System prompts
-- Multi-turn conversations
-- History and memory
+- In-chat commands (`/save`, `/load`, `/clear`, `/system`)
+- Chat template support (ChatML, Llama 3, Mistral, and more)
+- Session management and history
+- Sampling parameters
+
+### [API Server](/docs/api)
+
+OpenAI-compatible REST API for integrating igllama with your applications.
+
+- `/v1/chat/completions` endpoint with streaming support
+- `/v1/embeddings` endpoint
+- Request and response formats
+- Python and JavaScript examples
+- CORS and error handling
 
 ---
 
-## API Reference
-
-### [API Guide](/docs/api/)
-
-Programmatic access to IGllama functionality. Integrate with your applications.
-
-- REST endpoints
-- Python SDK
-- Request/response formats
-- Streaming responses
-- Error handling
-- Rate limiting
-
----
-
-## Navigation
+## Documentation Index
 
 | Section | Description |
 |---------|-------------|
-| [Installation](/docs/installation) | Environment setup and dependencies |
-| [Quickstart](/docs/quickstart) | First steps and basic usage |
-| [CLI](/docs/cli) | Command line interface reference |
-| [Chat](/docs/chat/) | Interactive conversation mode |
-| [API](/docs/api) | Programmatic integration guide |
+| [Installation](/docs/installation) | Build from source and configure GPU backends |
+| [Quickstart](/docs/quickstart) | First steps and basic usage guide |
+| [CLI Reference](/docs/cli) | Complete command-line interface documentation |
+| [Chat Mode](/docs/chat) | Interactive conversation features |
+| [API Server](/docs/api) | REST API integration guide |
 
 ---
 
-## Support
+## Support and Resources
 
-Issues? Check the [GitHub repository](https://github.com/igllama/igllama) for updates, discussions, and community support.
+- **GitHub Repository**: [github.com/igllama/igllama](https://github.com/igllama/igllama) - Source code, issues, and discussions
+- **License**: MIT License
 
-The machine is waiting.
+---
+
+Ready to get started? Head to [Installation](/docs/installation) to set up igllama on your system.

@@ -7,13 +7,13 @@
 ---
 
 Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches.
-Both igllama and Ollama aim to make running large language models locally accessible, but they take fundamentally different approaches.
 
-## What is GGUF?
+
+## What is GGUF? 📜
 
 GGUF (Georgi Gerganov Unified Format) is the model format used by both tools. Named after Georgi Gerganov, the creator of llama.cpp, GGUF is optimized for fast loading and inference. It's not related to GPT - it's purely a llama.cpp ecosystem format.
 
-## Core Philosophy
+## Core Philosophy 🎯
 
 ### Ollama
 
@@ -23,7 +23,7 @@ Ollama prioritizes ease of use and accessibility. It's designed to "just work" w
 
 igllama is built for developers who want explicit control and zero hidden complexity. Written entirely in Zig, it gives you full visibility into memory management, build processes, and runtime behavior. It's for those who prefer clarity over convenience.
 
-## Feature Comparison
+### igllama 🦄
 
 | Feature | igllama | Ollama |
 |---------|---------|--------|
@@ -81,7 +81,7 @@ Ollama requires Python for certain operations and model conversions. This adds c
 - You prefer Python ecosystem integration
 - You don't want to compile from source
 
-## The Bottom Line
+## The Bottom Line 🏁
 
 Ollama is excellent for users who want a frictionless experience. It's well-maintained, widely adopted, and gets the job done with minimal effort.
 
