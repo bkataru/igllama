@@ -1,13 +1,12 @@
 ---
 .title = "Qwen3.5-35B-A3B Benchmark Showcase",
-.layout = "home.shtml", 
+.layout = "home.shtml",
 .description = "Comprehensive performance benchmarks for Qwen3.5-35B-A3B MoE model",
 .author = "igllama Team",
 .date = "2026-02-25",
 ---
 
-# Qwen3.5-35B-A3B Performance Showcase
-
+## Why Qwen3.5 MoE Excels on CPU-Only Systems
 ## Why Qwen3.5 MoE Excels on CPU-Only Systems
 
 Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a **Mixture of Experts (MoE)** model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.
