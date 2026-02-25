@@ -89,11 +89,11 @@
    </script>
   </div>
  </nav>
- <main class="container mx-auto p-4 cyber-grid min-h-screen">
-  <article class="section py-20">
+ <main class="container mx-auto p-4 sm:p-6 md:p-8 cyber-grid min-h-screen">
+  <article class="section py-12 sm:py-16 lg:py-20">
    <div class="container mx-auto px-4">
-    <div class="max-w-4xl mx-auto">
-     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Installation</h1>
+    <div class="max-w-3xl sm:max-w-4xl lg:max-w-5xl mx-auto">
+     <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8 glow-text">Installation</h1>
      <div class="prose prose-invert prose-lg max-w-none"><h1>Installation Guide</h1><p>Get igllama up and running on your system. This guide covers installation on Windows, Linux, and macOS, including GPU backend configuration for accelerated inference.</p><h2>Prerequisites</h2><p>Before installing igllama, ensure you have the following dependencies:</p><ul><li><strong>Zig 0.15 or later</strong> - Required for building from source</li><li><strong>Git</strong> - For cloning the repository with submodules</li><li><strong>CMake</strong> - Required for some GPU backend builds</li><li><strong>C++ compiler</strong> - GCC, Clang, or MSVC depending on platform</li></ul><h3>Installing Zig</h3><h4>Linux</h4><pre><code class="bash"><span class="comment"># Using package manager (Ubuntu/Debian)</span>
 <span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">zig</span>
 
@@ -109,7 +109,7 @@
 <span class="comment"># Or download from ziglang.org</span>
 <span class="constant function">brew</span> <span class="constant">install</span> <span class="constant">--cask</span> <span class="constant">zig</span>
 </code></pre>
-<h4>Windows</h4><pre><code class="powershell"><span class="comment"># Using winget</span>
+<h4>Windows</h4><pre><code class="powershell"><span class="comment"># Using Windows Package Manager</span>
 <span class="function">winget</span> install zig.zig
 
 <span class="comment"># Or download installer from ziglang.org</span>
@@ -255,7 +255,7 @@
    </div>
   </article>
  </main>
- <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+ <footer class="p-6 sm:p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-12 sm:mt-20">
   <div class="container mx-auto text-center text-ig-text-muted">
    <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
    <p class="text-sm">

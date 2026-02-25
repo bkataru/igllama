@@ -89,11 +89,11 @@
    </script>
   </div>
  </nav>
- <main class="container mx-auto p-4 cyber-grid min-h-screen">
-  <article class="section py-20">
+ <main class="container mx-auto p-4 sm:p-6 md:p-8 cyber-grid min-h-screen">
+  <article class="section py-12 sm:py-16 lg:py-20">
    <div class="container mx-auto px-4">
-    <div class="max-w-4xl mx-auto">
-     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Architecture</h1>
+    <div class="max-w-3xl sm:max-w-4xl lg:max-w-5xl mx-auto">
+     <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8 glow-text">Architecture</h1>
      <div class="prose prose-invert prose-lg max-w-none"><p>igllama is built on a <strong>Zig-first</strong> philosophy, wrapping the battle-tested llama.cpp C core with idiomatic Zig abstractions.</p><h2>High-Level Overview 🏗️</h2><p>The architecture follows a clean layered design, from your terminal to the neural network weights.</p><svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -229,7 +229,7 @@
   <rect x="50" y="365" width="500" height="4" fill="#333"/>
   <text x="520" y="370" fill="#888" font-family="monospace" font-size="10">↑ grows up</text>
 </svg>
-<p>Key memory regions:</p><ol><li><strong>Stack</strong>: Small, fast allocations for CLI parsing and control flow</li><li><strong>Heap</strong>: Zig allocator manages contexts, batch buffers, and KV cache</li><li><strong>Memory-Mapped GGUF</strong>: Direct file mapping for zero-copy tensor reads</li><li><strong>C Heap</strong>: llama.cpp’s internal allocations (managed via <code>llama_free</code>)</li></ol><h2>The Zig-First Advantage</h2><p>Why wrap C in Zig instead of writing pure Zig? Three reasons:</p><p><strong>Performance</strong>: llama.cpp’s C core is heavily optimized with SIMD intrinsics, multi-threading, and platform-specific tweaks. We inherit all of it.</p><p><strong>Compatibility</strong>: New llama.cpp features drop in without rewriting core inference logic. The bindings layer absorbs API changes.</p><p><strong>Safety</strong>: Zig’s type system catches errors at compile time. The C core handles the math, Zig handles the structure.</p><p>This hybrid approach gives us the best of both worlds: C’s raw performance with Zig’s modern tooling and safety guarantees.</p><h2>Data Flow</h2><pre><code>User Input → CLI Parser → Command Handler → llama.cpp.zig → C Core → Token Stream → Output
+<p>Key memory regions:</p><ol><li><strong>Stack</strong>: Small, fast allocations for CLI parsing and control flow</li><li><strong>Heap</strong>: Zig allocator manages contexts, batch buffers, and KV cache</li><li><strong>Memory-Mapped GGUF</strong>: Direct file mapping for zero-copy tensor reads</li><li><strong>C Heap</strong>: llama.cpp’s internal allocations (managed via <code>llama_free</code>)</li></ol><h2>The Zig-First Advantage</h2><p>Why wrap C in Zig instead of writing pure Zig? Three reasons:</p><p><strong>Performance</strong>: llama.cpp’s C core is heavily optimized with SIMD intrinsics, multi-threading, and platform-specific tweaks. We inherit all of it.</p><p><strong>Compatibility</strong>: New llama.cpp features drop in without rewriting core inference logic. The bindings layer absorbs API changes.</p><p><strong>Safety</strong>: Zig’s type system catches errors at compile time. The C core handles the math, Zig handles the structure.</p><p>This hybrid approach gives us the best of both worlds: C’s raw performance with Zig’s modern tooling and safety guarantees.</p><p>225#RP|## Data Flow #XZ| #NQ|<code>text #KM|User Input -&gt; CLI Parser -&gt; Command Handler -&gt; llama.cpp.zig -&gt; C Core -&gt; Token Stream -&gt; Output #XZ| #SZ|  |            |                |             |           |     |          | #SZ|  v            v                v             v           v     v          v #SZ|ArgIterator run.zig/etc     Bindings   llama_decode llama_sampling   Result #XQ|</code> #XZ|</p><pre><code>User Input → CLI Parser → Command Handler → llama.cpp.zig → C Core → Token Stream → Output
 
  ↓ ↓ ↓
 ArgIterator run.zig/etc Bindings llama_decode llama_sampling
@@ -238,7 +238,7 @@ ArgIterator run.zig/etc Bindings llama_decode llama_sampling
    </div>
   </article>
  </main>
- <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
+ <footer class="p-6 sm:p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-12 sm:mt-20">
   <div class="container mx-auto text-center text-ig-text-muted">
    <p class="mb-2">Built with <span class="text-ig-neon-orange">❤</span> using <a href="https://zine-ssg.io" class="text-ig-neon-cyan hover:underline">Zine</a> and <a href="https://ziglang.org" class="text-ig-neon-cyan hover:underline">Zig</a></p>
    <p class="text-sm">
