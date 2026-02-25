@@ -816,7 +816,7 @@ test "Config.getServerPidPath returns valid path" {
 }
 
 test "version and app_name constants are set" {
-    try std.testing.expectEqualStrings("0.2.0", version);
+    try std.testing.expectEqualStrings("0.3.1", version);
     try std.testing.expectEqualStrings("igllama", app_name);
     try std.testing.expect(default_server_port == 8080);
 }
