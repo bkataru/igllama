@@ -15,7 +15,7 @@ GGUF (Georgi Gerganov Unified Format) is the model format used by both tools. Na
 
 ## Core Philosophy 🎯
 
-### Ollama
+### The Ollama Way
 
 Ollama prioritizes ease of use and accessibility. It's designed to "just work" with minimal configuration. You install it, pull a model, and start chatting. The tradeoff is less transparency and control over what happens under the hood.
 

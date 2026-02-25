@@ -47,7 +47,7 @@ brew install --cask zig
 #### Windows
 
 ```powershell
-# Using winget
+# Using Windows Package Manager
 winget install zig.zig
 
 # Or download installer from ziglang.org
