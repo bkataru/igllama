@@ -1,29 +1,55 @@
 <div class="section py-20">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Sidebar -->
-            <aside class="lg:w-64 flex-shrink-0">
-                <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
-                    <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
-                    <ul class="space-y-2">
-                        <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
-                        <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
-                        <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
-                        <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
-                        <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
-                    </ul>
-                </nav>
-            </aside>
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
+          <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
+          <ul class="space-y-2">
+            <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
+            <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
+            <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
+            <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
+            <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Content -->
+      <main class="flex-1 min-w-0">
+        <article class="max-w-4xl">
+          <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Interactive Chat</h1>
+          <div class="prose prose-invert prose-lg max-w-none"><h1>Interactive Chat Mode</h1><p>Engage in multi-turn conversations with your local LLM. igllama’s chat mode provides a conversational interface with context management and session persistence.</p><h2>Starting a Chat Session</h2><p>Launch an interactive chat session with any GGUF model:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span>
+</code></pre>
+<p>Or use a specific chat template:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--template</span> <span class="constant">chatml</span>
+</code></pre>
+<h2>In-Chat Commands</h2><p>While in chat mode, use these commands:</p><table><tr><th>Command</th><th>Description</th></tr><tr><td><code>/help</code></td><td>Show available commands</td></tr><tr><td><code>/quit</code> or <code>/exit</code></td><td>Exit the chat session</td></tr><tr><td><code>/clear</code></td><td>Clear conversation history and KV cache</td></tr><tr><td><code>/save &lt;name&gt;</code></td><td>Save session to a file</td></tr><tr><td><code>/load &lt;name&gt;</code></td><td>Load a saved session</td></tr><tr><td><code>/sessions</code></td><td>List all saved sessions</td></tr><tr><td><code>/system &lt;text&gt;</code></td><td>Set or update system prompt</td></tr><tr><td><code>/tokens</code></td><td>Show token usage statistics</td></tr><tr><td><code>/stats</code></td><td>Show generation statistics</td></tr><tr><td><code>/template &lt;name&gt;</code></td><td>Switch chat template</td></tr></table><h2>Session Management</h2><p>Chat sessions are automatically saved to:</p><ul><li><strong>Linux/macOS</strong>: <code>~/.cache/huggingface/sessions/</code></li><li><strong>Windows</strong>: <code>%LOCALAPPDATA%\huggingface\sessions\</code></li></ul><h3>Saving and Loading Sessions</h3><pre><code class="bash"><span class="comment"># Save current session</span>
+<span class="constant function">/save</span> <span class="constant">coding-session-1</span>
 
-            <!-- Content -->
-            <main class="flex-1 min-w-0">
-                <article class="max-w-4xl">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Interactive Chat</h1>
-                    <div class="prose prose-invert prose-lg max-w-none">
-                        $body
-                    </div>
-                </article>
-            </main>
-        </div>
+<span class="comment"># Load a previous session</span>
+<span class="constant function">/load</span> <span class="constant">coding-session-1</span>
+
+<span class="comment"># List all sessions</span>
+<span class="constant function">/sessions</span>
+</code></pre>
+<h2>Chat Templates</h2><p>igllama supports 12+ chat templates out of the box:</p><ul><li>ChatML</li><li>Llama 2 / Llama 3</li><li>Mistral</li><li>Phi-3</li><li>Gemma</li><li>Zephyr</li><li>Vicuna</li><li>Alpaca</li><li>DeepSeek</li><li>Command-R</li></ul><p>Switch templates mid-session:</p><pre><code class="bash"><span class="constant function">/template</span> <span class="constant">llama3</span>
+</code></pre>
+<h2>Sampling Parameters</h2><p>Adjust generation parameters in real-time:</p><pre><code class="bash"><span class="comment"># Set temperature</span>
+<span class="constant function">/temp</span> <span class="constant">0.8</span>
+
+<span class="comment"># Set top-p (nucleus sampling)</span>
+<span class="constant function">/top-p</span> <span class="constant">0.9</span>
+
+<span class="comment"># Set top-k</span>
+<span class="constant function">/top-k</span> <span class="constant">40</span>
+
+<span class="comment"># Set max tokens</span>
+<span class="constant function">/max-tokens</span> <span class="constant">512</span>
+</code></pre>
+<h2>GGUF Format Support</h2><p>All chat sessions use GGUF (Georgi Gerganov Unified Format) models, ensuring fast loading and efficient memory usage. The format is named after Georgi Gerganov, creator of llama.cpp.</p><h2>Best Practices</h2><ol><li><strong>Use appropriate templates</strong>: Match the chat template to your model for best results</li><li><strong>Monitor context window</strong>: Long sessions may exceed model context limits</li><li><strong>Save important sessions</strong>: Use <code>/save</code> to preserve valuable conversations</li><li><strong>Clear when needed</strong>: Use <code>/clear</code> to reset context when switching topics</li></ol><h2>Getting Help</h2><pre><code class="bash"><span class="constant function">/help</span>
+</code></pre>
+<p>For more information, see the <a href="/igllama/docs/cli/">CLI Reference</a> or <a href="/igllama/docs/api/">API documentation</a>.</p></div>
+        </article>
+      </main>
     </div>
+  </div>
 </div>

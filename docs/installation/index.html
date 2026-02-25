@@ -1,29 +1,182 @@
 <div class="section py-20">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Sidebar -->
-            <aside class="lg:w-64 flex-shrink-0">
-                <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
-                    <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
-                    <ul class="space-y-2">
-                        <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
-                        <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
-                        <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
-                        <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
-                        <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
-                    </ul>
-                </nav>
-            </aside>
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
+          <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
+          <ul class="space-y-2">
+            <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
+            <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
+            <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
+            <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
+            <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Content -->
+      <main class="flex-1 min-w-0">
+        <article class="max-w-4xl">
+          <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Installation</h1>
+          <div class="prose prose-invert prose-lg max-w-none"><h1>Installation Guide</h1><p>Get igllama up and running on your system. This guide covers installation on Windows, Linux, and macOS, including GPU backend configuration for accelerated inference.</p><h2>Prerequisites</h2><p>Before installing igllama, ensure you have the following dependencies:</p><ul><li><strong>Zig 0.15 or later</strong> - Required for building from source</li><li><strong>Git</strong> - For cloning the repository with submodules</li><li><strong>CMake</strong> - Required for some GPU backend builds</li><li><strong>C++ compiler</strong> - GCC, Clang, or MSVC depending on platform</li></ul><h3>Installing Zig</h3><h4>Linux</h4><pre><code class="bash"><span class="comment"># Using package manager (Ubuntu/Debian)</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">zig</span>
 
-            <!-- Content -->
-            <main class="flex-1 min-w-0">
-                <article class="max-w-4xl">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Installation</h1>
-                    <div class="prose prose-invert prose-lg max-w-none">
-                        $body
-                    </div>
-                </article>
-            </main>
-        </div>
+<span class="comment"># Or download pre-built binary</span>
+<span class="constant function">wget</span> <span class="constant">https://ziglang.org/download/0.15.0/zig-linux-x86_64-0.15.0.tar.xz</span>
+<span class="constant function">tar</span> <span class="constant">-xf</span> <span class="constant">zig-linux-x86_64-0.15.0.tar.xz</span>
+<span class="constant function">sudo</span> <span class="constant">mv</span> <span class="constant">zig-linux-x86_64-0.15.0</span> <span class="constant">/opt/zig</span>
+<span class="constant function">sudo</span> <span class="constant">ln</span> <span class="constant">-s</span> <span class="constant">/opt/zig/zig</span> <span class="constant">/usr/local/bin/zig</span>
+</code></pre>
+<h4>macOS</h4><pre><code class="bash"><span class="comment"># Using Homebrew</span>
+<span class="constant function">brew</span> <span class="constant">install</span> <span class="constant">zig</span>
+
+<span class="comment"># Or download from ziglang.org</span>
+<span class="constant function">brew</span> <span class="constant">install</span> <span class="constant">--cask</span> <span class="constant">zig</span>
+</code></pre>
+<h4>Windows</h4><pre><code class="powershell"><span class="comment"># Using winget</span>
+<span class="function">winget</span> install zig.zig
+
+<span class="comment"># Or download installer from ziglang.org</span>
+<span class="comment"># Add to PATH manually if needed</span>
+<span class="function">setx</span> PATH <span class="string">&quot;%PATH%;C:\Program Files\zig&quot;</span>
+</code></pre>
+<p>Verify installation:</p><pre><code class="bash"><span class="constant function">zig</span> <span class="constant">version</span>  <span class="comment"># Should show 0.15.0 or later</span>
+</code></pre>
+<h2>Quick Start</h2><p>The fastest way to get started:</p><pre><code class="bash"><span class="comment"># Clone with submodules (required for GGUF support)</span>
+<span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/igllama/igllama.git</span>
+<span class="constant function">cd</span> <span class="constant">igllama</span>
+
+<span class="comment"># Build release version</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
+
+<span class="comment"># Run with a GGUF model</span>
+<span class="constant function">./zig-out/bin/igllama</span> <span class="constant">--model</span> <span class="constant">path/to/model.gguf</span>
+</code></pre>
+<blockquote><p><strong>Note:</strong> GGUF stands for “Georgi Gerganov Unified Format”, the standard model format for llama.cpp-compatible inference engines.</p></blockquote><h2>Platform-Specific Instructions</h2><h3>Linux Installation</h3><h4>Ubuntu/Debian</h4><pre><code class="bash"><span class="comment"># Install dependencies</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">update</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">build-essential</span> <span class="constant">cmake</span> <span class="constant">git</span> <span class="constant">zig</span>
+
+<span class="comment"># Clone and build</span>
+<span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/igllama/igllama.git</span>
+<span class="constant function">cd</span> <span class="constant">igllama</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
+
+<span class="comment"># Optional: Install to system path</span>
+<span class="constant function">sudo</span> <span class="constant">cp</span> <span class="constant">./zig-out/bin/igllama</span> <span class="constant">/usr/local/bin/</span>
+</code></pre>
+<h4>Fedora/RHEL</h4><pre><code class="bash"><span class="constant function">sudo</span> <span class="constant">dnf</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">zig</span> <span class="constant">cmake</span> <span class="constant">git</span> <span class="constant">gcc-c++</span>
+<span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/igllama/igllama.git</span>
+<span class="constant function">cd</span> <span class="constant">igllama</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
+</code></pre>
+<h3>macOS Installation</h3><pre><code class="bash"><span class="comment"># Install Xcode Command Line Tools</span>
+<span class="constant function">xcode-select</span> <span class="constant">--install</span>
+
+<span class="comment"># Install dependencies via Homebrew</span>
+<span class="constant function">brew</span> <span class="constant">install</span> <span class="constant">zig</span> <span class="constant">cmake</span> <span class="constant">git</span>
+
+<span class="comment"># Clone repository</span>
+<span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/igllama/igllama.git</span>
+<span class="constant function">cd</span> <span class="constant">igllama</span>
+
+<span class="comment"># Build with Metal acceleration (macOS only)</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dgpu=metal</span>
+
+<span class="comment"># Test installation</span>
+<span class="constant function">./zig-out/bin/igllama</span> <span class="constant">--version</span>
+</code></pre>
+<h3>Windows Installation</h3><h4>Using PowerShell</h4><pre><code class="powershell"><span class="comment"># Install zig via winget (if not already installed)</span>
+<span class="function">winget</span> install zig.zig
+
+<span class="comment"># Clone repository</span>
+<span class="function">git</span> clone --recursive https://github.com/igllama/igllama.git
+<span class="function">cd</span> igllama
+
+<span class="comment"># Build with Visual Studio toolchain</span>
+<span class="function">zig</span> build -Doptimize=ReleaseFast<span class="operator"> -</span>Dtarget=x86_64<span class="operator">-</span>windows<span class="comment">
+
+# Run</span>
+<span class="function">.\zig-out\bin\igllama.exe</span> --model models\model.gguf
+</code></pre>
+<h4>Using WSL2</h4><pre><code class="bash"><span class="comment"># Install WSL2 dependencies</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">update</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">build-essential</span> <span class="constant">cmake</span> <span class="constant">git</span> <span class="constant">zig</span>
+
+<span class="comment"># Build as Linux binary</span>
+<span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/igllama/igllama.git</span>
+<span class="constant function">cd</span> <span class="constant">igllama</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
+</code></pre>
+<h2>GPU Backend Configuration</h2><p>igllama supports multiple GPU backends for accelerated inference. Choose based on your hardware.</p><h3>Metal (macOS)</h3><p>Metal is the recommended backend for Apple Silicon and Intel Macs.</p><pre><code class="bash"><span class="comment"># Build with Metal support</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dgpu=metal</span>
+
+<span class="comment"># Verify Metal devices</span>
+<span class="constant function">./zig-out/bin/igllama</span> <span class="constant">--info</span>
+</code></pre>
+<p><strong>Requirements:</strong></p><ul><li>macOS 10.15 (Catalina) or later</li><li>Xcode Command Line Tools</li></ul><h3>Vulkan (Linux/Windows)</h3><p>Vulkan provides cross-platform GPU acceleration for NVIDIA, AMD, and Intel GPUs.</p><h4>Linux Vulkan</h4><pre><code class="bash"><span class="comment"># Install Vulkan SDK</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">libvulkan-dev</span> <span class="constant">mesa-vulkan-drivers</span>
+
+<span class="comment"># Or for latest SDK</span>
+<span class="constant function">wget</span> <span class="constant">-qO</span> <span class="constant">-</span> <span class="constant">https://packages.lunarg.com/lunarg-signing-key-pub.asc</span> <span class="operator">|</span> <span class="constant function">sudo</span> <span class="constant">apt-key</span> <span class="constant">add</span> <span class="constant">-</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">vulkan-sdk</span>
+</code></pre>
+<h3>CUDA (Experimental)</h3><p>CUDA backend for NVIDIA GPUs (experimental support).</p><pre><code class="bash"><span class="comment"># Prerequisites</span>
+<span class="comment"># - NVIDIA GPU with CUDA support</span>
+<span class="comment"># - CUDA Toolkit 12.0+</span>
+<span class="comment"># - NVIDIA driver 525+</span>
+
+<span class="comment"># Install CUDA Toolkit (Linux example)</span>
+<span class="constant function">wget</span> <span class="constant">https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb</span>
+<span class="constant function">sudo</span> <span class="constant">dpkg</span> <span class="constant">-i</span> <span class="constant">cuda-keyring_1.0-1_all.deb</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">update</span>
+<span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">cuda-toolkit-12-0</span>
+
+<span class="comment"># Build with CUDA</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dgpu=cuda</span> <span class="constant">-Dcuda-arch=sm_80</span>
+
+<span class="comment"># Set CUDA path if not in default location</span>
+<span class="keyword">export</span> <span class="property">CUDA_HOME</span>=/usr/local/cuda
+</code></pre>
+<p><strong>Supported CUDA architectures:</strong></p><ul><li><code>sm_70</code> - Volta (V100)</li><li><code>sm_75</code> - Turing (T4, RTX 2000)</li><li><code>sm_80</code> - Ampere (A100, RTX 3000)</li><li><code>sm_86</code> - Ampere (RTX 3000 mobile)</li><li><code>sm_89</code> - Ada Lovelace (RTX 4000)</li></ul><h2>Build Configuration Options</h2><p>Customize your build with these flags:</p><pre><code class="bash"><span class="comment"># Debug build with symbols</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=Debug</span>
+
+<span class="comment"># Release with fast optimizations</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
+
+<span class="comment"># Release with small binary size</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseSmall</span>
+
+<span class="comment"># Custom target triple</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Dtarget=aarch64-macos</span>
+
+<span class="comment"># Disable specific features</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Dgpu=none</span> <span class="constant">-Dfeatures=none</span>
+
+<span class="comment"># Static linking (Linux)</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dtarget=x86_64-linux-musl</span>
+</code></pre>
+<h2>Verification</h2><p>After installation, verify everything works:</p><pre><code class="bash"><span class="comment"># Check version</span>
+<span class="constant function">igllama</span> <span class="constant">--version</span>
+
+<span class="comment"># List available GPU devices</span>
+<span class="constant function">igllama</span> <span class="constant">--info</span>
+
+<span class="comment"># Test inference with small model</span>
+<span class="constant function">igllama</span> <span class="constant">--model</span> <span class="constant">models/tinyllama-1.1b.gguf</span> <span class="constant">--prompt</span> <span class="string constant">&quot;Hello&quot;</span> <span class="constant">--n-predict</span> <span class="constant">10</span>
+</code></pre>
+<h2>Troubleshooting</h2><h3>Common Issues</h3><p><strong>Zig version too old:</strong></p><pre><code>error: Zig 0.15.0 or later is required
+</code></pre><p>Solution: Install Zig 0.15+ from <a href="https://ziglang.org" target="_blank">https://ziglang.org</a></p><p><strong>Missing submodules:</strong></p><pre><code>error: unable to find gguf module
+</code></pre><p>Solution: Run <code>git submodule update --init --recursive</code></p><p><strong>GPU not detected:</strong></p><pre><code class="bash"><span class="comment"># Check GPU backend</span>
+<span class="constant function">igllama</span> <span class="constant">--info</span>
+
+<span class="comment"># Verify drivers installed</span>
+<span class="constant function">nvidia-smi</span>        <span class="comment"># CUDA</span>
+<span class="constant function">vulkaninfo</span>        <span class="comment"># Vulkan</span>
+<span class="constant function">system_profiler</span>   <span class="comment"># Metal (macOS)</span>
+</code></pre>
+<h3>Getting Help</h3><ul><li>Documentation: <a href="https://igllama.org/docs" target="_blank">https://igllama.org/docs</a></li><li>Issues: <a href="https://github.com/igllama/igllama/issues" target="_blank">https://github.com/igllama/igllama/issues</a></li><li>Discussions: <a href="https://github.com/igllama/igllama/discussions" target="_blank">https://github.com/igllama/igllama/discussions</a></li></ul></div>
+        </article>
+      </main>
     </div>
+  </div>
 </div>

@@ -1,29 +1,97 @@
 <div class="section py-20">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Sidebar -->
-            <aside class="lg:w-64 flex-shrink-0">
-                <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
-                    <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
-                    <ul class="space-y-2">
-                        <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
-                        <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
-                        <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
-                        <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
-                        <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
-                    </ul>
-                </nav>
-            </aside>
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
+          <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
+          <ul class="space-y-2">
+            <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
+            <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
+            <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
+            <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
+            <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Content -->
+      <main class="flex-1 min-w-0">
+        <article class="max-w-4xl">
+          <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">API Server</h1>
+          <div class="prose prose-invert prose-lg max-w-none"><h1>API Server Documentation</h1><p>igllama provides an OpenAI-compatible REST API server for GGUF models with streaming support.</p><p>GGUF stands for “Georgi Gerganov Unified Format”, the standard model format for llama.cpp.</p><h2>Quick Start</h2><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span>
+<span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--host</span> <span class="constant">0.0.0.0</span> <span class="constant">--port</span> <span class="constant">3000</span>
+<span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--gpu-layers</span> <span class="constant">35</span>
+</code></pre>
+<h2>Server Flags</h2><table><tr><th>Flag</th><th>Short</th><th>Default</th><th>Description</th></tr><tr><td><code>--model</code></td><td><code>-m</code></td><td>(required)</td><td>Path to GGUF model</td></tr><tr><td><code>--host</code></td><td><code>-h</code></td><td><code>127.0.0.1</code></td><td>Server host</td></tr><tr><td><code>--port</code></td><td><code>-p</code></td><td><code>8080</code></td><td>Server port</td></tr><tr><td><code>--gpu-layers</code></td><td><code>-ngl</code></td><td><code>0</code></td><td>GPU layers (-1 for all)</td></tr></table><h2>/v1/chat/completions</h2><p><strong>Method:</strong> <code>POST</code></p><p><strong>Request:</strong></p><pre><code class="json">{<span class="string_special_key string">&quot;model&quot;</span>:<span class="string">&quot;default&quot;</span>,<span class="string_special_key string">&quot;messages&quot;</span>:[{<span class="string_special_key string">&quot;role&quot;</span>:<span class="string">&quot;user&quot;</span>,<span class="string_special_key string">&quot;content&quot;</span>:<span class="string">&quot;Hello!&quot;</span>}],<span class="string_special_key string">&quot;stream&quot;</span>:<span class="constant_builtin">false</span>}
+</code></pre>
+<p><strong>Response:</strong></p><pre><code class="json">{<span class="string_special_key string">&quot;id&quot;</span>:<span class="string">&quot;chatcmpl-123&quot;</span>,<span class="string_special_key string">&quot;object&quot;</span>:<span class="string">&quot;chat.completion&quot;</span>,<span class="string_special_key string">&quot;choices&quot;</span>:[{<span class="string_special_key string">&quot;index&quot;</span>:<span class="number">0</span>,<span class="string_special_key string">&quot;message&quot;</span>:{<span class="string_special_key string">&quot;role&quot;</span>:<span class="string">&quot;assistant&quot;</span>,<span class="string_special_key string">&quot;content&quot;</span>:<span class="string">&quot;Hi!&quot;</span>},<span class="string_special_key string">&quot;finish_reason&quot;</span>:<span class="string">&quot;stop&quot;</span>}]}
+</code></pre>
+<p><strong>curl:</strong></p><pre><code class="bash"><span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/chat/completions</span> <span class="constant">-H</span> <span class="string constant">&quot;Content-Type: application/json&quot;</span> <span class="constant">-d</span> <span class="string constant">&apos;{&quot;model&quot;:&quot;default&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}]}&apos;</span>
+</code></pre>
+<h3>Streaming</h3><p>Set <code>stream: true</code> for SSE streaming:</p><pre><code class="bash"><span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/chat/completions</span> <span class="constant">-H</span> <span class="string constant">&quot;Content-Type: application/json&quot;</span> <span class="constant">-d</span> <span class="string constant">&apos;{&quot;model&quot;:&quot;default&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}],&quot;stream&quot;:true}&apos;</span>
+</code></pre>
+<p>Stream format:</p><pre><code>data: {&quot;id&quot;:&quot;chatcmpl-123&quot;,&quot;object&quot;:&quot;chat.completion.chunk&quot;,&quot;choices&quot;:[{&quot;index&quot;:0,&quot;delta&quot;:{&quot;content&quot;:&quot;Hello&quot;},&quot;finish_reason&quot;:null}]}
+data: [DONE]
+</code></pre><h2>/v1/embeddings</h2><p><strong>Method:</strong> <code>POST</code></p><p><strong>Request:</strong></p><pre><code class="json">{<span class="string_special_key string">&quot;model&quot;</span>:<span class="string">&quot;default&quot;</span>,<span class="string_special_key string">&quot;input&quot;</span>:[<span class="string">&quot;Hello world&quot;</span>]}
+</code></pre>
+<p><strong>Response:</strong></p><pre><code class="json">{<span class="string_special_key string">&quot;object&quot;</span>:<span class="string">&quot;list&quot;</span>,<span class="string_special_key string">&quot;data&quot;</span>:[{<span class="string_special_key string">&quot;object&quot;</span>:<span class="string">&quot;embedding&quot;</span>,<span class="string_special_key string">&quot;index&quot;</span>:<span class="number">0</span>,<span class="string_special_key string">&quot;embedding&quot;</span>:[<span class="number">0.123</span>,<span class="number">-0.456</span>]}],<span class="string_special_key string">&quot;usage&quot;</span>:{<span class="string_special_key string">&quot;prompt_tokens&quot;</span>:<span class="number">2</span>,<span class="string_special_key string">&quot;total_tokens&quot;</span>:<span class="number">2</span>}}
+</code></pre>
+<p><strong>curl:</strong></p><pre><code class="bash"><span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/embeddings</span> <span class="constant">-H</span> <span class="string constant">&quot;Content-Type: application/json&quot;</span> <span class="constant">-d</span> <span class="string constant">&apos;{&quot;model&quot;:&quot;default&quot;,&quot;input&quot;:&quot;Hello&quot;}&apos;</span>
+</code></pre>
+<h2>/health</h2><p><strong>Method:</strong> <code>GET</code></p><p><strong>Response:</strong> <code>{&quot;status&quot;:&quot;ok&quot;,&quot;model&quot;:&quot;loaded&quot;}</code></p><pre><code class="bash"><span class="constant function">curl</span> <span class="constant">http://localhost:8080/health</span>
+</code></pre>
+<h2>Error Handling</h2><table><tr><th>Status</th><th>Description</th></tr><tr><td>200</td><td>Success</td></tr><tr><td>400</td><td>Invalid request</td></tr><tr><td>404</td><td>Not found</td></tr><tr><td>500</td><td>Server error</td></tr></table><h2>CORS</h2><pre><code>Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+</code></pre><h2>Examples</h2><h3>Python (Non-streaming)</h3><pre><code class="python"><span class="keyword">import</span> <span class="constructor constant variable">requests</span>
 
-            <!-- Content -->
-            <main class="flex-1 min-w-0">
-                <article class="max-w-4xl">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">API Server</h1>
-                    <div class="prose prose-invert prose-lg max-w-none">
-                        $body
-                    </div>
-                </article>
-            </main>
-        </div>
+<span class="constructor constant variable">response</span> <span class="operator">=</span> <span class="constructor constant variable">requests</span>.<span class="constructor property constant function_method variable">post</span>(
+    <span class="string">&quot;http://localhost:8080/v1/chat/completions&quot;</span>,
+    <span class="constructor constant variable">json</span><span class="operator">=</span>{
+        <span class="string">&quot;model&quot;</span>: <span class="string">&quot;default&quot;</span>,
+        <span class="string">&quot;messages&quot;</span>: [
+            {<span class="string">&quot;role&quot;</span>: <span class="string">&quot;system&quot;</span>, <span class="string">&quot;content&quot;</span>: <span class="string">&quot;You are helpful.&quot;</span>},
+            {<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: <span class="string">&quot;Hello!&quot;</span>}
+        ],
+        <span class="string">&quot;max_tokens&quot;</span>: <span class="number">100</span>
+    }
+)
+
+<span class="constructor function_builtin constant variable function">print</span>(<span class="constructor constant variable">response</span>.<span class="constructor property constant function_method variable">json</span>()[<span class="string">&quot;choices&quot;</span>][<span class="number">0</span>][<span class="string">&quot;message&quot;</span>][<span class="string">&quot;content&quot;</span>])
+</code></pre>
+<h3>Python (Streaming)</h3><pre><code class="python"><span class="keyword">import</span> <span class="constructor constant variable">requests</span>
+
+<span class="constructor constant variable">response</span> <span class="operator">=</span> <span class="constructor constant variable">requests</span>.<span class="constructor property constant function_method variable">post</span>(
+    <span class="string">&quot;http://localhost:8080/v1/chat/completions&quot;</span>,
+    <span class="constructor constant variable">json</span><span class="operator">=</span>{<span class="string">&quot;model&quot;</span>: <span class="string">&quot;default&quot;</span>, <span class="string">&quot;messages&quot;</span>: [{<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: <span class="string">&quot;Hello&quot;</span>}], <span class="string">&quot;stream&quot;</span>: <span class="constant_builtin">True</span>},
+    <span class="constructor constant variable">stream</span><span class="operator">=</span><span class="constant_builtin">True</span>
+)
+
+<span class="keyword">for</span> <span class="constructor constant variable">line</span> <span class="operator">in</span> <span class="constructor constant variable">response</span>.<span class="constructor property constant function_method variable">iter_lines</span>():
+    <span class="keyword">if</span> <span class="constructor constant variable">line</span>:
+        <span class="constructor function_builtin constant variable function">print</span>(<span class="constructor constant variable">line</span>.<span class="constructor property constant function_method variable">decode</span>())
+</code></pre>
+<h3>JavaScript (Streaming)</h3><pre><code class="javascript"><span class="keyword">const</span> <span class="constructor constant variable_builtin function_builtin variable">response</span> <span class="operator">=</span> <span class="keyword">await</span> <span class="constructor constant variable_builtin function_builtin variable function">fetch</span><span class="punctuation_bracket">(</span><span class="string">&apos;http://localhost:8080/v1/chat/completions&apos;</span><span class="punctuation_delimiter">,</span> <span class="punctuation_bracket">{</span>
+  <span class="property">method</span>: <span class="string">&apos;POST&apos;</span><span class="punctuation_delimiter">,</span>
+  <span class="property">headers</span>: <span class="punctuation_bracket">{</span> <span class="string">&apos;Content-Type&apos;</span>: <span class="string">&apos;application/json&apos;</span> <span class="punctuation_bracket">}</span><span class="punctuation_delimiter">,</span>
+  <span class="property">body</span>: <span class="constructor constant variable_builtin function_builtin variable">JSON</span><span class="punctuation_delimiter">.</span><span class="property function_method">stringify</span><span class="punctuation_bracket">(</span><span class="punctuation_bracket">{</span> <span class="property">model</span>: <span class="string">&apos;default&apos;</span><span class="punctuation_delimiter">,</span> <span class="property">messages</span>: <span class="punctuation_bracket">[</span><span class="punctuation_bracket">{</span> <span class="property">role</span>: <span class="string">&apos;user&apos;</span><span class="punctuation_delimiter">,</span> <span class="property">content</span>: <span class="string">&apos;Hi&apos;</span> <span class="punctuation_bracket">}</span><span class="punctuation_bracket">]</span><span class="punctuation_delimiter">,</span> <span class="property">stream</span>: <span class="constant_builtin">true</span> <span class="punctuation_bracket">}</span><span class="punctuation_bracket">)</span>
+<span class="punctuation_bracket">}</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">;</span>
+
+<span class="keyword">const</span> <span class="constructor constant variable_builtin function_builtin variable">reader</span> <span class="operator">=</span> <span class="constructor constant variable_builtin function_builtin variable">response</span><span class="punctuation_delimiter">.</span><span class="property">body</span><span class="punctuation_delimiter">.</span><span class="property function_method">getReader</span><span class="punctuation_bracket">(</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">;</span>
+<span class="keyword">const</span> <span class="constructor constant variable_builtin function_builtin variable">decoder</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="constructor constant variable_builtin function_builtin variable">TextDecoder</span><span class="punctuation_bracket">(</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">;</span>
+
+<span class="keyword">while</span> <span class="punctuation_bracket">(</span><span class="constant_builtin">true</span><span class="punctuation_bracket">)</span> <span class="punctuation_bracket">{</span>
+  <span class="keyword">const</span> <span class="punctuation_bracket">{</span> <span class="constant">value</span><span class="punctuation_delimiter">,</span> <span class="constant">done</span> <span class="punctuation_bracket">}</span> <span class="operator">=</span> <span class="keyword">await</span> <span class="constructor constant variable_builtin function_builtin variable">reader</span><span class="punctuation_delimiter">.</span><span class="property function_method">read</span><span class="punctuation_bracket">(</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">;</span>
+  <span class="keyword">if</span> <span class="punctuation_bracket">(</span><span class="constructor constant variable_builtin function_builtin variable">done</span><span class="punctuation_bracket">)</span> <span class="keyword">break</span><span class="punctuation_delimiter">;</span>
+  <span class="keyword">for</span> <span class="punctuation_bracket">(</span><span class="keyword">const</span> <span class="constructor constant variable_builtin function_builtin variable">line</span> <span class="keyword">of</span> <span class="constructor constant variable_builtin function_builtin variable">decoder</span><span class="punctuation_delimiter">.</span><span class="property function_method">decode</span><span class="punctuation_bracket">(</span><span class="constructor constant variable_builtin function_builtin variable">value</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">.</span><span class="property function_method">split</span><span class="punctuation_bracket">(</span><span class="string">&apos;\n&apos;</span><span class="punctuation_bracket">)</span><span class="punctuation_bracket">)</span> <span class="punctuation_bracket">{</span>
+    <span class="keyword">if</span> <span class="punctuation_bracket">(</span><span class="constructor constant variable_builtin function_builtin variable">line</span><span class="punctuation_delimiter">.</span><span class="property function_method">startsWith</span><span class="punctuation_bracket">(</span><span class="string">&apos;data: &apos;</span><span class="punctuation_bracket">)</span> <span class="operator">&amp;&amp;</span> <span class="operator">!</span><span class="constructor constant variable_builtin function_builtin variable">line</span><span class="punctuation_delimiter">.</span><span class="property function_method">includes</span><span class="punctuation_bracket">(</span><span class="string">&apos;[DONE]&apos;</span><span class="punctuation_bracket">)</span><span class="punctuation_bracket">)</span> <span class="punctuation_bracket">{</span>
+      <span class="constructor constant variable_builtin function_builtin variable">console</span><span class="punctuation_delimiter">.</span><span class="property function_method">log</span><span class="punctuation_bracket">(</span><span class="constructor constant variable_builtin function_builtin variable">JSON</span><span class="punctuation_delimiter">.</span><span class="property function_method">parse</span><span class="punctuation_bracket">(</span><span class="constructor constant variable_builtin function_builtin variable">line</span><span class="punctuation_delimiter">.</span><span class="property function_method">slice</span><span class="punctuation_bracket">(</span><span class="number">6</span><span class="punctuation_bracket">)</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">.</span><span class="property">choices</span><span class="punctuation_bracket">[</span><span class="number">0</span><span class="punctuation_bracket">]</span><span class="punctuation_delimiter">.</span><span class="property">delta</span><span class="punctuation_delimiter">.</span><span class="property">content</span><span class="punctuation_bracket">)</span><span class="punctuation_delimiter">;</span>
+    <span class="punctuation_bracket">}</span>
+  <span class="punctuation_bracket">}</span>
+<span class="punctuation_bracket">}</span>
+</code></pre>
+<h2>Performance Tips</h2><ol><li>Use <code>--gpu-layers -1</code> to offload all layers to GPU for maximum speed</li><li>Reduce context size for faster responses with shorter conversations</li><li>Use streaming for better perceived latency in chat applications</li><li>Batch multiple inputs in embeddings requests when possible</li></ol><h2>Model Compatibility</h2><p>The API server works with any GGUF model file. GGUF (Georgi Gerganov Unified Format) is the standard format for llama.cpp-compatible models including Llama, Mistral, Qwen, Phi, and Gemma families.</p><p>For best results, use models with chat templates for multi-turn conversations.</p></div>
+        </article>
+      </main>
     </div>
+  </div>
 </div>

@@ -1,29 +1,103 @@
 <div class="section py-20">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Sidebar -->
-            <aside class="lg:w-64 flex-shrink-0">
-                <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
-                    <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
-                    <ul class="space-y-2">
-                        <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
-                        <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
-                        <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
-                        <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
-                        <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
-                    </ul>
-                </nav>
-            </aside>
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
+          <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
+          <ul class="space-y-2">
+            <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
+            <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
+            <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
+            <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
+            <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Content -->
+      <main class="flex-1 min-w-0">
+        <article class="max-w-4xl">
+          <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">CLI Reference</h1>
+          <div class="prose prose-invert prose-lg max-w-none"><h1>CLI Reference</h1><p>Complete reference for all igllama commands. GGUF stands for “Georgi Gerganov Unified Format”, the standard model format for llama.cpp-compatible inference engines.</p><h2>Command Overview</h2><table><tr><th>Command</th><th>Description</th></tr><tr><td><code>help</code></td><td>Show usage information</td></tr><tr><td><code>version</code></td><td>Show version information</td></tr><tr><td><code>pull</code></td><td>Download model from HuggingFace Hub</td></tr><tr><td><code>list</code></td><td>List all cached models</td></tr><tr><td><code>run</code></td><td>Run single-turn inference</td></tr><tr><td><code>chat</code></td><td>Interactive multi-turn chat session</td></tr><tr><td><code>import</code></td><td>Import local GGUF file to cache</td></tr><tr><td><code>api</code></td><td>Start OpenAI-compatible API server</td></tr><tr><td><code>show</code></td><td>Display GGUF file metadata</td></tr><tr><td><code>rm</code></td><td>Remove a cached model</td></tr><tr><td><code>serve</code></td><td>Manage llama-server lifecycle</td></tr></table><h2>help</h2><p>Display usage information and available commands.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">help</span>
+<span class="constant function">igllama</span> <span class="constant">--help</span>
+<span class="constant function">igllama</span> <span class="constant">-h</span>
+</code></pre>
+<h2>version</h2><p>Display the current igllama version.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">version</span>
+<span class="constant function">igllama</span> <span class="constant">--version</span>
+<span class="constant function">igllama</span> <span class="constant">-v</span>
+</code></pre>
+<h2>pull</h2><p>Download models from HuggingFace Hub with progress bar and resume support.</p><pre><code class="bash"><span class="comment"># List available GGUF files</span>
+<span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span>
 
-            <!-- Content -->
-            <main class="flex-1 min-w-0">
-                <article class="max-w-4xl">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">CLI Reference</h1>
-                    <div class="prose prose-invert prose-lg max-w-none">
-                        $body
-                    </div>
-                </article>
-            </main>
-        </div>
+<span class="comment"># Download specific file</span>
+<span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span> <span class="constant">--file</span> <span class="constant">Llama-3-8B-Instruct-Q4_K_M.gguf</span>
+
+<span class="comment"># Force re-download</span>
+<span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span> <span class="constant">--file</span> <span class="constant">model.gguf</span> <span class="constant">--force</span>
+</code></pre>
+<table><tr><th>Flag</th><th>Description</th></tr><tr><td><code>-f, --file</code></td><td>Download specific file from repository</td></tr><tr><td><code>-F, --force</code></td><td>Force re-download even if file exists</td></tr><tr><td><code>-q, --quiet</code></td><td>Suppress progress output</td></tr></table><h2>list</h2><p>List all downloaded models in the cache.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">list</span>
+<span class="constant function">igllama</span> <span class="constant">ls</span>
+</code></pre>
+<h2>run</h2><p>Run single-turn inference on a model.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">model.gguf</span> <span class="constant">--prompt</span> <span class="string constant">&quot;Hello, world!&quot;</span>
+<span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">model.gguf</span> <span class="constant">-p</span> <span class="string constant">&quot;Explain quantum computing&quot;</span> <span class="constant">--gpu-layers</span> <span class="constant">35</span>
+<span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">model.gguf</span> <span class="constant">-p</span> <span class="string constant">&quot;List 3 items&quot;</span> <span class="constant">--grammar-file</span> <span class="constant">json</span>
+</code></pre>
+<table><tr><th>Flag</th><th>Description</th></tr><tr><td><code>-p, --prompt</code></td><td>Prompt text (required)</td></tr><tr><td><code>-n, --max-tokens</code></td><td>Max tokens to generate (default: 512)</td></tr><tr><td><code>-ngl, --gpu-layers</code></td><td>GPU layers to offload (default: 0)</td></tr><tr><td><code>-g, --grammar</code></td><td>GBNF grammar string for constrained output</td></tr><tr><td><code>-gf, --grammar-file</code></td><td>Path to GBNF grammar file</td></tr></table><h2>chat</h2><p>Interactive multi-turn chat with conversation history and session management.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--system</span> <span class="string constant">&quot;You are a helpful coding assistant&quot;</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--template</span> <span class="constant">llama3</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--prompt</span> <span class="string constant">&quot;Explain recursion&quot;</span> <span class="constant">--json</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--resume</span> <span class="constant">session_name</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--temp</span> <span class="constant">0.8</span> <span class="constant">--top-p</span> <span class="constant">0.9</span> <span class="constant">--top-k</span> <span class="constant">40</span>
+</code></pre>
+<table><tr><th>Flag</th><th>Description</th></tr><tr><td><code>-s, --system</code></td><td>Set system prompt</td></tr><tr><td><code>-t, --template</code></td><td>Chat template: auto, chatml, llama3, mistral, gemma, phi3, qwen</td></tr><tr><td><code>-n, --max-tokens</code></td><td>Max tokens per response (default: 2048)</td></tr><tr><td><code>-c, --context-size</code></td><td>Context size (default: model training size)</td></tr><tr><td><code>-p, --prompt</code></td><td>Single-turn mode (non-interactive)</td></tr><tr><td><code>--json</code></td><td>Output response as JSON</td></tr><tr><td><code>-q, --quiet</code></td><td>Suppress model loading logs</td></tr><tr><td><code>-ngl, --gpu-layers</code></td><td>GPU layers to offload (default: 0)</td></tr><tr><td><code>--temp</code></td><td>Temperature (default: 0.7, 0=greedy)</td></tr><tr><td><code>--top-p</code></td><td>Top-p nucleus sampling (default: 0.9)</td></tr><tr><td><code>--top-k</code></td><td>Top-k sampling (default: 40)</td></tr><tr><td><code>--repeat-penalty</code></td><td>Repetition penalty (default: 1.1)</td></tr><tr><td><code>--seed</code></td><td>Random seed (default: 0=random)</td></tr><tr><td><code>--grammar</code></td><td>GBNF grammar string</td></tr><tr><td><code>--grammar-file</code></td><td>Path to GBNF grammar file</td></tr><tr><td><code>--no-save</code></td><td>Disable auto-save sessions</td></tr><tr><td><code>--resume</code></td><td>Resume session from file</td></tr></table><h3>Chat Subcommands</h3><p>In-chat commands available during interactive sessions:</p><table><tr><th>Command</th><th>Description</th></tr><tr><td><code>/help</code></td><td>Show available commands</td></tr><tr><td><code>/quit</code>, <code>/exit</code></td><td>Exit the chat session</td></tr><tr><td><code>/clear</code></td><td>Clear conversation history and KV cache</td></tr><tr><td><code>/save &lt;name&gt;</code></td><td>Save session to file</td></tr><tr><td><code>/load &lt;name&gt;</code></td><td>Load a saved session</td></tr><tr><td><code>/sessions</code></td><td>List all saved sessions</td></tr><tr><td><code>/system &lt;text&gt;</code></td><td>Set or update system prompt</td></tr><tr><td><code>/tokens</code></td><td>Show token usage statistics</td></tr><tr><td><code>/stats</code></td><td>Show generation statistics</td></tr><tr><td><code>/template &lt;name&gt;</code></td><td>Switch chat template</td></tr></table><h2>import</h2><p>Import local GGUF files into the model cache.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">/path/to/model.gguf</span>
+<span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">/path/to/model.gguf</span> <span class="constant">--copy</span>
+<span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">/path/to/model.gguf</span> <span class="constant">--alias</span> <span class="constant">my-model</span>
+</code></pre>
+<table><tr><th>Flag</th><th>Description</th></tr><tr><td><code>--copy</code></td><td>Copy file to cache</td></tr><tr><td><code>--symlink, --link</code></td><td>Create symlink to source</td></tr><tr><td><code>--alias, -a</code></td><td>Create named alias for quick access</td></tr></table><h2>api</h2><p>Start OpenAI-compatible REST API server with streaming support.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span>
+<span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--host</span> <span class="constant">0.0.0.0</span> <span class="constant">--port</span> <span class="constant">3000</span>
+<span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--gpu-layers</span> <span class="constant">-1</span>
+</code></pre>
+<table><tr><th>Flag</th><th>Description</th></tr><tr><td><code>-m, --model</code></td><td>Path to GGUF model file (required)</td></tr><tr><td><code>-p, --port</code></td><td>Server port (default: 8080)</td></tr><tr><td><code>-h, --host</code></td><td>Server host (default: 127.0.0.1)</td></tr><tr><td><code>-c, --ctx-size</code></td><td>Context size (default: 4096)</td></tr><tr><td><code>-n, --max-tokens</code></td><td>Max tokens per response (default: 2048)</td></tr><tr><td><code>-ngl, --gpu-layers</code></td><td>GPU layers to offload (default: 0)</td></tr><tr><td><code>--temp</code></td><td>Temperature (default: 0.7)</td></tr></table><h3>API Endpoints</h3><table><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr><tr><td><code>/health</code></td><td>GET</td><td>Health check</td></tr><tr><td><code>/v1/models</code></td><td>GET</td><td>List available models</td></tr><tr><td><code>/v1/chat/completions</code></td><td>POST</td><td>Chat completions (streaming supported)</td></tr><tr><td><code>/v1/embeddings</code></td><td>POST</td><td>Generate embeddings</td></tr></table><pre><code class="bash"><span class="comment"># Chat completion</span>
+<span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/chat/completions</span> \
+  <span class="constant">-H</span> <span class="string constant">&quot;Content-Type: application/json&quot;</span> \
+  <span class="constant">-d</span> <span class="string constant">&apos;{&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hello!&quot;}],&quot;stream&quot;:false}&apos;</span>
+
+<span class="comment"># Streaming</span>
+<span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/chat/completions</span> \
+  <span class="constant">-H</span> <span class="string constant">&quot;Content-Type: application/json&quot;</span> \
+  <span class="constant">-d</span> <span class="string constant">&apos;{&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Story&quot;}],&quot;stream&quot;:true}&apos;</span>
+</code></pre>
+<h2>show</h2><p>Display GGUF file metadata including version, tensor count, and architecture.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">show</span> <span class="constant">model.gguf</span>
+<span class="constant function">igllama</span> <span class="constant">show</span> <span class="constant">./models/llama-3-8b.gguf</span>
+</code></pre>
+<h2>rm</h2><p>Remove a downloaded model from the cache.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">rm</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span>
+<span class="constant function">igllama</span> <span class="constant">remove</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span>
+</code></pre>
+<h2>serve</h2><p>Manage llama-server lifecycle for API access.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">serve</span> <span class="constant">start</span> <span class="constant">-m</span> <span class="constant">model.gguf</span>
+<span class="constant function">igllama</span> <span class="constant">serve</span> <span class="constant">start</span> <span class="constant">-m</span> <span class="constant">model.gguf</span> <span class="constant">--port</span> <span class="constant">8080</span>
+<span class="constant function">igllama</span> <span class="constant">serve</span> <span class="constant">status</span>
+<span class="constant function">igllama</span> <span class="constant">serve</span> <span class="constant">logs</span>
+<span class="constant function">igllama</span> <span class="constant">serve</span> <span class="constant">logs</span> <span class="constant">--follow</span>
+<span class="constant function">igllama</span> <span class="constant">serve</span> <span class="constant">stop</span>
+</code></pre>
+<table><tr><th>Subcommand</th><th>Description</th></tr><tr><td><code>start -m &lt;model&gt;</code></td><td>Start llama-server with model</td></tr><tr><td><code>stop</code></td><td>Stop running server</td></tr><tr><td><code>status</code></td><td>Show server status</td></tr><tr><td><code>logs [--follow]</code></td><td>View server logs</td></tr><tr><td><code>help</code></td><td>Show serve help</td></tr></table><h3>Serve Start Options</h3><table><tr><th>Flag</th><th>Description</th></tr><tr><td><code>--model, -m</code></td><td>Path to GGUF model file (required)</td></tr><tr><td><code>--port</code></td><td>Server port (default: 8080)</td></tr><tr><td><code>--host</code></td><td>Server host (default: 127.0.0.1)</td></tr><tr><td><code>--ctx-size</code></td><td>Context size (default: 2048)</td></tr><tr><td><code>--n-gpu-layers</code></td><td>Number of GPU layers (default: 0)</td></tr></table><h2>Environment Variables</h2><table><tr><th>Variable</th><th>Description</th></tr><tr><td><code>IGLLAMA_HOME</code></td><td>Base directory for models (default: ~/.cache/huggingface)</td></tr><tr><td><code>HF_TOKEN</code></td><td>HuggingFace API token for private/gated models</td></tr><tr><td><code>HF_HOME</code></td><td>Custom HuggingFace cache directory</td></tr></table><h2>Examples</h2><pre><code class="bash"><span class="comment"># Download and run</span>
+<span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span>
+<span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">bartowski/Llama-3-8B-Instruct-GGUF</span> <span class="constant">--prompt</span> <span class="string constant">&quot;Hello!&quot;</span>
+
+<span class="comment"># Chat with template</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--template</span> <span class="constant">chatml</span> <span class="constant">--system</span> <span class="string constant">&quot;You are helpful&quot;</span>
+
+<span class="comment"># API server</span>
+<span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">model.gguf</span> <span class="constant">--port</span> <span class="constant">8080</span>
+<span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/chat/completions</span> <span class="constant">-d</span> <span class="string constant">&apos;{&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}]}&apos;</span>
+
+<span class="comment"># Import with alias</span>
+<span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">~/models/custom.gguf</span> <span class="constant">--alias</span> <span class="constant">my-custom</span>
+<span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">my-custom</span>
+</code></pre>
+</div>
+        </article>
+      </main>
     </div>
+  </div>
 </div>

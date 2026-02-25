@@ -1,2 +1,13 @@
-<!-- This will be replaced by the actual home page content -->
-$body
+<article class="section py-20">
+  <div class="container mx-auto px-4">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Home</h1>
+      <div class="prose prose-invert prose-lg max-w-none"><p>Welcome to <strong>igllama</strong> - the Zig-based Ollama alternative for running LLMs locally.</p><h2>Key Features</h2><ul><li><strong>Pure Zig</strong> - No Python or system dependencies</li><li><strong>Ollama-like CLI</strong> - Familiar commands: pull, run, chat</li><li><strong>HuggingFace Integration</strong> - Download models directly</li><li><strong>OpenAI-compatible API</strong> - REST server with /v1/chat/completions</li><li><strong>GGUF Support</strong> - Native GGUF format support</li><li><strong>GPU Acceleration</strong> - Metal, Vulkan, and CUDA backends</li></ul><h2>Quick Start</h2><pre><code class="bash"><span class="constant function">git</span> <span class="constant">clone</span> <span class="constant">--recursive</span> <span class="constant">https://github.com/bkataru/igllama.git</span>
+<span class="constant function">cd</span> <span class="constant">igllama</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
+<span class="constant function">./zig-out/bin/igllama</span> <span class="constant">run</span> <span class="constant">model.gguf</span> <span class="constant">-p</span> <span class="string constant">&quot;Hello!&quot;</span>
+</code></pre>
+<p><a href="/igllama/docs/">View Full Documentation</a></p></div>
+    </div>
+  </div>
+</article>

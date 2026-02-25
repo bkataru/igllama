@@ -1,29 +1,82 @@
 <div class="section py-20">
-    <div class="container mx-auto px-4">
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Sidebar -->
-            <aside class="lg:w-64 flex-shrink-0">
-                <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
-                    <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
-                    <ul class="space-y-2">
-                        <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
-                        <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
-                        <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
-                        <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
-                        <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
-                    </ul>
-                </nav>
-            </aside>
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <nav class="sticky top-20 bg-secondary rounded-lg p-4 border border-quaternary">
+          <h3 class="font-semibold text-text-primary mb-4">Documentation</h3>
+          <ul class="space-y-2">
+            <li><a href="/docs/installation/" class="nav-link block py-1">Installation</a></li>
+            <li><a href="/docs/quickstart/" class="nav-link block py-1">Quick Start</a></li>
+            <li><a href="/docs/cli/" class="nav-link block py-1">CLI Commands</a></li>
+            <li><a href="/docs/chat/" class="nav-link block py-1">Interactive Chat</a></li>
+            <li><a href="/docs/api/" class="nav-link block py-1">API Server</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <!-- Content -->
+      <main class="flex-1 min-w-0">
+        <article class="max-w-4xl">
+          <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Quickstart Guide</h1>
+          <div class="prose prose-invert prose-lg max-w-none"><h1>Quickstart Guide</h1><p>Welcome to <strong>igllama</strong>, your gateway to running large language models locally. This guide gets you from zero to inference in minutes, not hours. No PhD required, no cloud dependencies, just pure local AI.</p><p>GGUF (Georgi Gerganov Unified Format) is the backbone here, a quantized model format that runs efficiently on consumer hardware.</p><hr><h2>Choose Your Path</h2><table><tr><th>Track</th><th>Time</th><th>What You’ll Do</th></tr><tr><td><strong>5-minute sprint</strong></td><td>5 min</td><td>Pull a model and run a single prompt</td></tr><tr><td><strong>Full tutorial</strong></td><td>10 min</td><td>Pull, run, chat, and import local models</td></tr></table><p><strong>Prerequisites:</strong> igllama installed and built. If not, head to <a href="/igllama/docs/installation/">Installation</a> first.</p><hr><h2>Step 1: Pull a Model (2 minutes)</h2><p>First, download a model from HuggingFace. We’ll use <strong>Qwen3.5-35B-A3B</strong>, a Mixture of Experts model with 35B total parameters but only 3B active per inference. Perfect for CPU-only systems.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span>
+</code></pre>
+<p><strong>Expected output:</strong></p><pre><code>Downloading Qwen/Qwen3.5-35B-A3B-GGUF...
+Model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
+Progress: [████████████████████] 100% - 19.2 GB / 19.2 GB
+Download complete. Model cached at: ~/.cache/igllama/models/Qwen/Qwen3.5-35B-A3B-GGUF
+</code></pre><p>List your cached models:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">list</span>
+</code></pre>
+<p><strong>Expected output:</strong></p><pre><code>Cached Models:
+  - Qwen/Qwen3.5-35B-A3B-GGUF
+    └─ qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
+</code></pre><hr><h2>Step 2: Run Inference (2 minutes)</h2><p>Send a single prompt and get a response:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span> <span class="constant">-p</span> <span class="string constant">&quot;Explain quantum entanglement in one sentence.&quot;</span>
+</code></pre>
+<p><strong>Expected output:</strong></p><pre><code>Loading model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf
+Model loaded: 35B parameters, 256K context
+Generating response...
 
-            <!-- Content -->
-            <main class="flex-1 min-w-0">
-                <article class="max-w-4xl">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text">Quickstart Guide</h1>
-                    <div class="prose prose-invert prose-lg max-w-none">
-                        $body
-                    </div>
-                </article>
-            </main>
-        </div>
+Quantum entanglement is a phenomenon where two or more particles become correlated in such a way that the quantum state of each particle cannot be described independently, even when separated by large distances.
+
+Tokens: 42 | Time: 3.2s | Speed: 13.1 tok/s
+</code></pre><p>Add GPU acceleration if available:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span> <span class="constant">-p</span> <span class="string constant">&quot;Hello!&quot;</span> <span class="constant">--gpu-layers</span> <span class="constant">35</span>
+</code></pre>
+<hr><h2>Step 3: Interactive Chat (3 minutes)</h2><p>For multi-turn conversations with context memory:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span>
+</code></pre>
+<p><strong>Expected output:</strong></p><pre><code>Loading model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf
+Model loaded successfully.
+Chat session started. Type &apos;/help&apos; for commands, &apos;/quit&apos; to exit.
+
+&gt; Hello! What can you help me with?
+I can assist with a wide range of tasks including answering questions, creative writing, problem solving, coding help, analysis, and general conversation. What would you like to work on?
+
+&gt; Can you write a haiku about AI?
+Silicon dreams wake,
+Neural pathways spark and glow,
+Mind from metal born.
+
+&gt; /tokens
+Session Statistics:
+  Input tokens: 45
+  Output tokens: 128
+  Total tokens: 173
+</code></pre><p><strong>In-chat commands:</strong></p><table><tr><th>Command</th><th>Description</th></tr><tr><td><code>/help</code></td><td>Show available commands</td></tr><tr><td><code>/quit</code></td><td>Exit chat session</td></tr><tr><td><code>/clear</code></td><td>Clear conversation history</td></tr><tr><td><code>/save &lt;name&gt;</code></td><td>Save session to file</td></tr><tr><td><code>/system &lt;text&gt;</code></td><td>Set system prompt</td></tr><tr><td><code>/tokens</code></td><td>Show token usage</td></tr></table><hr><h2>Step 4: Import Local GGUF (2 minutes)</h2><p>Already have GGUF files? Import them into the cache:</p><pre><code class="bash"><span class="comment"># Import with symlink (default, saves disk space)</span>
+<span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">/path/to/model.gguf</span>
+
+<span class="comment"># Import with copy (creates full copy)</span>
+<span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">/path/to/model.gguf</span> <span class="constant">--copy</span>
+
+<span class="comment"># Import with custom alias</span>
+<span class="constant function">igllama</span> <span class="constant">import</span> <span class="constant">/path/to/model.gguf</span> <span class="constant">--alias</span> <span class="constant">my-model</span>
+</code></pre>
+<p><strong>Expected output:</strong></p><pre><code>Importing: /path/to/model.gguf
+Creating symlink in cache...
+Model imported as: my-model.gguf
+Location: ~/.cache/igllama/models/my-model.gguf
+</code></pre><p>Now use it like any pulled model:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">my-model.gguf</span> <span class="constant">-p</span> <span class="string constant">&quot;Test prompt&quot;</span>
+</code></pre>
+<hr><h2>What’s Next?</h2><p>You’ve completed the core workflow. Here’s where to go next:</p><ul><li><strong><a href="/igllama/docs/cli/">CLI Reference</a></strong> - Full command documentation</li><li><strong><a href="/igllama/docs/chat/">Chat Mode</a></strong> - Advanced conversation features</li><li><strong><a href="/igllama/docs/api/">API Server</a></strong> - OpenAI-compatible REST API</li><li><strong><a href="/igllama/docs/installation/">Installation</a></strong> - Build options and GPU backends</li></ul><hr><h2>Troubleshooting</h2><p><strong>Model not found:</strong> Ensure you ran <code>pull</code> first or use the full path with <code>import</code>.</p><p><strong>Out of memory:</strong> Try a smaller quantization (Q4_K_S instead of Q4_K_XL) or use <code>--gpu-layers</code> to offload to GPU.</p><p><strong>Slow inference:</strong> Enable GPU acceleration with <code>--gpu-layers -1</code> for full offload, or use a smaller model variant.</p><hr><p>The machine is waiting. Your next prompt is yours.</p></div>
+        </article>
+      </main>
     </div>
+  </div>
 </div>
