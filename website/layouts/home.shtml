@@ -56,9 +56,6 @@
                 <div class="max-w-4xl mx-auto">
                     <h1 class="text-4xl md:text-5xl font-bold mb-8 glow-text" :text="$page.title"></h1>
                     <div class="prose prose-invert prose-lg max-w-none" :html="$page.content()"></div>
-                </div>
-            </div>
-        </article>
     </main>
     <footer class="p-8 bg-ig-surface border-t border-ig-neon-purple/30 mt-20">
         <div class="container mx-auto text-center text-ig-text-muted">
