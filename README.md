@@ -403,7 +403,7 @@ Qwen3.5-35B-A3B (UD-Q4_K_XL quantized, 19GB) running on Windows 11 with AMD Ryze
 ---
 ## Roadmap
 
-- [x] Qwen3.5-35B-A3B support (v0.3.1)
+- [x] Qwen3.5-35B-A3B support (v0.3.2)
 - [x] `serve` command - Run llama-server for API access
 - [x] Custom llama.cpp version selection (`-Dllama_ref`)
 - [x] GPU backend support (Metal, Vulkan, CUDA)
@@ -422,7 +422,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-*Last updated: February 2026 - v0.3.1 release with build fixes for Windows*
+*Last updated: February 2026 - v0.3.2 release with PR #61 merged*
 
 ## Credits
 
