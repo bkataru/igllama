@@ -6,7 +6,7 @@
 .date = "2026-02-25",
 ---
 
-# API Server Documentation
+# API Server
 
 igllama provides an OpenAI-compatible REST API server for GGUF models with streaming support.
 
