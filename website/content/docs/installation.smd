@@ -66,7 +66,7 @@ The fastest way to get started:
 
 ```bash
 # Clone with submodules (required for GGUF support)
-git clone --recursive https://github.com/igllama/igllama.git
+git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 
 # Build release version
@@ -89,7 +89,7 @@ sudo apt update
 sudo apt install -y build-essential cmake git zig
 
 # Clone and build
-git clone --recursive https://github.com/igllama/igllama.git
+git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 zig build -Doptimize=ReleaseFast
 
@@ -100,7 +100,7 @@ sudo cp ./zig-out/bin/igllama /usr/local/bin/
 #### Fedora/RHEL
 ```bash
 sudo dnf install -y zig cmake git gcc-c++
-git clone --recursive https://github.com/igllama/igllama.git
+git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 zig build -Doptimize=ReleaseFast
 ```
@@ -115,7 +115,7 @@ xcode-select --install
 brew install zig cmake git
 
 # Clone repository
-git clone --recursive https://github.com/igllama/igllama.git
+git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 
 # Build with Metal acceleration (macOS only)
@@ -133,7 +133,7 @@ zig build -Doptimize=ReleaseFast -Dgpu=metal
 winget install zig.zig
 
 # Clone repository
-git clone --recursive https://github.com/igllama/igllama.git
+git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 
 # Build with Visual Studio toolchain
@@ -150,7 +150,7 @@ sudo apt update
 sudo apt install -y build-essential cmake git zig
 
 # Build as Linux binary
-git clone --recursive https://github.com/igllama/igllama.git
+git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 zig build -Doptimize=ReleaseFast
 ```
@@ -288,5 +288,5 @@ system_profiler   # Metal (macOS)
 ### Getting Help
 
 - Documentation: https://igllama.org/docs
-- Issues: https://github.com/igllama/igllama/issues
-- Discussions: https://github.com/igllama/igllama/discussions
+- Issues: https://github.com/bkataru/igllama/issues
+- Discussions: https://github.com/bkataru/igllama/discussions
