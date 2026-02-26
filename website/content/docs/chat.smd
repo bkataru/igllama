@@ -6,7 +6,7 @@
 .date = "2026-02-25",
 ---
 
-# Interactive Chat Mode
+# Interactive Chat
 
 Engage in multi-turn conversations with your local LLM. igllama's chat mode provides a conversational interface with context management and session persistence.
 
