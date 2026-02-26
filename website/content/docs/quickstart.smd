@@ -6,7 +6,7 @@
 .date = "2026-02-25",
 ---
 
-# Quickstart Guide
+
 
 Welcome to **igllama**, your gateway to running large language models locally. This guide gets you from zero to inference in minutes, not hours. No PhD required, no cloud dependencies, just pure local AI.
 
