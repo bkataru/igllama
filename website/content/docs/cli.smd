@@ -6,7 +6,7 @@
 .date = "2026-02-25",
 ---
 
-# CLI Reference
+
 
 Complete reference for all igllama commands. GGUF stands for "Georgi Gerganov Unified Format", the standard model format for llama.cpp-compatible inference engines.
 
