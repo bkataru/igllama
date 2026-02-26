@@ -6,7 +6,7 @@
 .date = "2026-02-25",
 ---
 
-# Installation Guide
+# Installation
 
 Get igllama up and running on your system. This guide covers installation on Windows, Linux, and macOS, including GPU backend configuration for accelerated inference.
 
