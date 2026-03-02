@@ -99,6 +99,24 @@ For a 28-30 GB RAM budget, all these quants fit comfortably:
 | Model | UD-Q4_K_XL (19.17 GB) | UD-Q4_K_XL (19.17 GB) |
 | RAM with mlock | N/A | ~22 GB pinned |
 
+## Thinking Mode Suppression (v0.3.5)
+
+Qwen3.5 generates `<think>...</think>` blocks before every response. On CPU this is expensive:
+
+| Phase | Tokens | Approx. time (8t, EPYC-Rome) |
+|-------|--------|-------------------------------|
+| Think block | ~200 tokens | ~36 s |
+| Actual answer | ~50 tokens | ~9 s |
+
+For API usage with tools (Forge, opencode, etc.) you almost always want thinking off.
+
+`--no-think` pre-fills `<think>\n\n</think>` on the assistant turn, signalling to the model that reasoning is complete. The model then generates only the final answer.
+
+```bash
+# Without --no-think: ~45s total for a simple question
+# With --no-think:    ~9s total — 5× faster for short answers
+```
+
 ## Optimal Launch Command
 
 ```bash
@@ -106,7 +124,8 @@ igllama api Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf \
   --threads 8 \
   --threads-batch 16 \
   --mlock \
-  --ctx-size 8192
+  --ctx-size 8192 \
+  --no-think
 ```
 
 ## Historical Issues

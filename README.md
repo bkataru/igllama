@@ -33,7 +33,7 @@ A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.
 - **GGUF Support** - Inspect and run GGUF model files
 - **GPU Acceleration** - Metal, Vulkan, and CUDA backend support
 - **Auto-detect Chat Templates** - Supports 12+ formats (ChatML, Llama 3, Mistral, etc.)
-- **Qwen3.5 Support** - Run Qwen3.5-35B-A3B MoE models with GGUF quantization
+- **Qwen3.5 Support** - Run Qwen3.5-35B-A3B MoE models with GGUF quantization; `--no-think` flag suppresses chain-of-thought blocks for faster responses
 - **Constrained Generation** - GBNF grammar support for structured output
 - **Pure Zig** - No Python or system dependencies required
 - **Cross-platform** - Windows, Linux, macOS support
@@ -192,6 +192,8 @@ igllama api model.gguf --gpu-layers -1
 
 # CPU-optimized (tune threads to your hardware)
 igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192
+# Suppress Qwen3.5 <think> blocks for faster responses
+igllama api model.gguf --no-think
 ```
 
 **Endpoints:**
@@ -399,7 +401,7 @@ Qwen3.5-35B-A3B (UD-Q4_K_XL quantized, 19.17 GB) running on Linux with AMD EPYC-
 
 - **Time to First Token**: ~0.5 s (short prompt), ~12 s (3K token prompt)
 - **Memory Usage**: ~22 GB (model + 8K KV cache)
-- **Optimal launch**: `igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192`
+- **Optimal launch**: `igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192 --no-think`
 
 > 💡 **Why Qwen3.5-35B-A3B?** This MoE (Mixture of Experts) model has 35B total parameters but only 3B active per inference, making it perfect for CPU-only systems with lots of RAM but weaker CPUs. The dynamic sparse architecture means you get 35B-quality output with 3B computational cost. The dense 27B alternative would require 9× more compute per token.
 
@@ -429,7 +431,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-*Last updated: March 2026 - v0.3.4 release*
+*Last updated: March 2026 - v0.3.5 release*
 
 ## Credits
 
