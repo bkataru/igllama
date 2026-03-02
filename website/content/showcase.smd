@@ -1,107 +1,132 @@
 ---
 .title = "Qwen3.5-35B-A3B Benchmark Showcase",
 .layout = "home.shtml",
-.description = "Comprehensive performance benchmarks for Qwen3.5-35B-A3B MoE model",
+.description = "Real-world performance benchmarks for Qwen3.5-35B-A3B MoE model on CPU-only server hardware",
 .author = "igllama Team",
-.date = "2026-02-25",
+.date = "2026-03-02",
 ---
 
-## Why Qwen3.5 MoE Excels on CPU-Only Systems 🚀
+## Why Qwen3.5 MoE Excels on CPU-Only Systems
 
+Qwen3.5-35B-A3B is a **Mixture of Experts (MoE)** model with 35 billion total parameters, but only **3 billion active parameters per inference step**. This sparse activation pattern means your CPU processes roughly the same FLOPs as a 3B dense model, but draws on 35B of knowledge. For CPU-only deployments with plenty of RAM, this architecture is uniquely efficient.
 
-Qwen3.5-35B-A3B represents a breakthrough in efficient language model architecture. As a **Mixture of Experts (MoE)** model, it combines 35 billion total parameters with only 3 billion active parameters per inference step. This sparse activation pattern means your CPU processes a fraction of the full model size during generation, delivering near-7B model speeds with 35B model quality.
+The benchmarks below are real measurements on actual server hardware — not synthetic tests.
 
-The key advantage for CPU deployment lies in this sparsity. While dense 35B models demand substantial compute per token, Qwen3.5's MoE structure activates only relevant expert networks, dramatically reducing FLOPs per token. Combined with GGUF (Georgi Gerganov Unified Format) quantization, this model runs efficiently on consumer hardware without GPU acceleration.
-
-## Hardware Configuration
+## Test Hardware
 
 | Component | Specification |
 |-----------|---------------|
-| CPU | AMD Ryzen 9 7950X (16C/32T) |
-| RAM | 64GB DDR5-6000 |
-| Storage | NVMe PCIe 4.0 SSD |
-| OS | Windows 11 Pro |
-| llama.cpp Version | b5482 |
-| Threads | 16 |
+| CPU | AMD EPYC-Rome (16 cores / 32 threads @ 2.0 GHz) |
+| RAM | 30 GB DDR4 |
+| Storage | SSD |
+| GPU | None (CPU-only) |
+| OS | Linux |
+| igllama | v0.3.4 |
+| llama.cpp | b5482 |
+| Model | Qwen3.5-35B-A3B UD-Q4_K_XL (19.17 GB) |
 
-## Benchmark Results 📊
+## Thread Count Optimization
 
-### Tokens Per Second by Quantization
-
-```
-Q4_K_M  ██████████████████████████████░░░░░░  18.4 t/s
-Q5_K_M  ████████████████████████████████░░░░  16.2 t/s
-Q6_K    ██████████████████████████████████░░  14.7 t/s
-Q8_0    ████████████████████████████████████  13.1 t/s
-FP16    ██████████████████████████████████████ 11.8 t/s
-```
-
-| Quantization | Tokens/sec | Model Size | Memory Usage |
-|--------------|------------|------------|--------------|
-| Q4_K_M | 18.4 t/s | 19.8 GB | 21.2 GB |
-| Q5_K_M | 16.2 t/s | 22.4 GB | 23.9 GB |
-| Q6_K | 14.7 t/s | 25.1 GB | 26.8 GB |
-| Q8_0 | 13.1 t/s | 28.3 GB | 30.1 GB |
-| FP16 | 11.8 t/s | 70.2 GB | 72.4 GB |
-
-### Time to First Token (TTFT)
-
-Latency matters for interactive applications. Below shows average TTFT across different prompt lengths:
-
-| Prompt Length | Q4_K_M | Q5_K_M | Q8_0 |
-|---------------|--------|--------|------|
-| 128 tokens | 245 ms | 268 ms | 312 ms |
-| 512 tokens | 389 ms | 421 ms | 498 ms |
-| 2048 tokens | 672 ms | 734 ms | 856 ms |
-| 8192 tokens | 1.42 s | 1.58 s | 1.89 s |
-
-### Memory Efficiency
-
-The MoE architecture shines in memory-constrained environments:
+Generation throughput on CPU is **memory-bandwidth bound** (GEMV operations), not compute bound. Adding more threads past your CPU's memory channel count adds contention without increasing speed. This EPYC-Rome chip has 8 memory channels, which matches the measured optimum.
 
 ```
-Memory Footprint Comparison (Q4_K_M):
-┌─────────────────────────────────────┐
-│ Qwen3.5-35B-A3B    │████████░░ 19.8GB│
-│ Llama-3-70B        │████████████ 38GB│
-│ Mixtral-8x22B      │███████████  35GB│
-│ Command R+         │██████████   30GB│
-└─────────────────────────────────────┘
+Generation throughput vs thread count (--threads-batch 16 fixed):
+
+ 2 threads: ██████████░░░░░░░░░░░░░░░░░░░░  2.14 tok/s
+ 4 threads: █████████████████████░░░░░░░░░  4.40 tok/s
+ 6 threads: ███████████████████░░░░░░░░░░░  3.95 tok/s
+ 8 threads: ████████████████████████████░░  5.56 tok/s  ← optimal
+12 threads: ██████████████████████░░░░░░░░  4.65 tok/s
+16 threads: █████████████░░░░░░░░░░░░░░░░░  2.86 tok/s
 ```
 
-### Context Window Performance
+| Threads | Generation (tok/s) | vs Default (4t) |
+|---------|-------------------|-----------------|
+| 2 | 2.14 | -51% |
+| 4 | 4.40 | baseline |
+| 6 | 3.95 | -10% |
+| **8** | **5.56** | **+26%** |
+| 12 | 4.65 | +6% |
+| 16 | 2.86 | -35% |
 
-Qwen3.5 supports up to 128K context windows. Here is how performance scales:
+The previous igllama default capped generation at 4 threads regardless of hardware. The new `--threads` and `--threads-batch` flags (v0.3.4) let you tune this independently for your system.
 
-| Context Length | Tokens/sec | Memory Delta |
-|----------------|------------|--------------|
-| 4K | 18.4 t/s | +0 GB |
-| 8K | 17.9 t/s | +0.8 GB |
-| 16K | 16.8 t/s | +2.1 GB |
-| 32K | 14.2 t/s | +4.8 GB |
-| 64K | 10.6 t/s | +9.2 GB |
-| 128K | 6.8 t/s | +18.4 GB |
+## Prefill vs Generation
 
-## Why This Matters for CPU Deployment
+These are fundamentally different compute patterns:
 
-**Sparse Activation, Dense Performance**: The 3B active parameter count means each forward pass processes roughly the same compute as a dense 3B model, but with access to 35B parameters of knowledge. This is why Qwen3.5-35B-A3B delivers exceptional tokens per second on CPU-only systems.
+| Phase | Operation | Bottleneck | Optimal threads |
+|-------|-----------|------------|-----------------|
+| Prefill (prompt processing) | GEMM (matrix multiply) | Compute-parallel | All cores (16) |
+| Generation (token-by-token) | GEMV (matrix-vector) | Memory bandwidth | Memory channels (8) |
 
-**GGUF Quantization Benefits**: GGUF (Georgi Gerganov Unified Format) provides optimized quantization schemes that preserve model quality while reducing memory footprint. The format is specifically designed for llama.cpp, enabling efficient CPU inference with minimal quality degradation.
+Use `--threads` for generation and `--threads-batch` for prefill independently:
 
-**Scalable Performance**: As benchmark data shows, even Q4_K_M quantization maintains strong performance at 18.4 tokens per second, making real-time chat applications feasible on consumer hardware.
-
-## Performance Visualization 📈
-
-```
-Tokens/sec by Quantization:
-Q4_K_M: ██████████████████████████████░░░░░░ 18.4 t/s
-Q5_K_M: ████████████████████████████████░░░░ 16.2 t/s
-Q6_K:   ██████████████████████████████████░░ 14.7 t/s
-Q8_0:   ████████████████████████████████████ 13.1 t/s
+```bash
+igllama api model.gguf --threads 8 --threads-batch 16
 ```
 
-## Conclusion 🎉
+## Optimal Server Launch Command
 
-Qwen3.5-35B-A3B represents the sweet spot for CPU-only deployments. The combination of MoE architecture, efficient GGUF quantization, and llama.cpp optimization delivers production-ready performance without GPU requirements. For developers building local AI applications, this model offers an excellent balance of speed, quality, and resource efficiency.
+```bash
+igllama api Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf \
+  --threads 8 \
+  --threads-batch 16 \
+  --mlock \
+  --ctx-size 8192
+```
 
-Ready to deploy? Grab the GGUF from HuggingFace and start generating.
+**Flags explained:**
+- `--threads 8` — matches EPYC-Rome's 8 memory channels for generation
+- `--threads-batch 16` — all cores for parallel prompt processing
+- `--mlock` — pins model weights in RAM, prevents OS paging (critical with 19GB model)
+- `--ctx-size 8192` — larger context than the default 4096
+
+## Quantization Options (28 GB RAM Budget)
+
+| Quantization | File Size | Quality | Tok/s (est.) | Fits in RAM? |
+|--------------|-----------|---------|-------------|-------------|
+| UD-IQ2_XXS | 9.8 GB | Low | ~7.0 | Yes |
+| UD-Q2_K_XL | 12.9 GB | Medium-Low | ~6.0 | Yes |
+| UD-Q3_K_M | 16.7 GB | Medium | ~5.8 | Yes |
+| UD-Q3_K_XL | 17.2 GB | Medium | ~5.7 | Yes |
+| **UD-Q4_K_XL** | **19.2 GB** | **High** | **~5.6** | **Yes** |
+| UD-Q4_K_M | 19.9 GB | High | ~5.5 | Yes |
+| UD-Q5_K_XL | 24.9 GB | Very High | ~5.0 | Yes |
+
+The `UD-` prefix means **Unsloth Dynamic 2.0** — important layers are selectively upcasted for better quality. `UD-Q4_K_XL` (used in these benchmarks) is the recommended sweet spot for 28–30 GB RAM systems.
+
+## Qwen3.5 Model Family Comparison
+
+| Model | Total Params | Active Params | CPU Suitability |
+|-------|-------------|---------------|-----------------|
+| Qwen3.5-27B (dense) | 27B | 27B | Poor — 9× more compute per token |
+| **Qwen3.5-35B-A3B (MoE)** | **35B** | **3B** | **Excellent — best CPU choice** |
+| Qwen3.5-122B-A10B (MoE) | 122B | 10B | OK if RAM ≥ 70 GB |
+| Qwen3.5-397B-A17B (MoE) | 397B | 17B | Impractical on CPU |
+
+For CPU-only systems, the 35B-A3B is the clear winner: dense 27B would need 9× more compute per token and still deliver less knowledge.
+
+## Performance Summary
+
+| Metric | Value |
+|--------|-------|
+| Generation speed | 5.56 tok/s @ 8 threads |
+| Prefill speed | ~16 tok/s @ 16 threads |
+| Model size (UD-Q4_K_XL) | 19.17 GB |
+| RAM usage (with KV cache 8K) | ~22 GB |
+| Time to first token (short prompt) | ~0.5 s |
+| Time to first token (3K token prompt) | ~12 s |
+| Context window | 8192 (default server config) |
+
+## mlock: Why It Matters
+
+With a 19 GB model and only 28-30 GB of RAM, the OS may begin swapping model weights to disk under memory pressure. `--mlock` (new in v0.3.4) pins the model in physical RAM:
+
+```bash
+# Without mlock: potential paging during inference → 10–100× slower spikes
+# With mlock: consistent throughput, no swap latency
+igllama api model.gguf --mlock
+```
+
+Note: `mlock` requires sufficient free RAM. If your system has less free RAM than the model size, omit this flag.
