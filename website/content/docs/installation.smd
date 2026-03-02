@@ -119,7 +119,7 @@ git clone --recursive https://github.com/bkataru/igllama.git
 cd igllama
 
 # Build with Metal acceleration (macOS only)
-zig build -Doptimize=ReleaseFast -Dgpu=metal
+zig build -Doptimize=ReleaseFast -Dmetal=true
 
 # Test installation
 ./zig-out/bin/igllama --version
@@ -165,7 +165,7 @@ Metal is the recommended backend for Apple Silicon and Intel Macs.
 
 ```bash
 # Build with Metal support
-zig build -Doptimize=ReleaseFast -Dgpu=metal
+zig build -Doptimize=ReleaseFast -Dmetal=true
 
 # Verify Metal devices
 ./zig-out/bin/igllama --info
@@ -206,7 +206,7 @@ sudo apt update
 sudo apt install -y cuda-toolkit-12-0
 
 # Build with CUDA
-zig build -Doptimize=ReleaseFast -Dgpu=cuda -Dcuda-arch=sm_80
+zig build -Doptimize=ReleaseFast -Dcuda=true
 
 # Set CUDA path if not in default location
 export CUDA_HOME=/usr/local/cuda
@@ -236,8 +236,8 @@ zig build -Doptimize=ReleaseSmall
 # Custom target triple
 zig build -Dtarget=aarch64-macos
 
-# Disable specific features
-zig build -Dgpu=none -Dfeatures=none
+# CPU-only build (default, no GPU)
+zig build -Doptimize=ReleaseFast
 
 # Static linking (Linux)
 zig build -Doptimize=ReleaseFast -Dtarget=x86_64-linux-musl

@@ -189,6 +189,9 @@ igllama api model.gguf --host 0.0.0.0 --port 3000
 
 # With GPU acceleration
 igllama api model.gguf --gpu-layers -1
+
+# CPU-optimized (tune threads to your hardware)
+igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192
 ```
 
 **Endpoints:**
@@ -387,14 +390,18 @@ igllama run model.gguf -p "Hello" --gpu-layers -1
 
 ### Qwen3.5-35B-A3B on CPU-only Systems
 
-Qwen3.5-35B-A3B (UD-Q4_K_XL quantized, 19GB) running on Windows 11 with AMD Ryzen 7 (8-core), 32GB RAM:
+Qwen3.5-35B-A3B (UD-Q4_K_XL quantized, 19.17 GB) running on Linux with AMD EPYC-Rome (16-core @ 2.0 GHz), 30 GB RAM, no GPU:
 
-- **Tokens/sec**: ~2.5 tok/s
-- **Time to First Token**: ~800ms
-- **Memory Usage**: ~22GB
-- **Context Window**: 256K native support
+| Configuration | Tokens/sec |
+|---------------|-----------|
+| Default (old 4-thread cap) | ~4.4 tok/s |
+| Optimized (`--threads 8 --threads-batch 16`) | **~5.6 tok/s** |
 
-> 💡 **Why Qwen3.5-35B-A3B?** This MoE (Mixture of Experts) model has 35B total parameters but only 3B active per inference, making it perfect for CPU-only systems with lots of RAM but weaker CPUs. The dynamic sparse architecture means you get 35B-quality output with 3B computational cost.
+- **Time to First Token**: ~0.5 s (short prompt), ~12 s (3K token prompt)
+- **Memory Usage**: ~22 GB (model + 8K KV cache)
+- **Optimal launch**: `igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192`
+
+> 💡 **Why Qwen3.5-35B-A3B?** This MoE (Mixture of Experts) model has 35B total parameters but only 3B active per inference, making it perfect for CPU-only systems with lots of RAM but weaker CPUs. The dynamic sparse architecture means you get 35B-quality output with 3B computational cost. The dense 27B alternative would require 9× more compute per token.
 
 **Full documentation**:
 - [Qwen3.5 Quick Start Guide](docs/QWEN35-QUICKSTART.md) - 10-minute setup
@@ -422,7 +429,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-*Last updated: March 2026 - v0.3.3 release with PR #67 merged*
+*Last updated: March 2026 - v0.3.4 release*
 
 ## Credits
 
