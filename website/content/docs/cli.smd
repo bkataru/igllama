@@ -168,6 +168,8 @@ Start OpenAI-compatible REST API server with streaming support.
 igllama api model.gguf
 igllama api model.gguf --host 0.0.0.0 --port 3000
 igllama api model.gguf --gpu-layers -1
+igllama api model.gguf --no-think
+igllama api model.gguf --threads 8 --threads-batch 16 --mlock --no-think
 ```
 
 | Flag | Description |
@@ -181,6 +183,7 @@ igllama api model.gguf --gpu-layers -1
 | `-t, --threads` | Generation threads — set to memory channel count (default: all cores) |
 | `-tb, --threads-batch` | Prefill threads — set to total core count (default: all cores) |
 | `--mlock` | Pin model weights in RAM, prevents paging |
+| `--no-think` | Suppress `<think>` reasoning blocks (Qwen3-style models) |
 | `--temp` | Temperature (default: 0.7) |
 
 ### API Endpoints

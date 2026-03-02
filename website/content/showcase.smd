@@ -73,7 +73,8 @@ igllama api Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf \
   --threads 8 \
   --threads-batch 16 \
   --mlock \
-  --ctx-size 8192
+  --ctx-size 8192 \
+  --no-think
 ```
 
 **Flags explained:**
@@ -81,6 +82,7 @@ igllama api Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf \
 - `--threads-batch 16` — all cores for parallel prompt processing
 - `--mlock` — pins model weights in RAM, prevents OS paging (critical with 19GB model)
 - `--ctx-size 8192` — larger context than the default 4096
+- `--no-think` — suppresses Qwen3.5's `<think>` reasoning blocks for faster, cleaner responses
 
 ## Quantization Options (28 GB RAM Budget)
 
@@ -118,6 +120,24 @@ For CPU-only systems, the 35B-A3B is the clear winner: dense 27B would need 9× 
 | Time to first token (short prompt) | ~0.5 s |
 | Time to first token (3K token prompt) | ~12 s |
 | Context window | 8192 (default server config) |
+
+## Thinking Mode: Why You Usually Want It Off
+
+Qwen3.5 models produce `<think>...</think>` blocks before each response — an internal chain-of-thought that can be hundreds to thousands of tokens long. On CPU hardware this adds tens of seconds of latency before the actual answer appears.
+
+Use `--no-think` to skip the reasoning phase entirely:
+
+```bash
+# With thinking (default): ~55s for 200-token think block + actual response
+igllama api model.gguf
+
+# Without thinking: response starts immediately
+igllama api model.gguf --no-think
+```
+
+igllama implements this by pre-filling an empty `<think>\n\n</think>` block on the assistant turn — the same technique used by llama.cpp-based tooling. The model treats thinking as already complete and jumps straight to the answer.
+
+Thinking mode remains useful for complex reasoning tasks (math, coding puzzles). For general-purpose API use with tools like Forge or opencode, `--no-think` is recommended.
 
 ## mlock: Why It Matters
 
