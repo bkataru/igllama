@@ -1,9 +1,9 @@
 ---
 .title = "API Server",
 .layout = "docs.shtml",
-.description = "OpenAI-compatible API server documentation with endpoints, examples, and streaming support",
+.description = "OpenAI-compatible API server documentation with endpoints, examples, streaming, and CPU performance tuning",
 .author = "igllama team",
-.date = "2026-02-25",
+.date = "2026-03-02",
 ---
 
 
@@ -27,7 +27,34 @@ igllama api model.gguf --gpu-layers 35
 | `--model` | `-m` | (required) | Path to GGUF model |
 | `--host` | `-h` | `127.0.0.1` | Server host |
 | `--port` | `-p` | `8080` | Server port |
+| `--ctx-size` | `-c` | `4096` | Context window size |
+| `--max-tokens` | `-n` | `2048` | Max tokens per response |
 | `--gpu-layers` | `-ngl` | `0` | GPU layers (-1 for all) |
+| `--threads` | `-t` | all cores | Generation threads (GEMV, memory-BW bound) |
+| `--threads-batch` | `-tb` | all cores | Prefill threads (GEMM, compute-parallel) |
+| `--mlock` | | off | Pin model weights in RAM (prevents paging) |
+| `--temp` | | `0.7` | Sampling temperature |
+
+## CPU Performance Tuning
+
+For CPU-only inference, generation speed is **memory-bandwidth bound**, not compute-bound. Setting more threads than your CPU's memory channel count will hurt performance.
+
+```bash
+# Recommended for a 16-core server with 8 memory channels:
+igllama api model.gguf \
+  --threads 8 \
+  --threads-batch 16 \
+  --mlock \
+  --ctx-size 8192
+```
+
+**Why separate thread counts?**
+
+- `--threads` controls **generation** (one token at a time = GEMV). Optimal = memory channel count.
+- `--threads-batch` controls **prefill** (processing the prompt = GEMM). Scales with total cores.
+- `--mlock` pins the model in physical RAM. Critical on servers where RAM is tight.
+
+See the [Benchmark Showcase](/showcase) for measured results on AMD EPYC-Rome hardware.
 
 ## /v1/chat/completions
 
@@ -167,13 +194,6 @@ while (true) {
   }
 }
 ```
-
-## Performance Tips
-
-1. Use `--gpu-layers -1` to offload all layers to GPU for maximum speed
-2. Reduce context size for faster responses with shorter conversations
-3. Use streaming for better perceived latency in chat applications
-4. Batch multiple inputs in embeddings requests when possible
 
 ## Model Compatibility
 

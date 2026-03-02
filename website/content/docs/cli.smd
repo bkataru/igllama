@@ -178,6 +178,9 @@ igllama api model.gguf --gpu-layers -1
 | `-c, --ctx-size` | Context size (default: 4096) |
 | `-n, --max-tokens` | Max tokens per response (default: 2048) |
 | `-ngl, --gpu-layers` | GPU layers to offload (default: 0) |
+| `-t, --threads` | Generation threads — set to memory channel count (default: all cores) |
+| `-tb, --threads-batch` | Prefill threads — set to total core count (default: all cores) |
+| `--mlock` | Pin model weights in RAM, prevents paging |
 | `--temp` | Temperature (default: 0.7) |
 
 ### API Endpoints
