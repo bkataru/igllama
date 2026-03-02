@@ -14,6 +14,8 @@ const ServerState = struct {
     top_p: f32,
     top_k: i32,
     max_tokens: usize,
+    n_threads: i32,
+    n_threads_batch: i32,
 
     pub fn deinit(self: *ServerState) void {
         self.model.deinit();
@@ -240,10 +242,10 @@ fn handleEmbeddings(
     // Create context with embeddings enabled
     var cparams = llama.Context.defaultParams();
     cparams.n_ctx = state.context_size;
+    cparams.n_batch = state.context_size;
     cparams.embeddings = true; // Enable embeddings extraction
-    const cpu_threads = std.Thread.getCpuCount() catch 4;
-    cparams.n_threads = @intCast(@min(cpu_threads, 4));
-    cparams.n_threads_batch = @intCast(cpu_threads / 2);
+    cparams.n_threads = state.n_threads;
+    cparams.n_threads_batch = state.n_threads_batch;
     cparams.no_perf = true;
 
     const ctx = llama.Context.initWithModel(state.model, cparams) catch {
@@ -309,9 +311,9 @@ fn handleStreamingCompletion(
     // Create context for this request
     var cparams = llama.Context.defaultParams();
     cparams.n_ctx = state.context_size;
-    const cpu_threads = std.Thread.getCpuCount() catch 4;
-    cparams.n_threads = @intCast(@min(cpu_threads, 4));
-    cparams.n_threads_batch = @intCast(cpu_threads / 2);
+    cparams.n_batch = state.context_size;
+    cparams.n_threads = state.n_threads;
+    cparams.n_threads_batch = state.n_threads_batch;
     cparams.no_perf = true;
 
     const ctx = llama.Context.initWithModel(state.model, cparams) catch {
@@ -448,9 +450,9 @@ fn handleCompletion(
     // Create context
     var cparams = llama.Context.defaultParams();
     cparams.n_ctx = state.context_size;
-    const cpu_threads = std.Thread.getCpuCount() catch 4;
-    cparams.n_threads = @intCast(@min(cpu_threads, 4));
-    cparams.n_threads_batch = @intCast(cpu_threads / 2);
+    cparams.n_batch = state.context_size;
+    cparams.n_threads = state.n_threads;
+    cparams.n_threads_batch = state.n_threads_batch;
     cparams.no_perf = true;
 
     const ctx = llama.Context.initWithModel(state.model, cparams) catch {
@@ -745,6 +747,10 @@ pub fn run(args: []const []const u8) !void {
     const top_p: f32 = 0.9;
     const top_k: i32 = 40;
     var max_tokens: usize = 2048;
+    const cpu_count: i32 = @intCast(std.Thread.getCpuCount() catch 4);
+    var n_threads: i32 = cpu_count;
+    var n_threads_batch: i32 = cpu_count;
+    var use_mlock: bool = false;
 
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
@@ -786,6 +792,19 @@ pub fn run(args: []const []const u8) !void {
                 temperature = std.fmt.parseFloat(f32, args[i + 1]) catch 0.7;
                 i += 1;
             }
+        } else if (std.mem.eql(u8, arg, "--threads") or std.mem.eql(u8, arg, "-t")) {
+            if (i + 1 < args.len) {
+                n_threads = std.fmt.parseInt(i32, args[i + 1], 10) catch cpu_count;
+                n_threads_batch = n_threads;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--threads-batch") or std.mem.eql(u8, arg, "-tb")) {
+            if (i + 1 < args.len) {
+                n_threads_batch = std.fmt.parseInt(i32, args[i + 1], 10) catch cpu_count;
+                i += 1;
+            }
+        } else if (std.mem.eql(u8, arg, "--mlock")) {
+            use_mlock = true;
         } else if (std.mem.eql(u8, arg, "--help")) {
             try printHelp(stdout);
             return;
@@ -822,6 +841,7 @@ pub fn run(args: []const []const u8) !void {
     // Load model
     var mparams = llama.Model.defaultParams();
     mparams.n_gpu_layers = gpu_layers;
+    mparams.use_mlock = use_mlock;
 
     const model = llama.Model.initFromFile(model_path.?.ptr, mparams) catch |err| {
         try stderr.print("Error loading model: {}\n", .{err});
@@ -851,6 +871,8 @@ pub fn run(args: []const []const u8) !void {
         .top_p = top_p,
         .top_k = top_k,
         .max_tokens = max_tokens,
+        .n_threads = n_threads,
+        .n_threads_batch = n_threads_batch,
     };
     defer state.deinit();
 
@@ -896,18 +918,29 @@ fn printHelp(writer: anytype) !void {
         \\  igllama api <model.gguf> [options]
         \\
         \\Options:
-        \\  -m, --model <path>      Path to GGUF model file (required)
-        \\  -p, --port <num>        Server port (default: 8080)
-        \\  -h, --host <addr>       Server host (default: 127.0.0.1)
-        \\  -c, --ctx-size <num>    Context size (default: 4096)
-        \\  -n, --max-tokens <num>  Max tokens per response (default: 2048)
-        \\  -ngl, --gpu-layers <n>  GPU layers to offload (default: 0)
-        \\  --temp <float>          Temperature (default: 0.7)
-        \\  --help                  Show this help
+        \\  -m, --model <path>        Path to GGUF model file (required)
+        \\  -p, --port <num>          Server port (default: 8080)
+        \\  -h, --host <addr>         Server host (default: 127.0.0.1)
+        \\  -c, --ctx-size <num>      Context size (default: 4096)
+        \\  -n, --max-tokens <num>    Max tokens per response (default: 2048)
+        \\  -ngl, --gpu-layers <n>    GPU layers to offload (default: 0)
+        \\  -t, --threads <n>         Generation threads (default: all CPU cores)
+        \\  -tb, --threads-batch <n>  Prompt eval threads (default: all CPU cores)
+        \\  --mlock                   Pin model weights in RAM (prevents paging)
+        \\  --temp <float>            Temperature (default: 0.7)
+        \\  --help                    Show this help
+        \\
+        \\Performance Tips (CPU-only):
+        \\  - Set --threads to match your CPU's memory channel count for best generation speed
+        \\  - Set --threads-batch to your total core count for fastest prompt processing
+        \\  - Use --mlock to prevent model paging when RAM is sufficient
+        \\  - Example (16-core server, 8 memory channels):
+        \\    igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192
         \\
         \\Examples:
         \\  igllama api model.gguf
         \\  igllama api model.gguf --port 8080 --gpu-layers 35
+        \\  igllama api model.gguf --threads 8 --threads-batch 16 --mlock
         \\
         \\API Usage:
         \\  # Health check
