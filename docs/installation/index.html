@@ -156,7 +156,7 @@
 <span class="constant function">cd</span> <span class="constant">igllama</span>
 
 <span class="comment"># Build with Metal acceleration (macOS only)</span>
-<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dgpu=metal</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dmetal=true</span>
 
 <span class="comment"># Test installation</span>
 <span class="constant function">./zig-out/bin/igllama</span> <span class="constant">--version</span>
@@ -184,7 +184,7 @@
 <span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
 </code></pre>
 <h2>GPU Backend Configuration</h2><p>igllama supports multiple GPU backends for accelerated inference. Choose based on your hardware.</p><h3>Metal (macOS)</h3><p>Metal is the recommended backend for Apple Silicon and Intel Macs.</p><pre><code class="bash"><span class="comment"># Build with Metal support</span>
-<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dgpu=metal</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dmetal=true</span>
 
 <span class="comment"># Verify Metal devices</span>
 <span class="constant function">./zig-out/bin/igllama</span> <span class="constant">--info</span>
@@ -208,7 +208,7 @@
 <span class="constant function">sudo</span> <span class="constant">apt</span> <span class="constant">install</span> <span class="constant">-y</span> <span class="constant">cuda-toolkit-12-0</span>
 
 <span class="comment"># Build with CUDA</span>
-<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dgpu=cuda</span> <span class="constant">-Dcuda-arch=sm_80</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dcuda=true</span>
 
 <span class="comment"># Set CUDA path if not in default location</span>
 <span class="keyword">export</span> <span class="property">CUDA_HOME</span>=/usr/local/cuda
@@ -225,8 +225,8 @@
 <span class="comment"># Custom target triple</span>
 <span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Dtarget=aarch64-macos</span>
 
-<span class="comment"># Disable specific features</span>
-<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Dgpu=none</span> <span class="constant">-Dfeatures=none</span>
+<span class="comment"># CPU-only build (default, no GPU)</span>
+<span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span>
 
 <span class="comment"># Static linking (Linux)</span>
 <span class="constant function">zig</span> <span class="constant">build</span> <span class="constant">-Doptimize=ReleaseFast</span> <span class="constant">-Dtarget=x86_64-linux-musl</span>

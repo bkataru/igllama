@@ -94,18 +94,18 @@
    <div class="container mx-auto px-4">
     <div class="max-w-3xl sm:max-w-4xl lg:max-w-5xl mx-auto">
      <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8 glow-text">Quickstart Guide</h1>
-     <div class="prose prose-invert prose-lg max-w-none"><p>Welcome to <strong>igllama</strong>, your gateway to running large language models locally. This guide gets you from zero to inference in minutes, not hours. No PhD required, no cloud dependencies, just pure local AI.</p><p>GGUF (Georgi Gerganov Unified Format) is the backbone here, a quantized model format that runs efficiently on consumer hardware.</p><hr><h2>Choose Your Path</h2><table><tr><th>Track</th><th>Time</th><th>What You’ll Do</th></tr><tr><td><strong>5-minute sprint</strong></td><td>5 min</td><td>Pull a model and run a single prompt</td></tr><tr><td><strong>Full tutorial</strong></td><td>10 min</td><td>Pull, run, chat, and import local models</td></tr></table><p><strong>Prerequisites:</strong> igllama installed and built. If not, head to <a href="/igllama/docs/installation/">Installation</a> first.</p><hr><h2>Step 1: Pull a Model (2 minutes)</h2><p>First, download a model from HuggingFace. We’ll use <strong>Qwen3.5-35B-A3B</strong>, a Mixture of Experts model with 35B total parameters but only 3B active per inference. Perfect for CPU-only systems.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span>
+     <div class="prose prose-invert prose-lg max-w-none"><p>Welcome to <strong>igllama</strong>, your gateway to running large language models locally. This guide gets you from zero to inference in minutes, not hours. No PhD required, no cloud dependencies, just pure local AI.</p><p>GGUF (Georgi Gerganov Unified Format) is the backbone here, a quantized model format that runs efficiently on consumer hardware.</p><hr><h2>Choose Your Path</h2><table><tr><th>Track</th><th>Time</th><th>What You’ll Do</th></tr><tr><td><strong>5-minute sprint</strong></td><td>5 min</td><td>Pull a model and run a single prompt</td></tr><tr><td><strong>Full tutorial</strong></td><td>10 min</td><td>Pull, run, chat, and import local models</td></tr></table><p><strong>Prerequisites:</strong> igllama installed and built. If not, head to <a href="/igllama/docs/installation/">Installation</a> first.</p><hr><h2>Step 1: Pull a Model (2 minutes)</h2><p>First, download a model from HuggingFace. We’ll use <strong>Qwen3.5-35B-A3B</strong>, a Mixture of Experts model with 35B total parameters but only 3B active per inference. Perfect for CPU-only systems.</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">pull</span> <span class="constant">unsloth/Qwen3.5-35B-A3B-GGUF</span>
 </code></pre>
-<p><strong>Expected output:</strong></p><pre><code>Downloading Qwen/Qwen3.5-35B-A3B-GGUF...
+<p><strong>Expected output:</strong></p><pre><code>Downloading unsloth/Qwen3.5-35B-A3B-GGUF...
 Model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
 Progress: [████████████████████] 100% - 19.2 GB / 19.2 GB
-Download complete. Model cached at: ~/.cache/igllama/models/Qwen/Qwen3.5-35B-A3B-GGUF
+Download complete. Model cached at: ~/.cache/igllama/models/unsloth/Qwen3.5-35B-A3B-GGUF
 </code></pre><p>List your cached models:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">list</span>
 </code></pre>
 <p><strong>Expected output:</strong></p><pre><code>Cached Models:
-  - Qwen/Qwen3.5-35B-A3B-GGUF
+  - unsloth/Qwen3.5-35B-A3B-GGUF
     └─ qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
-</code></pre><hr><h2>Step 2: Run Inference (2 minutes)</h2><p>Send a single prompt and get a response:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span> <span class="constant">-p</span> <span class="string constant">&quot;Explain quantum entanglement in one sentence.&quot;</span>
+</code></pre><hr><h2>Step 2: Run Inference (2 minutes)</h2><p>Send a single prompt and get a response:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">unsloth/Qwen3.5-35B-A3B-GGUF</span> <span class="constant">-p</span> <span class="string constant">&quot;Explain quantum entanglement in one sentence.&quot;</span>
 </code></pre>
 <p><strong>Expected output:</strong></p><pre><code>Loading model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf
 Model loaded: 35B parameters, 256K context
@@ -114,9 +114,9 @@ Generating response...
 Quantum entanglement is a phenomenon where two or more particles become correlated in such a way that the quantum state of each particle cannot be described independently, even when separated by large distances.
 
 Tokens: 42 | Time: 3.2s | Speed: 13.1 tok/s
-</code></pre><p>Add GPU acceleration if available:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span> <span class="constant">-p</span> <span class="string constant">&quot;Hello!&quot;</span> <span class="constant">--gpu-layers</span> <span class="constant">35</span>
+</code></pre><p>Add GPU acceleration if available:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">run</span> <span class="constant">unsloth/Qwen3.5-35B-A3B-GGUF</span> <span class="constant">-p</span> <span class="string constant">&quot;Hello!&quot;</span> <span class="constant">--gpu-layers</span> <span class="constant">35</span>
 </code></pre>
-<hr><h2>Step 3: Interactive Chat (3 minutes)</h2><p>For multi-turn conversations with context memory:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">Qwen/Qwen3.5-35B-A3B-GGUF</span>
+<hr><h2>Step 3: Interactive Chat (3 minutes)</h2><p>For multi-turn conversations with context memory:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">unsloth/Qwen3.5-35B-A3B-GGUF</span>
 </code></pre>
 <p><strong>Expected output:</strong></p><pre><code>Loading model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf
 Model loaded successfully.
