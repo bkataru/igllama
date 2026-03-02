@@ -116,7 +116,12 @@
 </code></pre>
 <h3>Streaming</h3><p>Set <code>stream: true</code> for SSE streaming:</p><pre><code class="bash"><span class="constant function">curl</span> <span class="constant">http://localhost:8080/v1/chat/completions</span> <span class="constant">-H</span> <span class="string constant">&quot;Content-Type: application/json&quot;</span> <span class="constant">-d</span> <span class="string constant">&apos;{&quot;model&quot;:&quot;default&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hi&quot;}],&quot;stream&quot;:true}&apos;</span>
 </code></pre>
-<p>Stream format:</p><pre><code>data: {&quot;id&quot;:&quot;chatcmpl-123&quot;,&quot;object&quot;:&quot;chat.completion.chunk&quot;,&quot;choices&quot;:[{&quot;index&quot;:0,&quot;delta&quot;:{&quot;content&quot;:&quot;Hello&quot;},&quot;finish_reason&quot;:null}]}
+<p>Stream format (OpenAI-compatible, v0.3.6+):</p><pre><code>data: {&quot;id&quot;:&quot;chatcmpl-123&quot;,&quot;object&quot;:&quot;chat.completion.chunk&quot;,&quot;created&quot;:1234567890,&quot;model&quot;:&quot;model.gguf&quot;,&quot;choices&quot;:[{&quot;index&quot;:0,&quot;delta&quot;:{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;&quot;},&quot;finish_reason&quot;:null}]}
+
+data: {&quot;id&quot;:&quot;chatcmpl-123&quot;,&quot;object&quot;:&quot;chat.completion.chunk&quot;,&quot;created&quot;:1234567890,&quot;model&quot;:&quot;model.gguf&quot;,&quot;choices&quot;:[{&quot;index&quot;:0,&quot;delta&quot;:{&quot;content&quot;:&quot;Hello&quot;},&quot;finish_reason&quot;:null}]}
+
+data: {&quot;id&quot;:&quot;chatcmpl-123&quot;,&quot;object&quot;:&quot;chat.completion.chunk&quot;,&quot;created&quot;:1234567890,&quot;model&quot;:&quot;model.gguf&quot;,&quot;choices&quot;:[{&quot;index&quot;:0,&quot;delta&quot;:{},&quot;finish_reason&quot;:&quot;stop&quot;}]}
+
 data: [DONE]
 </code></pre><h2>/v1/embeddings</h2><p><strong>Method:</strong> <code>POST</code></p><p><strong>Request:</strong></p><pre><code class="json">{<span class="string_special_key string">&quot;model&quot;</span>:<span class="string">&quot;default&quot;</span>,<span class="string_special_key string">&quot;input&quot;</span>:[<span class="string">&quot;Hello world&quot;</span>]}
 </code></pre>
