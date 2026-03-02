@@ -350,6 +350,11 @@ fn handleStreamingCompletion(
     var detokenizer = llama.Detokenizer.init(allocator);
     defer detokenizer.deinit();
 
+    const created = std.time.timestamp();
+
+    // Send initial role chunk (required by OpenAI-compatible clients)
+    sendSSERoleChunk(conn, request_id, state.model_name, created);
+
     // Generate tokens
     var batch = llama.Batch.initOne(tokenizer.getTokens());
     var batch_token: [1]llama.Token = undefined;
@@ -364,64 +369,66 @@ fn handleStreamingCompletion(
 
         // Detokenize and send SSE event
         const token_text = detokenizer.detokenize(state.vocab, token) catch continue;
-
-        // Send SSE data event
-        try sendSSEToken(conn, token_text, request_id);
+        try sendSSEToken(conn, token_text, request_id, state.model_name, created);
         detokenizer.clearRetainingCapacity();
     }
 
-    // Send final [DONE] event
+    // Send final stop chunk then [DONE]
+    sendSSEStopChunk(conn, request_id, state.model_name, created);
     try sendSSEDone(conn);
 }
 
-/// Send SSE token event
-fn sendSSEToken(conn: *std.net.Server.Connection, token: []const u8, request_id: []const u8) !void {
-    var buf: [4096]u8 = undefined;
-
-    // Escape token for JSON
-    var escaped: [2048]u8 = undefined;
-    var esc_len: usize = 0;
-    for (token) |c| {
-        if (esc_len + 2 >= escaped.len) break;
+/// Escape a string for embedding in a JSON value (in-place into dest buffer).
+fn jsonEscape(src: []const u8, dest: []u8) usize {
+    var out: usize = 0;
+    for (src) |c| {
+        if (out + 2 >= dest.len) break;
         switch (c) {
-            '"' => {
-                escaped[esc_len] = '\\';
-                escaped[esc_len + 1] = '"';
-                esc_len += 2;
-            },
-            '\\' => {
-                escaped[esc_len] = '\\';
-                escaped[esc_len + 1] = '\\';
-                esc_len += 2;
-            },
-            '\n' => {
-                escaped[esc_len] = '\\';
-                escaped[esc_len + 1] = 'n';
-                esc_len += 2;
-            },
-            '\r' => {
-                escaped[esc_len] = '\\';
-                escaped[esc_len + 1] = 'r';
-                esc_len += 2;
-            },
-            '\t' => {
-                escaped[esc_len] = '\\';
-                escaped[esc_len + 1] = 't';
-                esc_len += 2;
-            },
-            else => {
-                escaped[esc_len] = c;
-                esc_len += 1;
-            },
+            '"' => { dest[out] = '\\'; dest[out + 1] = '"';  out += 2; },
+            '\\' => { dest[out] = '\\'; dest[out + 1] = '\\'; out += 2; },
+            '\n' => { dest[out] = '\\'; dest[out + 1] = 'n';  out += 2; },
+            '\r' => { dest[out] = '\\'; dest[out + 1] = 'r';  out += 2; },
+            '\t' => { dest[out] = '\\'; dest[out + 1] = 't';  out += 2; },
+            else  => { dest[out] = c; out += 1; },
         }
     }
+    return out;
+}
+
+/// Send the initial SSE role chunk (OpenAI requires this as the first chunk).
+fn sendSSERoleChunk(conn: *std.net.Server.Connection, request_id: []const u8, model: []const u8, created: i64) void {
+    var buf: [1024]u8 = undefined;
+    const json = std.fmt.bufPrint(&buf,
+        \\data: {{"id":"{s}","object":"chat.completion.chunk","created":{d},"model":"{s}","choices":[{{"index":0,"delta":{{"role":"assistant","content":""}},"finish_reason":null}}]}}
+        \\
+        \\
+    , .{ request_id, created, model }) catch return;
+    _ = conn.stream.write(json) catch {};
+}
+
+/// Send SSE token event with model and created fields (OpenAI-compatible).
+fn sendSSEToken(conn: *std.net.Server.Connection, token: []const u8, request_id: []const u8, model: []const u8, created: i64) !void {
+    var buf: [4096]u8 = undefined;
+    var escaped: [2048]u8 = undefined;
+    const esc_len = jsonEscape(token, &escaped);
 
     const json = std.fmt.bufPrint(&buf,
-        \\data: {{"id":"{s}","object":"chat.completion.chunk","choices":[{{"index":0,"delta":{{"content":"{s}"}},"finish_reason":null}}]}}
+        \\data: {{"id":"{s}","object":"chat.completion.chunk","created":{d},"model":"{s}","choices":[{{"index":0,"delta":{{"content":"{s}"}},"finish_reason":null}}]}}
         \\
         \\
-    , .{ request_id, escaped[0..esc_len] }) catch return;
+    , .{ request_id, created, model, escaped[0..esc_len] }) catch return;
 
+    _ = conn.stream.write(json) catch {};
+}
+
+/// Send the final SSE stop chunk before [DONE].
+fn sendSSEStopChunk(conn: *std.net.Server.Connection, request_id: []const u8, model: []const u8, created: i64) void {
+    var buf: [512]u8 = undefined;
+    const json = std.fmt.bufPrint(&buf,
+        \\data: {{"id":"{s}","object":"chat.completion.chunk","created":{d},"model":"{s}","choices":[{{"index":0,"delta":{{}},"finish_reason":"stop"}}]}}
+        \\
+        \\
+    , .{ request_id, created, model }) catch return;
     _ = conn.stream.write(json) catch {};
 }
 
@@ -636,10 +643,11 @@ fn handleRequest(state: *ServerState, conn: *std.net.Server.Connection) void {
             }
 
             // Build response JSON
+            const created_ts = std.time.timestamp();
             var response_buf: [65536]u8 = undefined;
             const response_json = std.fmt.bufPrint(&response_buf,
-                \\{{"id":"{s}","object":"chat.completion","choices":[{{"index":0,"message":{{"role":"assistant","content":"{s}"}},"finish_reason":"stop"}}],"usage":{{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0}}}}
-            , .{ request_id, escaped_content.items }) catch {
+                \\{{"id":"{s}","object":"chat.completion","created":{d},"model":"{s}","choices":[{{"index":0,"message":{{"role":"assistant","content":"{s}"}},"finish_reason":"stop"}}],"usage":{{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0}}}}
+            , .{ request_id, created_ts, state.model_name, escaped_content.items }) catch {
                 sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Response too large\"}");
                 return;
             };
