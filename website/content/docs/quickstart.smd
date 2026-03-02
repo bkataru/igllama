@@ -30,15 +30,15 @@ GGUF (Georgi Gerganov Unified Format) is the backbone here, a quantized model fo
 First, download a model from HuggingFace. We'll use **Qwen3.5-35B-A3B**, a Mixture of Experts model with 35B total parameters but only 3B active per inference. Perfect for CPU-only systems.
 
 ```bash
-igllama pull Qwen/Qwen3.5-35B-A3B-GGUF
+igllama pull unsloth/Qwen3.5-35B-A3B-GGUF
 ```
 
 **Expected output:**
 ```
-Downloading Qwen/Qwen3.5-35B-A3B-GGUF...
+Downloading unsloth/Qwen3.5-35B-A3B-GGUF...
 Model: qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
 Progress: [████████████████████] 100% - 19.2 GB / 19.2 GB
-Download complete. Model cached at: ~/.cache/igllama/models/Qwen/Qwen3.5-35B-A3B-GGUF
+Download complete. Model cached at: ~/.cache/igllama/models/unsloth/Qwen3.5-35B-A3B-GGUF
 ```
 
 List your cached models:
@@ -50,7 +50,7 @@ igllama list
 **Expected output:**
 ```
 Cached Models:
-  - Qwen/Qwen3.5-35B-A3B-GGUF
+  - unsloth/Qwen3.5-35B-A3B-GGUF
     └─ qwen3.5-35b-a3b-ud-q4_k_xl.gguf (19.2 GB)
 ```
 
@@ -61,7 +61,7 @@ Cached Models:
 Send a single prompt and get a response:
 
 ```bash
-igllama run Qwen/Qwen3.5-35B-A3B-GGUF -p "Explain quantum entanglement in one sentence."
+igllama run unsloth/Qwen3.5-35B-A3B-GGUF -p "Explain quantum entanglement in one sentence."
 ```
 
 **Expected output:**
@@ -78,7 +78,7 @@ Tokens: 42 | Time: 3.2s | Speed: 13.1 tok/s
 Add GPU acceleration if available:
 
 ```bash
-igllama run Qwen/Qwen3.5-35B-A3B-GGUF -p "Hello!" --gpu-layers 35
+igllama run unsloth/Qwen3.5-35B-A3B-GGUF -p "Hello!" --gpu-layers 35
 ```
 
 ---
@@ -88,7 +88,7 @@ igllama run Qwen/Qwen3.5-35B-A3B-GGUF -p "Hello!" --gpu-layers 35
 For multi-turn conversations with context memory:
 
 ```bash
-igllama chat Qwen/Qwen3.5-35B-A3B-GGUF
+igllama chat unsloth/Qwen3.5-35B-A3B-GGUF
 ```
 
 **Expected output:**
