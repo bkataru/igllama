@@ -1,0 +1,11 @@
+# Zine build outputs (copied from static/ and content/ during build)
+# Anchored with / so they only match at the website/ root, not in subdirs like content/
+/.nojekyll
+/favicon.ico
+/index.html
+/svg/
+/architecture/
+/comparison/
+/docs/
+/philosophy/
+/showcase/
