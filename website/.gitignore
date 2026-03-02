@@ -1,0 +1,10 @@
+# Zine build outputs (copied from static/ and content/ during build)
+.nojekyll
+favicon.ico
+index.html
+svg/
+architecture/
+comparison/
+docs/
+philosophy/
+showcase/
