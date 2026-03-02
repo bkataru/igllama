@@ -18,6 +18,7 @@ GGUF stands for "Georgi Gerganov Unified Format", the standard model format for 
 igllama api model.gguf
 igllama api model.gguf --host 0.0.0.0 --port 3000
 igllama api model.gguf --gpu-layers 35
+igllama api model.gguf --no-think
 ```
 
 ## Server Flags
@@ -33,7 +34,22 @@ igllama api model.gguf --gpu-layers 35
 | `--threads` | `-t` | all cores | Generation threads (GEMV, memory-BW bound) |
 | `--threads-batch` | `-tb` | all cores | Prefill threads (GEMM, compute-parallel) |
 | `--mlock` | | off | Pin model weights in RAM (prevents paging) |
+| `--no-think` | | off | Suppress `<think>` reasoning blocks (Qwen3-style models) |
 | `--temp` | | `0.7` | Sampling temperature |
+
+## Thinking Mode (Qwen3 Models)
+
+Qwen3.5 and similar reasoning models produce `<think>...</think>` blocks before each response. These are useful for complex reasoning tasks but add significant latency and token overhead for everyday use.
+
+Use `--no-think` to suppress them entirely:
+
+```bash
+igllama api model.gguf --no-think
+```
+
+**How it works**: When `--no-think` is set, igllama pre-fills an empty `<think>\n\n</think>` block on the assistant turn. This is the standard llama.cpp technique for disabling Qwen3-style chain-of-thought — the model sees the thinking phase as already complete and proceeds directly to the answer.
+
+The flag has no effect on models that don't produce thinking blocks.
 
 ## CPU Performance Tuning
 
