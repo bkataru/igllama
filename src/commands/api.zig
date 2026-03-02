@@ -16,6 +16,7 @@ const ServerState = struct {
     max_tokens: usize,
     n_threads: i32,
     n_threads_batch: i32,
+    no_think: bool,
 
     pub fn deinit(self: *ServerState) void {
         self.model.deinit();
@@ -154,8 +155,10 @@ fn parseChatRequest(allocator: std.mem.Allocator, body: []const u8) !struct {
     return .{ .messages = messages, .stream = stream, .max_tokens = max_tokens, .temperature = temperature };
 }
 
-/// Format messages using ChatML template
-fn formatChatML(allocator: std.mem.Allocator, messages: []const ChatMessage) ![]const u8 {
+/// Format messages using ChatML template.
+/// When no_think is true, prefills an empty <think></think> block on the
+/// assistant turn to suppress Qwen3-style chain-of-thought reasoning output.
+fn formatChatML(allocator: std.mem.Allocator, messages: []const ChatMessage, no_think: bool) ![]const u8 {
     var result: std.ArrayList(u8) = .empty;
     errdefer result.deinit(allocator);
 
@@ -167,7 +170,11 @@ fn formatChatML(allocator: std.mem.Allocator, messages: []const ChatMessage) ![]
         try result.appendSlice(allocator, "<|im_end|>\n");
     }
 
-    try result.appendSlice(allocator, "<|im_start|>assistant\n");
+    if (no_think) {
+        try result.appendSlice(allocator, "<|im_start|>assistant\n<think>\n\n</think>\n");
+    } else {
+        try result.appendSlice(allocator, "<|im_start|>assistant\n");
+    }
 
     return result.toOwnedSlice(allocator);
 }
@@ -305,7 +312,7 @@ fn handleStreamingCompletion(
     const allocator = state.allocator;
 
     // Format prompt
-    const prompt = try formatChatML(allocator, messages);
+    const prompt = try formatChatML(allocator, messages, state.no_think);
     defer allocator.free(prompt);
 
     // Create context for this request
@@ -444,7 +451,7 @@ fn handleCompletion(
     const allocator = state.allocator;
 
     // Format prompt
-    const prompt = try formatChatML(allocator, messages);
+    const prompt = try formatChatML(allocator, messages, state.no_think);
     defer allocator.free(prompt);
 
     // Create context
@@ -751,6 +758,7 @@ pub fn run(args: []const []const u8) !void {
     var n_threads: i32 = cpu_count;
     var n_threads_batch: i32 = cpu_count;
     var use_mlock: bool = false;
+    var no_think: bool = false;
 
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
@@ -805,6 +813,8 @@ pub fn run(args: []const []const u8) !void {
             }
         } else if (std.mem.eql(u8, arg, "--mlock")) {
             use_mlock = true;
+        } else if (std.mem.eql(u8, arg, "--no-think")) {
+            no_think = true;
         } else if (std.mem.eql(u8, arg, "--help")) {
             try printHelp(stdout);
             return;
@@ -873,6 +883,7 @@ pub fn run(args: []const []const u8) !void {
         .max_tokens = max_tokens,
         .n_threads = n_threads,
         .n_threads_batch = n_threads_batch,
+        .no_think = no_think,
     };
     defer state.deinit();
 
@@ -927,6 +938,7 @@ fn printHelp(writer: anytype) !void {
         \\  -t, --threads <n>         Generation threads (default: all CPU cores)
         \\  -tb, --threads-batch <n>  Prompt eval threads (default: all CPU cores)
         \\  --mlock                   Pin model weights in RAM (prevents paging)
+        \\  --no-think                Suppress <think> reasoning blocks (Qwen3-style models)
         \\  --temp <float>            Temperature (default: 0.7)
         \\  --help                    Show this help
         \\
@@ -941,6 +953,7 @@ fn printHelp(writer: anytype) !void {
         \\  igllama api model.gguf
         \\  igllama api model.gguf --port 8080 --gpu-layers 35
         \\  igllama api model.gguf --threads 8 --threads-batch 16 --mlock
+        \\  igllama api model.gguf --no-think
         \\
         \\API Usage:
         \\  # Health check

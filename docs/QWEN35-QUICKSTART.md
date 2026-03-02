@@ -45,7 +45,8 @@ For CPU-only servers, generation speed is memory-bandwidth bound. Tune thread co
   --threads 8 \
   --threads-batch 16 \
   --mlock \
-  --ctx-size 8192
+  --ctx-size 8192 \
+  --no-think
 ```
 
 **Flag guide:**
@@ -53,6 +54,7 @@ For CPU-only servers, generation speed is memory-bandwidth bound. Tune thread co
 - `--threads-batch N` — set to total core count for fast prompt processing
 - `--mlock` — pins model in RAM, prevents paging (use when you have enough free RAM)
 - `--ctx-size 8192` — larger context window than the 4096 default
+- `--no-think` — suppresses Qwen3.5's `<think>` reasoning blocks; pre-fills an empty think block so the model answers directly without chain-of-thought overhead (saves 30–90s per request on CPU)
 
 **Finding your memory channel count:**
 ```bash
