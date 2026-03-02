@@ -21,8 +21,8 @@ The benchmarks below are real measurements on actual server hardware — not syn
 | Storage | SSD |
 | GPU | None (CPU-only) |
 | OS | Linux |
-| igllama | v0.3.4 |
-| llama.cpp | b5482 |
+| igllama | v0.3.7 |
+| llama.cpp | gguf-v0.18.0 |
 | Model | Qwen3.5-35B-A3B UD-Q4_K_XL (19.17 GB) |
 
 ## Thread Count Optimization
