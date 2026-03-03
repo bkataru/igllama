@@ -141,3 +141,10 @@ zig build -Doptimize=ReleaseFast
 ```
 
 [View Full Documentation](https://bkataru.github.io/igllama/docs/)
+
+## Learn More
+
+- [**Benchmark Showcase**](/showcase/) - Real-world performance benchmarks and case studies
+- [**igllama vs Ollama**](/comparison/) - Architecture comparison and use cases
+- [**Philosophy**](/philosophy/) - Why igllama exists and design principles
+- [**Architecture**](/architecture/) - Technical deep dive into the system
