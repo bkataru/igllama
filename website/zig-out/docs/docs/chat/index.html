@@ -3,8 +3,8 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Qwen 3.5 Small Series Showcase</title>
- <meta name="description" :content="Performance comparison of the new Qwen 3.5 Small Model Series (0.8B, 2B, 4B, 9B) on CPU hardware">
+ <title>Interactive Chat</title>
+ <meta name="description" :content="Interactive multi-turn chat sessions with igllama">
  <link rel="icon" type="image/x-icon" href="/igllama/favicon.ico">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -93,15 +93,37 @@
   <article class="section py-12 sm:py-16 lg:py-20">
    <div class="container mx-auto px-4">
     <div class="max-w-3xl sm:max-w-4xl lg:max-w-5xl mx-auto">
-     <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8 glow-text">Qwen 3.5 Small Series Showcase</h1>
-     <div class="prose prose-invert prose-lg max-w-none"><p><a href="/igllama/showcase/">← Back to Benchmark Showcase</a></p><h2>The New Qwen 3.5 Small Series 🚀</h2><p>On March 2, 2026, Alibaba released the <strong>Qwen 3.5 Small Model Series</strong>, specifically designed for efficient on-device and edge AI applications. These models feature native multimodality, a 262K context window, and advanced “thinking mode” capabilities.</p><p>We have benchmarked the entire series on our standard CPU-only server hardware to identify the performance characteristics and “sweet spots” for local deployment.</p><h2>Test Hardware</h2><table><tr><th>Component</th><th>Specification</th></tr><tr><td>CPU</td><td>AMD EPYC-Rome (16 cores / 32 threads @ 2.0 GHz)</td></tr><tr><td>RAM</td><td>30 GB DDR4</td></tr><tr><td>GPU</td><td>None (CPU-only)</td></tr><tr><td>OS</td><td>Linux</td></tr><tr><td>igllama</td><td>v0.3.7</td></tr><tr><td>llama.cpp</td><td>gguf-v0.18.0</td></tr></table><h2>Performance Summary (CPU-Only)</h2><p>Benchmarks conducted with <code>igllama api</code> using optimal thread settings (<strong>8 threads for generation, 16 threads for prefill</strong>) and <code>--no-think</code> mode.</p><table><tr><th>Model</th><th>Weight Class</th><th>GGUF Size (Q4_K_XL)</th><th>Generation Speed</th><th>Notes</th></tr><tr><td><strong>Qwen3.5-0.8B</strong></td><td>Edge</td><td>0.53 GB</td><td><strong>23.01 tok/s</strong></td><td>Ultra-fast, ideal for mobile/IoT</td></tr><tr><td><strong>Qwen3.5-2B</strong></td><td>Mobile</td><td>1.28 GB</td><td><strong>18.38 tok/s</strong></td><td>High speed, capable reasoning</td></tr><tr><td><strong>Qwen3.5-4B</strong></td><td><strong>Sweet Spot</strong></td><td>2.71 GB</td><td><strong>8.48 tok/s</strong></td><td><strong>Recommended</strong> for agentic tasks</td></tr><tr><td><strong>Qwen3.5-9B</strong></td><td>Heavy</td><td>5.56 GB</td><td><strong>6.45 tok/s</strong></td><td>Best reasoning, vision capable</td></tr></table><h2>The “Sweet Spot”: Qwen3.5-4B</h2><p>While the 0.8B and 2B models are incredibly fast, the <strong>Qwen3.5-4B</strong> provides the most impressive balance of reasoning density and throughput. At <strong>8.48 tok/s</strong>, it is more than fast enough for interactive use while offering reasoning capabilities that rival much larger previous-generation models.</p><h3>Comparison to Qwen3.5-35B-A3B (MoE)</h3><table><tr><th>Metric</th><th>Qwen3.5-4B (Dense)</th><th>Qwen3.5-35B-A3B (MoE)</th></tr><tr><td>Active Params</td><td>4B</td><td>3B</td></tr><tr><td>GGUF Size (Q4)</td><td>2.71 GB</td><td>19.17 GB</td></tr><tr><td>Generation Speed</td><td>8.48 tok/s</td><td>5.56 tok/s</td></tr><tr><td>Memory Footprint</td><td>~3.5 GB</td><td>~22 GB</td></tr></table><p>The 4B model is <strong>52% faster</strong> than the 35B-A3B MoE on the same hardware, despite having slightly more active parameters. This is likely due to the smaller memory footprint reducing cache misses and memory bus contention.</p><h2>Optimal Launch Configuration</h2><p>For the 4B/9B models on 8-channel memory systems (like EPYC-Rome):</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">api</span> <span class="constant">Qwen3.5-4B-UD-Q4_K_XL.gguf</span> \
-  <span class="constant">--threads</span> <span class="constant">8</span> \
-  <span class="constant">--threads-batch</span> <span class="constant">16</span> \
-  <span class="constant">--mlock</span> \
-  <span class="constant">--ctx-size</span> <span class="constant">8192</span> \
-  <span class="constant">--no-think</span>
+     <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8 glow-text">Interactive Chat</h1>
+     <div class="prose prose-invert prose-lg max-w-none"><p>Engage in multi-turn conversations with your local LLM. igllama’s chat mode provides a conversational interface with context management and session persistence.</p><h2>Starting a Chat Session</h2><p>Launch an interactive chat session with any GGUF model:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span>
 </code></pre>
-<h2>Conclusion</h2><p>The Qwen 3.5 Small Series proves that you don’t need a flagship GPU to run high-quality LLMs. For CPU-only servers or high-end workstations, the <strong>4B model</strong> is the new standard for local AI agents, providing intelligence and speed in a compact package.</p></div>
+<p>Or use a specific chat template:</p><pre><code class="bash"><span class="constant function">igllama</span> <span class="constant">chat</span> <span class="constant">model.gguf</span> <span class="constant">--template</span> <span class="constant">chatml</span>
+</code></pre>
+<h2>In-Chat Commands</h2><p>While in chat mode, use these commands:</p><table><tr><th>Command</th><th>Description</th></tr><tr><td><code>/help</code></td><td>Show available commands</td></tr><tr><td><code>/quit</code> or <code>/exit</code></td><td>Exit the chat session</td></tr><tr><td><code>/clear</code></td><td>Clear conversation history and KV cache</td></tr><tr><td><code>/save &lt;name&gt;</code></td><td>Save session to a file</td></tr><tr><td><code>/load &lt;name&gt;</code></td><td>Load a saved session</td></tr><tr><td><code>/sessions</code></td><td>List all saved sessions</td></tr><tr><td><code>/system &lt;text&gt;</code></td><td>Set or update system prompt</td></tr><tr><td><code>/tokens</code></td><td>Show token usage statistics</td></tr><tr><td><code>/stats</code></td><td>Show generation statistics</td></tr><tr><td><code>/template &lt;name&gt;</code></td><td>Switch chat template</td></tr></table><h2>Session Management</h2><p>Chat sessions are automatically saved to:</p><ul><li><strong>Linux/macOS</strong>: <code>~/.cache/huggingface/sessions/</code></li><li><strong>Windows</strong>: <code>%LOCALAPPDATA%\huggingface\sessions\</code></li></ul><h3>Saving and Loading Sessions</h3><pre><code class="bash"><span class="comment"># Save current session</span>
+<span class="constant function">/save</span> <span class="constant">coding-session-1</span>
+
+<span class="comment"># Load a previous session</span>
+<span class="constant function">/load</span> <span class="constant">coding-session-1</span>
+
+<span class="comment"># List all sessions</span>
+<span class="constant function">/sessions</span>
+</code></pre>
+<h2>Chat Templates</h2><p>igllama supports 12+ chat templates out of the box:</p><ul><li>ChatML</li><li>Llama 2 / Llama 3</li><li>Mistral</li><li>Phi-3</li><li>Gemma</li><li>Zephyr</li><li>Vicuna</li><li>Alpaca</li><li>DeepSeek</li><li>Command-R</li></ul><p>Switch templates mid-session:</p><pre><code class="bash"><span class="constant function">/template</span> <span class="constant">llama3</span>
+</code></pre>
+<h2>Sampling Parameters</h2><p>Adjust generation parameters in real-time:</p><pre><code class="bash"><span class="comment"># Set temperature</span>
+<span class="constant function">/temp</span> <span class="constant">0.8</span>
+
+<span class="comment"># Set top-p (nucleus sampling)</span>
+<span class="constant function">/top-p</span> <span class="constant">0.9</span>
+
+<span class="comment"># Set top-k</span>
+<span class="constant function">/top-k</span> <span class="constant">40</span>
+
+<span class="comment"># Set max tokens</span>
+<span class="constant function">/max-tokens</span> <span class="constant">512</span>
+</code></pre>
+<h2>GGUF Format Support</h2><p>All chat sessions use GGUF (Georgi Gerganov Unified Format) models, ensuring fast loading and efficient memory usage. The format is named after Georgi Gerganov, creator of llama.cpp.</p><h2>Best Practices</h2><ol><li><strong>Use appropriate templates</strong>: Match the chat template to your model for best results</li><li><strong>Monitor context window</strong>: Long sessions may exceed model context limits</li><li><strong>Save important sessions</strong>: Use <code>/save</code> to preserve valuable conversations</li><li><strong>Clear when needed</strong>: Use <code>/clear</code> to reset context when switching topics</li></ol><h2>Getting Help</h2><pre><code class="bash"><span class="constant function">/help</span>
+</code></pre>
+<p>For more information, see the <a href="/igllama/docs/cli/">CLI Reference</a> or <a href="/igllama/docs/api/">API documentation</a>.</p></div>
     </div>
    </div>
   </article>
