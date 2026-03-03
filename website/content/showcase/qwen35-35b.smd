@@ -6,6 +6,9 @@
 .date = "2026-03-02",
 ---
 
+[← Back to Benchmark Showcase](/showcase/)
+
+
 ## Why Qwen3.5 MoE Excels on CPU-Only Systems
 
 Qwen3.5-35B-A3B is a **Mixture of Experts (MoE)** model with 35 billion total parameters, but only **3 billion active parameters per inference step**. This sparse activation pattern means your CPU processes roughly the same FLOPs as a 3B dense model, but draws on 35B of knowledge. For CPU-only deployments with plenty of RAM, this architecture is uniquely efficient.
