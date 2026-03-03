@@ -34,6 +34,7 @@ A Zig-based Ollama alternative for running LLMs locally. Built on top of [llama.
 - **GPU Acceleration** - Metal, Vulkan, and CUDA backend support
 - **Auto-detect Chat Templates** - Supports 12+ formats (ChatML, Llama 3, Mistral, etc.)
 - **Qwen3.5 Support** - Run Qwen3.5-35B-A3B MoE models with GGUF quantization; `--no-think` flag suppresses chain-of-thought blocks for faster responses
+- **Qwen3.5 Small Series** - Optimized support for Qwen 3.5 0.8B, 2B, 4B, and 9B models with native multimodality and 262K context
 - **Constrained Generation** - GBNF grammar support for structured output
 - **Pure Zig** - No Python or system dependencies required
 - **Cross-platform** - Windows, Linux, macOS support
@@ -390,24 +391,24 @@ igllama run model.gguf -p "Hello" --gpu-layers -1
 | CUDA | NVIDIA GPU, CUDA Toolkit 11.0+ |
 ## Performance Benchmarks
 
-### Qwen3.5-35B-A3B on CPU-only Systems
+### Qwen3.5 on CPU-only Systems
 
-Qwen3.5-35B-A3B (UD-Q4_K_XL quantized, 19.17 GB) running on Linux with AMD EPYC-Rome (16-core @ 2.0 GHz), 30 GB RAM, no GPU:
+Benchmarks running on Linux with AMD EPYC-Rome (16-core @ 2.0 GHz, 8 memory channels), 30 GB RAM, no GPU:
 
-| Configuration | Tokens/sec |
-|---------------|-----------|
-| Default (old 4-thread cap) | ~4.4 tok/s |
-| Optimized (`--threads 8 --threads-batch 16`) | **~5.6 tok/s** |
+| Model | GGUF Quant | Speed | Notes |
+|-------|------------|-------|-------|
+| **Qwen3.5-0.8B** | UD-Q4_K_XL | **23.01 tok/s** | Ultra-fast edge AI |
+| **Qwen3.5-2B** | UD-Q4_K_XL | **18.38 tok/s** | Fast reasoning |
+| **Qwen3.5-4B** | UD-Q4_K_XL | **8.48 tok/s** | **Sweet spot** for agentic tasks |
+| **Qwen3.5-9B** | UD-Q4_K_XL | **6.45 tok/s** | High-end reasoning |
+| **Qwen3.5-35B-A3B** | UD-Q4_K_XL | **5.56 tok/s** | **Best MoE choice** for large knowledge |
 
-- **Time to First Token**: ~0.5 s (short prompt), ~12 s (3K token prompt)
-- **Memory Usage**: ~22 GB (model + 8K KV cache)
 - **Optimal launch**: `igllama api model.gguf --threads 8 --threads-batch 16 --mlock --ctx-size 8192 --no-think`
-
-> 💡 **Why Qwen3.5-35B-A3B?** This MoE (Mixture of Experts) model has 35B total parameters but only 3B active per inference, making it perfect for CPU-only systems with lots of RAM but weaker CPUs. The dynamic sparse architecture means you get 35B-quality output with 3B computational cost. The dense 27B alternative would require 9× more compute per token.
 
 **Full documentation**:
 - [Qwen3.5 Quick Start Guide](docs/QWEN35-QUICKSTART.md) - 10-minute setup
-- [Qwen3.5 Case Study](docs/QWEN35-CASE-STUDY.md) - Technical deep dive with benchmarks
+- [Qwen3.5 Small Case Study](docs/QWEN35-SMALL-CASE-STUDY.md) - Benchmarks for 0.8B–9B models
+- [Qwen3.5 35B MoE Case Study](docs/QWEN35-CASE-STUDY.md) - Technical deep dive for the MoE architecture
 
 ---
 ## Roadmap
