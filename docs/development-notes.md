@@ -5,12 +5,14 @@ This file tracks development history and serves as technical reference.
 ## Release History
 
 ### v0.3.7 (March 2026)
+- **Qwen 3.5 Small Series Benchmarks**: Comprehensive triage and benchmarks for 0.8B, 2B, 4B, and 9B models
+- **Website Reorganization**: Refactored benchmark showcase into structured subpages (showcase/qwen35-small and showcase/qwen35-35b)
+- **UX Improvements**: Added backlinks to showcase subpages and a new "Learn More" navigation hub on the homepage
+- **History Cleanup**: Pruned large build artifacts from `gh-pages` and corrected author information
+- **Documentation Fix**: Restored truncated `philosophy.smd` content
 - Bumped llama.cpp submodule to gguf-v0.18.0 (Vulkan AMD partial offload improvements, CUDA grid fixes)
 - Added `website/.gitignore` to suppress Zine build output files from `git status`
 - Documentation consolidation pass: development-notes, showcase, api.smd, version strings
-
-### Post-Release Fix (v0.3.7)
-- Fixed website/content/philosophy.smd truncation — restored complete design philosophy content
 
 ### v0.3.6 (March 2026)
 - Fixed OpenAI-compatible streaming format for full client compatibility (forge, opencode, etc.)
