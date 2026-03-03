@@ -4,7 +4,7 @@ This file tracks development history and serves as technical reference.
 
 ## Release History
 
-### v0.3.7 (March 2026)
+### v0.3.8 (March 2026)
 - **Qwen 3.5 Small Series Benchmarks**: Comprehensive triage and benchmarks for 0.8B, 2B, 4B, and 9B models
 - **Website Reorganization**: Refactored benchmark showcase into structured subpages (showcase/qwen35-small and showcase/qwen35-35b)
 - **UX Improvements**: Added backlinks to showcase subpages and a new "Learn More" navigation hub on the homepage
