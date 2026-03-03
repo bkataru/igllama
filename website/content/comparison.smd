@@ -1,67 +1,37 @@
 ---
-.title = "Qwen 3.5 Small Series Benchmarks",
+.title = "igllama vs Ollama",
 .layout = "home.shtml",
-.description = "Performance comparison of the new Qwen 3.5 Small Model Series (0.8B, 2B, 4B, 9B) on CPU hardware",
+.description = "A comparison between igllama and Ollama - architecture, philosophy, and use cases",
 .author = "igllama Team",
 .date = "2026-03-02",
 ---
 
-## The New Qwen 3.5 Small Series 🚀
+## Comparison to Ollama
 
-On March 2, 2026, Alibaba released the **Qwen 3.5 Small Model Series**, specifically designed for efficient on-device and edge AI applications. These models feature native multimodality, a 262K context window, and advanced "thinking mode" capabilities.
+Ollama is an excellent project that inspired igllama. The key differences:
 
-We have benchmarked the entire series on our standard CPU-only server hardware to identify the performance characteristics and "sweet spots" for local deployment.
+| Aspect | Ollama | igllama |
+|--------|--------|---------|
+| Architecture | Client-server | Single binary |
+| Language | Go | Zig |
+| Model Format | Modelfile abstraction | Direct GGUF |
+| Background Service | Required | Not needed |
+| Container Support | Docker-first | No container needed |
+| Model Discovery | Ollama registry | Hugging Face Hub |
 
-## Test Hardware
+## Choosing the Right Tool
 
-| Component | Specification |
-|-----------|---------------|
-| CPU | AMD EPYC-Rome (16 cores / 32 threads @ 2.0 GHz) |
-| RAM | 30 GB DDR4 |
-| GPU | None (CPU-only) |
-| OS | Linux |
-| igllama | v0.3.7 |
-| llama.cpp | gguf-v0.18.0 |
+### Choose igllama if you want:
+- **A single CLI tool** without background services
+- **Direct control** over GGUF files and quantization
+- **Integration** with the Hugging Face ecosystem
+- **Minimal footprint** and predictable behavior
+- **Unix-style piping** and scripting support
 
-## Performance Summary (CPU-Only)
+### Choose Ollama if you want:
+- **A persistent REST API server** for multiple local clients
+- **Docker-based** deployment and management
+- **The Ollama model registry** for easy discovery
+- **Modelfile abstractions** for custom model definitions
 
-Benchmarks conducted with `igllama api` using optimal thread settings (**8 threads for generation, 16 threads for prefill**) and `--no-think` mode.
-
-| Model | Weight Class | GGUF Size (Q4_K_XL) | Generation Speed | Notes |
-|-------|--------------|-------------------|------------------|-------|
-| **Qwen3.5-0.8B** | Edge | 0.53 GB | **23.01 tok/s** | Ultra-fast, ideal for mobile/IoT |
-| **Qwen3.5-2B** | Mobile | 1.28 GB | **18.38 tok/s** | High speed, capable reasoning |
-| **Qwen3.5-4B** | **Sweet Spot** | 2.71 GB | **8.48 tok/s** | **Recommended** for agentic tasks |
-| **Qwen3.5-9B** | Heavy | 5.56 GB | **6.45 tok/s** | Best reasoning, vision capable |
-
-## The "Sweet Spot": Qwen3.5-4B
-
-While the 0.8B and 2B models are incredibly fast, the **Qwen3.5-4B** provides the most impressive balance of reasoning density and throughput. At **8.48 tok/s**, it is more than fast enough for interactive use while offering reasoning capabilities that rival much larger previous-generation models.
-
-### Comparison to Qwen3.5-35B-A3B (MoE)
-
-| Metric | Qwen3.5-4B (Dense) | Qwen3.5-35B-A3B (MoE) |
-|--------|-------------------|----------------------|
-| Active Params | 4B | 3B |
-| GGUF Size (Q4) | 2.71 GB | 19.17 GB |
-| Generation Speed | 8.48 tok/s | 5.56 tok/s |
-| Memory Footprint | ~3.5 GB | ~22 GB |
-
-The 4B model is **52% faster** than the 35B-A3B MoE on the same hardware, despite having slightly more active parameters. This is likely due to the smaller memory footprint reducing cache misses and memory bus contention.
-
-## Optimal Launch Configuration
-
-For the 4B/9B models on 8-channel memory systems (like EPYC-Rome):
-
-```bash
-igllama api Qwen3.5-4B-UD-Q4_K_XL.gguf \
-  --threads 8 \
-  --threads-batch 16 \
-  --mlock \
-  --ctx-size 8192 \
-  --no-think
-```
-
-## Conclusion
-
-The Qwen 3.5 Small Series proves that you don't need a flagship GPU to run high-quality LLMs. For CPU-only servers or high-end workstations, the **4B model** is the new standard for local AI agents, providing intelligence and speed in a compact package.
+Both tools use [llama.cpp](https://github.com/ggerganov/llama.cpp) under the hood and produce similar inference results. igllama is designed to be the "curl" of local LLM inference—simple, transparent, and focused.

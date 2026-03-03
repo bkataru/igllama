@@ -1,152 +1,37 @@
 ---
-.title = "Qwen3.5-35B-A3B Benchmark Showcase",
+.title = "Benchmark Showcase",
 .layout = "home.shtml",
-.description = "Real-world performance benchmarks for Qwen3.5-35B-A3B MoE model on CPU-only server hardware",
+.description = "Real-world performance benchmarks for igllama on CPU-only hardware",
 .author = "igllama Team",
 .date = "2026-03-02",
 ---
 
-## Why Qwen3.5 MoE Excels on CPU-Only Systems
+## Real-World Performance 📈
 
-Qwen3.5-35B-A3B is a **Mixture of Experts (MoE)** model with 35 billion total parameters, but only **3 billion active parameters per inference step**. This sparse activation pattern means your CPU processes roughly the same FLOPs as a 3B dense model, but draws on 35B of knowledge. For CPU-only deployments with plenty of RAM, this architecture is uniquely efficient.
+igllama is optimized for high-performance inference on CPU-only systems. By leveraging Zig's efficiency and llama.cpp's foundational power, we deliver a responsive experience even without a dedicated GPU.
 
-The benchmarks below are real measurements on actual server hardware — not synthetic tests.
+Our showcase features in-depth case studies and benchmarks for the latest models in the ecosystem.
 
-## Test Hardware
+### [Qwen 3.5 Small Series Benchmarks](showcase/qwen35-small/)
+On March 2, 2026, Alibaba released the Qwen 3.5 Small Model Series (0.8B, 2B, 4B, 9B). We've benchmarked the entire family to find the "sweet spot" for reasoning-heavy tasks on mid-range hardware.
 
-| Component | Specification |
-|-----------|---------------|
-| CPU | AMD EPYC-Rome (16 cores / 32 threads @ 2.0 GHz) |
-| RAM | 30 GB DDR4 |
-| Storage | SSD |
-| GPU | None (CPU-only) |
-| OS | Linux |
-| igllama | v0.3.7 |
-| llama.cpp | gguf-v0.18.0 |
-| Model | Qwen3.5-35B-A3B UD-Q4_K_XL (19.17 GB) |
+**Highlights:**
+- **0.8B:** 23.01 tok/s — Ultra-fast edge AI.
+- **4B:** 8.48 tok/s — The "sweet spot" for agentic reasoning.
+- **9B:** 6.45 tok/s — Maximum intelligence for consumer CPUs.
 
-## Thread Count Optimization
+### [Qwen 3.5 35B MoE Showcase](showcase/qwen35-35b/)
+A deep dive into running the 35B Mixture-of-Experts (MoE) model on a 16-core CPU server. This showcase details the thread count optimizations that led to a 52% performance increase.
 
-Generation throughput on CPU is **memory-bandwidth bound** (GEMV operations), not compute bound. Adding more threads past your CPU's memory channel count adds contention without increasing speed. This EPYC-Rome chip has 8 memory channels, which matches the measured optimum.
+**Highlights:**
+- **5.56 tok/s** on 16-core AMD EPYC-Rome.
+- **8 threads** identified as the memory-bandwidth optimum.
+- Detailed analysis of memory channel alignment.
 
-```
-Generation throughput vs thread count (--threads-batch 16 fixed):
+## Performance Principles
 
- 2 threads: ██████████░░░░░░░░░░░░░░░░░░░░  2.14 tok/s
- 4 threads: █████████████████████░░░░░░░░░  4.40 tok/s
- 6 threads: ███████████████████░░░░░░░░░░░  3.95 tok/s
- 8 threads: ████████████████████████████░░  5.56 tok/s  ← optimal
-12 threads: ██████████████████████░░░░░░░░  4.65 tok/s
-16 threads: █████████████░░░░░░░░░░░░░░░░░  2.86 tok/s
-```
-
-| Threads | Generation (tok/s) | vs Default (4t) |
-|---------|-------------------|-----------------|
-| 2 | 2.14 | -51% |
-| 4 | 4.40 | baseline |
-| 6 | 3.95 | -10% |
-| **8** | **5.56** | **+26%** |
-| 12 | 4.65 | +6% |
-| 16 | 2.86 | -35% |
-
-The previous igllama default capped generation at 4 threads regardless of hardware. The new `--threads` and `--threads-batch` flags (v0.3.4) let you tune this independently for your system.
-
-## Prefill vs Generation
-
-These are fundamentally different compute patterns:
-
-| Phase | Operation | Bottleneck | Optimal threads |
-|-------|-----------|------------|-----------------|
-| Prefill (prompt processing) | GEMM (matrix multiply) | Compute-parallel | All cores (16) |
-| Generation (token-by-token) | GEMV (matrix-vector) | Memory bandwidth | Memory channels (8) |
-
-Use `--threads` for generation and `--threads-batch` for prefill independently:
-
-```bash
-igllama api model.gguf --threads 8 --threads-batch 16
-```
-
-## Optimal Server Launch Command
-
-```bash
-igllama api Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf \
-  --threads 8 \
-  --threads-batch 16 \
-  --mlock \
-  --ctx-size 8192 \
-  --no-think
-```
-
-**Flags explained:**
-- `--threads 8` — matches EPYC-Rome's 8 memory channels for generation
-- `--threads-batch 16` — all cores for parallel prompt processing
-- `--mlock` — pins model weights in RAM, prevents OS paging (critical with 19GB model)
-- `--ctx-size 8192` — larger context than the default 4096
-- `--no-think` — suppresses Qwen3.5's `<think>` reasoning blocks for faster, cleaner responses
-
-## Quantization Options (28 GB RAM Budget)
-
-| Quantization | File Size | Quality | Tok/s (est.) | Fits in RAM? |
-|--------------|-----------|---------|-------------|-------------|
-| UD-IQ2_XXS | 9.8 GB | Low | ~7.0 | Yes |
-| UD-Q2_K_XL | 12.9 GB | Medium-Low | ~6.0 | Yes |
-| UD-Q3_K_M | 16.7 GB | Medium | ~5.8 | Yes |
-| UD-Q3_K_XL | 17.2 GB | Medium | ~5.7 | Yes |
-| **UD-Q4_K_XL** | **19.2 GB** | **High** | **~5.6** | **Yes** |
-| UD-Q4_K_M | 19.9 GB | High | ~5.5 | Yes |
-| UD-Q5_K_XL | 24.9 GB | Very High | ~5.0 | Yes |
-
-The `UD-` prefix means **Unsloth Dynamic 2.0** — important layers are selectively upcasted for better quality. `UD-Q4_K_XL` (used in these benchmarks) is the recommended sweet spot for 28–30 GB RAM systems.
-
-## Qwen3.5 Model Family Comparison
-
-| Model | Total Params | Active Params | CPU Suitability |
-|-------|-------------|---------------|-----------------|
-| Qwen3.5-27B (dense) | 27B | 27B | Poor — 9× more compute per token |
-| **Qwen3.5-35B-A3B (MoE)** | **35B** | **3B** | **Excellent — best CPU choice** |
-| Qwen3.5-122B-A10B (MoE) | 122B | 10B | OK if RAM ≥ 70 GB |
-| Qwen3.5-397B-A17B (MoE) | 397B | 17B | Impractical on CPU |
-
-For CPU-only systems, the 35B-A3B is the clear winner: dense 27B would need 9× more compute per token and still deliver less knowledge.
-
-## Performance Summary
-
-| Metric | Value |
-|--------|-------|
-| Generation speed | 5.56 tok/s @ 8 threads |
-| Prefill speed | ~16 tok/s @ 16 threads |
-| Model size (UD-Q4_K_XL) | 19.17 GB |
-| RAM usage (with KV cache 8K) | ~22 GB |
-| Time to first token (short prompt) | ~0.5 s |
-| Time to first token (3K token prompt) | ~12 s |
-| Context window | 8192 (default server config) |
-
-## Thinking Mode: Why You Usually Want It Off
-
-Qwen3.5 models produce `<think>...</think>` blocks before each response — an internal chain-of-thought that can be hundreds to thousands of tokens long. On CPU hardware this adds tens of seconds of latency before the actual answer appears.
-
-Use `--no-think` to skip the reasoning phase entirely:
-
-```bash
-# With thinking (default): ~55s for 200-token think block + actual response
-igllama api model.gguf
-
-# Without thinking: response starts immediately
-igllama api model.gguf --no-think
-```
-
-igllama implements this by pre-filling an empty `<think>\n\n</think>` block on the assistant turn — the same technique used by llama.cpp-based tooling. The model treats thinking as already complete and jumps straight to the answer.
-
-Thinking mode remains useful for complex reasoning tasks (math, coding puzzles). For general-purpose API use with tools like Forge or opencode, `--no-think` is recommended.
-
-## mlock: Why It Matters
-
-With a 19 GB model and only 28-30 GB of RAM, the OS may begin swapping model weights to disk under memory pressure. `--mlock` (new in v0.3.4) pins the model in physical RAM:
-
-```bash
-# Without mlock: potential paging during inference → 10–100× slower spikes
-# With mlock: consistent throughput, no swap latency
-igllama api model.gguf --mlock
-```
-
-Note: `mlock` requires sufficient free RAM. If your system has less free RAM than the model size, omit this flag.
+All our benchmarks are conducted using the same set of core principles:
+1. **CPU-Only:** No GPU acceleration used.
+2. **Standard Quants:** Using Q4_K_XL or Q6_K GGUFs.
+3. **Reproducible:** Full CLI commands and flags provided.
+4. **Transparent:** Detailed hardware specs for every run.
