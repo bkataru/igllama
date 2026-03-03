@@ -13,8 +13,6 @@ This file tracks development history and serves as technical reference.
 - Fixed website/content/philosophy.smd truncation — restored complete design philosophy content
 
 ### v0.3.6 (March 2026)
-
-### v0.3.6 (March 2026)
 - Fixed OpenAI-compatible streaming format for full client compatibility (forge, opencode, etc.)
   - Added initial role chunk: `delta: {"role": "assistant", "content": ""}`
   - Added `"model"` and `"created"` fields to every SSE chunk
