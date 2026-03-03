@@ -9,6 +9,11 @@ This file tracks development history and serves as technical reference.
 - Added `website/.gitignore` to suppress Zine build output files from `git status`
 - Documentation consolidation pass: development-notes, showcase, api.smd, version strings
 
+### Post-Release Fix (v0.3.7)
+- Fixed website/content/philosophy.smd truncation — restored complete design philosophy content
+
+### v0.3.6 (March 2026)
+
 ### v0.3.6 (March 2026)
 - Fixed OpenAI-compatible streaming format for full client compatibility (forge, opencode, etc.)
   - Added initial role chunk: `delta: {"role": "assistant", "content": ""}`
