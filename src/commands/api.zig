@@ -55,11 +55,13 @@ fn parseChatRequest(allocator: std.mem.Allocator, body: []const u8) !struct {
     stream: bool,
     max_tokens: ?usize,
     temperature: ?f32,
+    json_mode: bool,
 } {
     var messages: std.ArrayList(ChatMessage) = .empty;
     var stream = false;
     var max_tokens: ?usize = null;
     var temperature: ?f32 = null;
+    var json_mode = false;
 
     // Find "stream": true/false
     if (std.mem.indexOf(u8, body, "\"stream\"")) |stream_pos| {
@@ -81,6 +83,11 @@ fn parseChatRequest(allocator: std.mem.Allocator, body: []const u8) !struct {
         }
     }
 
+    // Find response_format: {"type":"json_object"} — enables grammar-constrained JSON output
+    if (std.mem.indexOf(u8, body, "\"json_object\"")) |_| {
+        json_mode = true;
+    }
+
     // Find "temperature": number
     if (std.mem.indexOf(u8, body, "\"temperature\"")) |temp_pos| {
         var pos = temp_pos + 13;
@@ -97,7 +104,7 @@ fn parseChatRequest(allocator: std.mem.Allocator, body: []const u8) !struct {
         var pos = msg_start + 10;
         // Find opening bracket
         while (pos < body.len and body[pos] != '[') : (pos += 1) {}
-        if (pos >= body.len) return .{ .messages = messages, .stream = stream, .max_tokens = max_tokens, .temperature = temperature };
+        if (pos >= body.len) return .{ .messages = messages, .stream = stream, .max_tokens = max_tokens, .temperature = temperature, .json_mode = json_mode };
         pos += 1;
 
         // Parse each message object
@@ -152,7 +159,7 @@ fn parseChatRequest(allocator: std.mem.Allocator, body: []const u8) !struct {
         }
     }
 
-    return .{ .messages = messages, .stream = stream, .max_tokens = max_tokens, .temperature = temperature };
+    return .{ .messages = messages, .stream = stream, .max_tokens = max_tokens, .temperature = temperature, .json_mode = json_mode };
 }
 
 /// Format messages using ChatML template.
@@ -308,6 +315,7 @@ fn handleStreamingCompletion(
     max_tokens: usize,
     temperature: f32,
     request_id: []const u8,
+    json_mode: bool,
 ) !void {
     const allocator = state.allocator;
 
@@ -340,6 +348,17 @@ fn handleStreamingCompletion(
         sampler.add(llama.Sampler.initTopP(state.top_p, 1));
         sampler.add(llama.Sampler.initTemp(temperature));
         sampler.add(llama.Sampler.initDist(0));
+    }
+
+    // Grammar-constrained sampling: when json_mode is requested, add a JSON
+    // grammar sampler that sets -inf logits for tokens violating JSON syntax
+    // at the current parse state. This eliminates malformed/non-JSON output.
+    if (json_mode) {
+        const grammar_str = @import("../grammar.zig").loadGrammar(allocator, "json") catch null;
+        if (grammar_str) |gs| {
+            defer allocator.free(gs);
+            sampler.add(llama.Sampler.initGrammar(state.vocab, gs, "root"));
+        }
     }
 
     // Tokenize
@@ -454,6 +473,7 @@ fn handleCompletion(
     messages: []const ChatMessage,
     max_tokens: usize,
     temperature: f32,
+    json_mode: bool,
 ) ![]const u8 {
     const allocator = state.allocator;
 
@@ -485,6 +505,13 @@ fn handleCompletion(
         sampler.add(llama.Sampler.initTopP(state.top_p, 1));
         sampler.add(llama.Sampler.initTemp(temperature));
         sampler.add(llama.Sampler.initDist(0));
+    }
+
+    // Grammar-constrained sampling: when json_mode is requested, add a JSON
+    // grammar sampler that sets -inf logits for tokens violating JSON syntax.
+    if (json_mode) {
+        const grammar_str = @import("../grammar.zig").JSON_GRAMMAR;
+        sampler.add(llama.Sampler.initGrammar(state.vocab, grammar_str, "root"));
     }
 
     // Tokenize
@@ -618,10 +645,10 @@ fn handleRequest(state: *ServerState, conn: *std.net.Server.Connection) void {
         if (parsed.stream) {
             // Streaming response
             sendSSEHeaders(conn);
-            handleStreamingCompletion(state, conn, parsed.messages.items, max_tokens, temperature, request_id) catch {};
+            handleStreamingCompletion(state, conn, parsed.messages.items, max_tokens, temperature, request_id, parsed.json_mode) catch {};
         } else {
             // Non-streaming response
-            const response_content = handleCompletion(state, parsed.messages.items, max_tokens, temperature) catch {
+            const response_content = handleCompletion(state, parsed.messages.items, max_tokens, temperature, parsed.json_mode) catch {
                 sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Generation failed\"}");
                 return;
             };
