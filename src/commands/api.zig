@@ -354,11 +354,8 @@ fn handleStreamingCompletion(
     // grammar sampler that sets -inf logits for tokens violating JSON syntax
     // at the current parse state. This eliminates malformed/non-JSON output.
     if (json_mode) {
-        const grammar_str = @import("../grammar.zig").loadGrammar(allocator, "json") catch null;
-        if (grammar_str) |gs| {
-            defer allocator.free(gs);
-            sampler.add(llama.Sampler.initGrammar(state.vocab, gs, "root"));
-        }
+        const grammar_str = @import("../grammar.zig").JSON_GRAMMAR;
+        sampler.add(llama.Sampler.initGrammar(state.vocab, grammar_str, "root"));
     }
 
     // Tokenize
