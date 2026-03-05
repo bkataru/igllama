@@ -1,0 +1,106 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cyberpunk Llama Logo for igllama -->
+  <defs>
+    <!-- Neon glow filter -->
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur3"/>
+      <feMerge>
+        <feMergeNode in="blur3"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Gradient for llama body -->
+    <linearGradient id="llama-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFA500;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FF6B00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient for cyber elements -->
+    <linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9333EA;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle with gradient -->
+  <circle cx="100" cy="100" r="95" fill="#0a0a0f" stroke="#FFA500" stroke-width="2">
+    <animate attributeName="stroke" values="#FFA500;#00FFFF;#9333EA;#FFA500" dur="4s" repeatCount="indefinite" />
+  </circle>
+  
+  <!-- Circuit board pattern in background -->
+  <g stroke="#00FFFF" stroke-width="1" fill="none" opacity="0.3">
+    <path d="M40 60 L60 60 L60 80" />
+    <path d="M140 60 L160 60 L160 40" />
+    <path d="M40 140 L60 140 L60 120" />
+    <path d="M140 140 L160 140 L160 160" />
+    <circle cx="40" cy="60" r="3" fill="#00FFFF" />
+    <circle cx="160" cy="40" r="3" fill="#00FFFF" />
+    <circle cx="40" cy="140" r="3" fill="#00FFFF" />
+    <circle cx="160" cy="160" r="3" fill="#00FFFF" />
+  </g>
+  
+  <!-- Llama head silhouette (simplified, geometric) -->
+  <g filter="url(#neon-glow)">
+    <!-- Llama head outline -->
+    <ellipse cx="100" cy="90" rx="35" ry="45" fill="url(#llama-gradient)" opacity="0.9"/>
+    
+    <!-- Ears -->
+    <ellipse cx="85" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(-20 85 55)"/>
+    <ellipse cx="115" cy="55" rx="8" ry="20" fill="url(#llama-gradient)" transform="rotate(20 115 55)"/>
+    
+    <!-- Snout -->
+    <ellipse cx="100" cy="110" rx="18" ry="14" fill="url(#llama-gradient)"/>
+    
+    <!-- Nostrils -->
+    <circle cx="94" cy="110" r="3" fill="#0a0a0f"/>
+    <circle cx="106" cy="110" r="3" fill="#0a0a0f"/>
+  </g>
+  
+  <!-- Cyber eyes with glow -->
+  <g filter="url(#neon-glow)">
+    <!-- Left eye -->
+    <ellipse cx="90" cy="85" rx="6" ry="8" fill="#0a0a0f"/>
+    <circle cx="90" cy="85" r="4" fill="#00FFFF">
+      <animate attributeName="r" values="4;3;4" dur="2s" repeatCount="indefinite" />
+    </circle>
+    
+    <!-- Right eye -->
+    <ellipse cx="110" cy="85" rx="6" ry="8" fill="#0a0a0f"/>
+    <circle cx="110" cy="85" r="4" fill="#00FFFF">
+      <animate attributeName="r" values="4;3;4" dur="2s" repeatCount="indefinite" />
+    </circle>
+  </g>
+  
+  <!-- Cybernetic implants/accents -->
+  <g stroke="url(#cyber-gradient)" stroke-width="2" fill="none" filter="url(#neon-glow)">
+    <!-- Forehead circuit -->
+    <path d="M90 70 L100 65 L110 70" />
+    <circle cx="100" cy="65" r="2" fill="#9333EA"/>
+    
+    <!-- Cheek accents -->
+    <path d="M75 95 L85 95" />
+    <path d="M115 95 L125 95" />
+  </g>
+  
+  <!-- Text "ig" at top, "llama" at bottom -->
+  <text x="100" y="35" text-anchor="middle" fill="#FFA500" font-size="14" font-weight="bold" font-family="monospace" filter="url(#neon-glow)">
+    ig
+  </text>
+  <text x="100" y="175" text-anchor="middle" fill="#00FFFF" font-size="10" font-family="monospace" filter="url(#neon-glow)">
+    LLAMA
+  </text>
+  
+  <!-- Corner accents -->
+  <g stroke="#9333EA" stroke-width="2" fill="none">
+    <path d="M30 30 L40 30 L40 40" />
+    <path d="M170 30 L160 30 L160 40" />
+    <path d="M30 170 L40 170 L40 160" />
+    <path d="M170 170 L160 170 L160 160" />
+  </g>
+</svg>
