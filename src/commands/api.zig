@@ -354,11 +354,8 @@ fn handleStreamingCompletion(
     // grammar sampler that sets -inf logits for tokens violating JSON syntax
     // at the current parse state. This eliminates malformed/non-JSON output.
     if (json_mode) {
-        const grammar_str = @import("../grammar.zig").loadGrammar(allocator, "json") catch null;
-        if (grammar_str) |gs| {
-            defer allocator.free(gs);
-            sampler.add(llama.Sampler.initGrammar(state.vocab, gs, "root"));
-        }
+        const grammar_str = @import("../grammar.zig").JSON_GRAMMAR;
+        sampler.add(llama.Sampler.initGrammar(state.vocab, grammar_str, "root"));
     }
 
     // Tokenize
@@ -468,13 +465,19 @@ fn sendSSEDone(conn: *std.net.Server.Connection) !void {
 }
 
 /// Generate non-streaming completion
+const CompletionResult = struct {
+    content: []const u8,
+    prompt_tokens: usize,
+    completion_tokens: usize,
+};
+
 fn handleCompletion(
     state: *ServerState,
     messages: []const ChatMessage,
     max_tokens: usize,
     temperature: f32,
     json_mode: bool,
-) ![]const u8 {
+) !CompletionResult {
     const allocator = state.allocator;
 
     // Format prompt
@@ -518,6 +521,7 @@ fn handleCompletion(
     var tokenizer = llama.Tokenizer.init(allocator);
     defer tokenizer.deinit();
     try tokenizer.tokenize(state.vocab, prompt, false, true);
+    const prompt_tokens = tokenizer.getTokens().len;
 
     var detokenizer = llama.Detokenizer.init(allocator);
     defer detokenizer.deinit();
@@ -528,6 +532,7 @@ fn handleCompletion(
 
     var batch = llama.Batch.initOne(tokenizer.getTokens());
     var batch_token: [1]llama.Token = undefined;
+    var completion_tokens: usize = 0;
 
     for (0..max_tokens) |_| {
         batch.decode(ctx) catch break;
@@ -540,9 +545,14 @@ fn handleCompletion(
         const token_text = detokenizer.detokenize(state.vocab, token) catch continue;
         try response.appendSlice(allocator, token_text);
         detokenizer.clearRetainingCapacity();
+        completion_tokens += 1;
     }
 
-    return response.toOwnedSlice(allocator);
+    return .{
+        .content = try response.toOwnedSlice(allocator),
+        .prompt_tokens = prompt_tokens,
+        .completion_tokens = completion_tokens,
+    };
 }
 
 /// Send HTTP response
@@ -648,17 +658,17 @@ fn handleRequest(state: *ServerState, conn: *std.net.Server.Connection) void {
             handleStreamingCompletion(state, conn, parsed.messages.items, max_tokens, temperature, request_id, parsed.json_mode) catch {};
         } else {
             // Non-streaming response
-            const response_content = handleCompletion(state, parsed.messages.items, max_tokens, temperature, parsed.json_mode) catch {
+            const completion = handleCompletion(state, parsed.messages.items, max_tokens, temperature, parsed.json_mode) catch {
                 sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Generation failed\"}");
                 return;
             };
-            defer state.allocator.free(response_content);
+            defer state.allocator.free(completion.content);
 
             // Escape content for JSON
             var escaped_content: std.ArrayList(u8) = .empty;
             defer escaped_content.deinit(state.allocator);
 
-            for (response_content) |c| {
+            for (completion.content) |c| {
                 switch (c) {
                     '"' => escaped_content.appendSlice(state.allocator, "\\\"") catch {},
                     '\\' => escaped_content.appendSlice(state.allocator, "\\\\") catch {},
@@ -673,8 +683,12 @@ fn handleRequest(state: *ServerState, conn: *std.net.Server.Connection) void {
             const created_ts = std.time.timestamp();
             var response_buf: [65536]u8 = undefined;
             const response_json = std.fmt.bufPrint(&response_buf,
-                \\{{"id":"{s}","object":"chat.completion","created":{d},"model":"{s}","choices":[{{"index":0,"message":{{"role":"assistant","content":"{s}"}},"finish_reason":"stop"}}],"usage":{{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0}}}}
-            , .{ request_id, created_ts, state.model_name, escaped_content.items }) catch {
+                \\{{"id":"{s}","object":"chat.completion","created":{d},"model":"{s}","choices":[{{"index":0,"message":{{"role":"assistant","content":"{s}"}},"finish_reason":"stop"}}],"usage":{{"prompt_tokens":{d},"completion_tokens":{d},"total_tokens":{d}}}}}
+            , .{
+                request_id, created_ts, state.model_name, escaped_content.items,
+                completion.prompt_tokens, completion.completion_tokens,
+                completion.prompt_tokens + completion.completion_tokens,
+            }) catch {
                 sendResponse(conn, "500 Internal Server Error", "application/json", "{\"error\":\"Response too large\"}");
                 return;
             };
