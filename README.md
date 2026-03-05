@@ -432,7 +432,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-*Last updated: March 2026 - v0.3.7 release*
+*Last updated: March 2026 - v0.3.10 release*
 
 ## Credits
 
