@@ -375,6 +375,11 @@ fn handleStreamingCompletion(
     var batch = llama.Batch.initOne(tokenizer.getTokens());
     var batch_token: [1]llama.Token = undefined;
 
+    // When --no-think is active, buffer initial tokens to strip residual </think>
+    var think_buf: std.ArrayList(u8) = .empty;
+    defer think_buf.deinit(allocator);
+    var think_stripped = !state.no_think; // true = already done / not needed
+
     for (0..max_tokens) |_| {
         batch.decode(ctx) catch break;
         const token = sampler.sample(ctx, -1);
@@ -385,8 +390,43 @@ fn handleStreamingCompletion(
 
         // Detokenize and send SSE event
         const token_text = detokenizer.detokenize(state.vocab, token) catch continue;
-        try sendSSEToken(conn, token_text, request_id, state.model_name, created);
         detokenizer.clearRetainingCapacity();
+
+        if (!think_stripped) {
+            // Buffer initial tokens until we can determine if </think> is present
+            think_buf.appendSlice(allocator, token_text) catch continue;
+            const buf = think_buf.items;
+            // Skip leading whitespace to find </think>
+            var start: usize = 0;
+            while (start < buf.len and (buf[start] == ' ' or buf[start] == '\n' or buf[start] == '\r' or buf[start] == '\t')) : (start += 1) {}
+            const think_end = "</think>";
+            if (start + think_end.len <= buf.len) {
+                if (std.mem.eql(u8, buf[start .. start + think_end.len], think_end)) {
+                    // Found </think> — skip it and flush remainder
+                    var trim_start = start + think_end.len;
+                    while (trim_start < buf.len and (buf[trim_start] == ' ' or buf[trim_start] == '\n' or buf[trim_start] == '\r' or buf[trim_start] == '\t')) : (trim_start += 1) {}
+                    if (trim_start < buf.len) {
+                        sendSSEToken(conn, buf[trim_start..], request_id, state.model_name, created) catch {};
+                    }
+                } else {
+                    // Not </think> — flush entire buffer
+                    sendSSEToken(conn, buf, request_id, state.model_name, created) catch {};
+                }
+                think_stripped = true;
+            } else if (buf.len > 20) {
+                // Buffer too large without matching — flush as-is
+                sendSSEToken(conn, buf, request_id, state.model_name, created) catch {};
+                think_stripped = true;
+            }
+            // else: keep buffering
+        } else {
+            try sendSSEToken(conn, token_text, request_id, state.model_name, created);
+        }
+    }
+
+    // Flush any remaining buffered tokens
+    if (!think_stripped and think_buf.items.len > 0) {
+        sendSSEToken(conn, think_buf.items, request_id, state.model_name, created) catch {};
     }
 
     // Send final stop chunk then [DONE]
@@ -548,8 +588,27 @@ fn handleCompletion(
         completion_tokens += 1;
     }
 
+    // Strip residual </think> prefix when --no-think is active.
+    // The prompt prefills <think>\n\n</think>\n but the model sometimes
+    // still emits </think> as the first generated token(s).
+    var content = try response.toOwnedSlice(allocator);
+    if (state.no_think) {
+        const think_end = "</think>";
+        var start: usize = 0;
+        // Skip leading whitespace
+        while (start < content.len and (content[start] == ' ' or content[start] == '\n' or content[start] == '\r' or content[start] == '\t')) : (start += 1) {}
+        if (start + think_end.len <= content.len and std.mem.eql(u8, content[start .. start + think_end.len], think_end)) {
+            var trim_start = start + think_end.len;
+            // Skip whitespace after </think>
+            while (trim_start < content.len and (content[trim_start] == ' ' or content[trim_start] == '\n' or content[trim_start] == '\r' or content[trim_start] == '\t')) : (trim_start += 1) {}
+            const trimmed = try allocator.dupe(u8, content[trim_start..]);
+            allocator.free(content);
+            content = trimmed;
+        }
+    }
+
     return .{
-        .content = try response.toOwnedSlice(allocator),
+        .content = content,
         .prompt_tokens = prompt_tokens,
         .completion_tokens = completion_tokens,
     };
